@@ -1,0 +1,6 @@
+/.qmake.stash
+/.vscode
+/debug
+/Makefile
+/release
+/tmp
