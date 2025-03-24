@@ -59,25 +59,29 @@ void OpenGLWidget::initializeGL()
 
     Spring spring2(15000.0f, 1.0f, 0.0f, QColor(255, 0, 0));
     spring2.SetParticles(&m_particles[0], &m_particles[2]);
-    m_physicsSystem.AddSpring(spring2);*/
+    m_physicsSystem.AddSpring(spring2);
+
+    m_physicsSystem.ChangeFrictionParticle(1.0f);*/
 
     // Spring test 2 (double pendulum)
     /*m_particles.push_back(Particle(QVector3D(0, 0, 0), 10, 20, false));
-    m_particles.push_back(Particle(QVector3D(-200, -200, -100), 10, 20, true));
+    m_particles.push_back(Particle(QVector3D(-200, -200, -100), 10, 200, true));
     m_particles.push_back(Particle(QVector3D(0, -100, -100), 10, 20, true));
 
     m_physicsSystem.AddRigidbody(&m_particles[0]);
     m_physicsSystem.AddRigidbody(&m_particles[1]);
     m_physicsSystem.AddRigidbody(&m_particles[2]);
 
-    Spring spring1(15000.0f, 1.0f, 0.0f);
+    Spring spring1(150000.0f, 1.0f, 0.0f);
     spring1.SetParticles(&m_particles[0], &m_particles[1]);
     
     Spring spring2(15000.0f, 1.0f, 0.0f);
     spring2.SetParticles(&m_particles[1], &m_particles[2]);
 
     m_physicsSystem.AddSpring(spring1);
-    m_physicsSystem.AddSpring(spring2);*/
+    m_physicsSystem.AddSpring(spring2);
+
+    m_physicsSystem.ChangeFrictionParticle(1.0f);*/
 
     // Spring test 3 (collision)
     /*m_particles.push_back(Particle(QVector3D(-50, 0, 0), 5, 10.0, false));
@@ -90,6 +94,7 @@ void OpenGLWidget::initializeGL()
     m_physicsSystem.AddRigidbody(&m_particles[2]);
     m_physicsSystem.AddRigidbody(&m_particles[3]);
 
+    // add constraints (collision particles between red and blue particules)
     m_physicsSystem.AddConstraint(&m_particles[2]);
     m_physicsSystem.AddConstraint(&m_particles[3]);
 
@@ -114,16 +119,17 @@ void OpenGLWidget::initializeGL()
         m_particles.push_back(Particle(QVector3D(i*l+l, 0, 0), 2, 10.0, true));
     }
     for (int i = 1; i < n; ++i) {
-        Spring spring(10000.0f, 1.0f, 0.0f);
+        Spring spring(15000.0f, 0.0f, 0.0f);
         spring.SetParticles(&m_particles[i], &m_particles[i - 1]);
         m_physicsSystem.AddSpring(spring);
     }
 
-    for (long unsigned int i = 0; i < m_particles.size(); i++) m_physicsSystem.AddRigidbody(&m_particles[i]);
-    m_physicsSystem.ChangeFrictionParticle(0.99f);*/
- 
+    for (long unsigned int i = 0; i < m_particles.size(); i++) {
+        m_physicsSystem.AddRigidbody(&m_particles[i]);
+        m_physicsSystem.AddConstraint(&m_particles[i]);
+    }*/
+
     // Spring test 5 (breast)
-    // On définit les valeurs
     int n = 15;
     int r = 300;
     int e = 75;
@@ -139,6 +145,7 @@ void OpenGLWidget::initializeGL()
     float k2a = 450 * 5;
     float k2b = 900 * 5;
     float k2c = 900 * 5;
+
 
     float t0 = M_PI / (n - 1);
     float n1 = static_cast<int>(0.5 + (s1 * M_PI / 180) / t0);
@@ -233,7 +240,16 @@ void OpenGLWidget::initializeGL()
         // Spring spring3(k1c, 1.0f, l3, QColor(255, 0, 0));
         // spring3.SetParticles(&m_particles[i + n], &m_particles[i + 1]);
         // m_physicsSystem.AddSpring(spring3);
+        // Spring spring4(k1b, 1.0f, l2, QColor(255, 0, 0));
+        // spring4.SetParticles(&m_particles[i + n + 1], &m_particles[i]);
+        // m_physicsSystem.AddSpring(spring4);
     }
+    // Spring s8(k1c, 1.0f, l3, QColor(255, 0, 0));
+    // s8.SetParticles(&m_particles[0], &m_particles[n+1]);
+    // m_physicsSystem.AddSpring(s8);
+    // Spring s9(k1a, 1.0f, l1, QColor(255, 0, 0));
+    // s9.SetParticles(&m_particles[1], &m_particles[n]);
+    // m_physicsSystem.AddSpring(s9);
     for (int i = n1; i < n1 + n2; ++i) {
         Spring spring1(k2c, 1.0f, l3, QColor(0, 0, 255));
         spring1.SetParticles(&m_particles[i + n], &m_particles[i + n - 1]);
@@ -241,9 +257,12 @@ void OpenGLWidget::initializeGL()
         Spring spring2(k2b, 0.0f, l2, QColor(0, 0, 255));
         spring2.SetParticles(&m_particles[i + n], &m_particles[i]);
         m_physicsSystem.AddSpring(spring2);
-        // Spring spring3(k1c, 1.0f, l3, QColor(0, 0, 255));
+        // Spring spring3(k2c, 1.0f, l3, QColor(0, 0, 255));
         // spring3.SetParticles(&m_particles[i + n], &m_particles[i + 1]);
         // m_physicsSystem.AddSpring(spring3);
+        // Spring spring4(k2b, 1.0f, l2, QColor(0, 0, 255));
+        // spring4.SetParticles(&m_particles[i + n + 1], &m_particles[i]);
+        // m_physicsSystem.AddSpring(spring4);
     }
     Spring spring2(k2c, 1.0f, l3, QColor(0, 0, 255));
     spring2.SetParticles(&m_particles[m4], &m_particles[2*(n1+n2)]);
@@ -274,6 +293,8 @@ void OpenGLWidget::initializeGL()
 void OpenGLWidget::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glUseProgram(m_program->programId());
 
     m_program->bind();
 
