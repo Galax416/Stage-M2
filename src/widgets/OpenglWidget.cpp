@@ -1,6 +1,6 @@
 #include "OpenglWidget.h"
 
-OpenGLWidget::OpenGLWidget(QWidget *parent) : QOpenGLWidget(parent), m_program(0), m_shader(0)
+OpenGLWidget::OpenGLWidget(QWidget *parent) : QOpenGLWidget(parent), m_program(0)
 {
     setFocusPolicy(Qt::StrongFocus);  // Permit to receive key events
 }
@@ -9,8 +9,6 @@ OpenGLWidget::~OpenGLWidget()
 {
     makeCurrent();
     delete m_program;
-    delete m_shader;
-
     doneCurrent();
 }
 
@@ -27,22 +25,37 @@ QSize OpenGLWidget::sizeHint() const
 void OpenGLWidget::resizeGL(int width, int height)
 {
     glViewport(0, 0, width, height);
+    m_camera->SetAspect(static_cast<float>(width) / static_cast<float>(height));
 
+}
+
+void OpenGLWidget::initShaders(QOpenGLShaderProgram *program, QString vertex_shader, QString fragment_shader)
+{
+    if (!program->addShaderFromSourceFile(QOpenGLShader::Vertex, vertex_shader)) {
+        qWarning() << "Error when compiling the vertex shader:" << program->log();
+    }
+
+    if (!program->addShaderFromSourceFile(QOpenGLShader::Fragment, fragment_shader)) {
+        qWarning() << "Error when compiling the fragment shader:" << program->log();
+    }
+
+    if (!program->link()) {
+        qWarning() << "Error when linking the shader program:" << program->log();
+    }
 }
 
 void OpenGLWidget::initializeGL()
 {
     initializeOpenGLFunctions();
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
     m_program = new QOpenGLShaderProgram();
+    initShaders(m_program, "./src/shaders/vertex_shader.vert", "./src/shaders/fragment_shader.frag");
 
-    m_program->addShaderFromSourceFile(QOpenGLShader::Vertex, "./src/shaders/shader.vert");
-    m_program->addShaderFromSourceFile(QOpenGLShader::Fragment, "./src/shaders/shader.frag");
-    m_program->link();
+    m_camera = new Camera(QVector3D(0.0f, 0.0f, 5.0f), QVector3D(0.0f, 0.0f, 0.0f));
 
-    m_physicsSystem.ClearRigidbodys();
-    m_physicsSystem.ClearSprings();
-    m_physicsSystem.ClearConstraints();
+    m_physicsSystem.ClearAll();
+
 
     // Spring test 1 (pendulum)
     /*m_particles.push_back(Particle(QVector3D(0, 0, 0), 10, 10, false, QColor(0, 255, 0))); // m1
@@ -98,7 +111,7 @@ void OpenGLWidget::initializeGL()
     m_physicsSystem.AddConstraint(&m_particles[2]);
     m_physicsSystem.AddConstraint(&m_particles[3]);
 
-    m_physicsSystem.ChangeFrictionParticle(0.999f);
+    m_physicsSystem.ChangeFrictionParticle(1.0f);
 
     Spring spring1(10000.0f, 1.0f, 0.0f);
     spring1.SetParticles(&m_particles[0], &m_particles[2]);
@@ -131,8 +144,8 @@ void OpenGLWidget::initializeGL()
 
     // Spring test 5 (breast)
     int n = 15;
-    int r = 300;
-    int e = 75;
+    float r = 1;
+    float e = 0.2;
     int s1 = 110;
     int s2 = 70;
     int boule = 17;
@@ -203,13 +216,13 @@ void OpenGLWidget::initializeGL()
     m_particles.push_back(Particle(QVector3D(0, -r-e, 0), 5, 10.0, false, QColor(255, 0, 106)));
     int m4 = m_particles.size() - 1;
 
-    int a = 0;
+    float a = 0;
     while (a < r) {
         m_particles.push_back(Particle(QVector3D(0, a, 0), 5, 10.0, false, QColor(255, 0, 106)));
         a = a + e / 2;
     }
 
-    int b = -e / 2;
+    float b = -e / 2;
     while (b > -r) {
         m_particles.push_back(Particle(QVector3D(0, b, 0), 5, 10.0, false, QColor(255, 0, 106)));
         b = b - e / 2;
@@ -273,12 +286,12 @@ void OpenGLWidget::initializeGL()
     m_physicsSystem.AddSpring(spring3);
 
     // Set up particles in
-    m_particles.push_back(Particle(QVector3D(75, 0, 0), boule, bouleG, true, QColor(255, 0, 106)));
-    m_particles.push_back(Particle(QVector3D(75, -120, 0), boule, bouleG, true, QColor(255, 0, 106)));
-    m_particles.push_back(Particle(QVector3D(75, 120, 0), boule, bouleG, true, QColor(255, 0, 106)));
-    m_particles.push_back(Particle(QVector3D(160, 0, 0), boule, bouleG, true, QColor(255, 0, 106)));
-    m_particles.push_back(Particle(QVector3D(160, -120, 0), boule, bouleG, true, QColor(255, 0, 106)));
-    m_particles.push_back(Particle(QVector3D(160, 120, 0), boule, bouleG, true, QColor(255, 0, 106)));
+    m_particles.push_back(Particle(QVector3D(0.30, 0, 0), boule, bouleG, true, QColor(255, 0, 106)));
+    m_particles.push_back(Particle(QVector3D(0.30, -0.30, 0), boule, bouleG, true, QColor(255, 0, 106)));
+    m_particles.push_back(Particle(QVector3D(0.30, 0.30, 0), boule, bouleG, true, QColor(255, 0, 106)));
+    m_particles.push_back(Particle(QVector3D(0.60, 0, 0), boule, bouleG, true, QColor(255, 0, 106)));
+    m_particles.push_back(Particle(QVector3D(0.60, -0.30, 0), boule, bouleG, true, QColor(255, 0, 106)));
+    m_particles.push_back(Particle(QVector3D(0.60, 0.30, 0), boule, bouleG, true, QColor(255, 0, 106)));
 
     // Add particles to physics system
     for (long unsigned int i = 0; i < m_particles.size(); i++) {
@@ -286,6 +299,31 @@ void OpenGLWidget::initializeGL()
         m_physicsSystem.AddConstraint(&m_particles[i]);
     }
 
+    /*m_particles.push_back(Particle(QVector3D(0, 0, 0), 30, 10, true, QColor(255, 255, 255))); // Base
+    m_particles.push_back(Particle(QVector3D(1, 0, 0), 30, 10, false, QColor(255, 0, 0))); // x
+    m_particles.push_back(Particle(QVector3D(0, 1, 0), 30, 10, false, QColor(0, 0, 255))); // y
+    m_particles.push_back(Particle(QVector3D(0, 0, 1), 30, 10, false, QColor(0, 255, 0))); // z
+
+    m_physicsSystem.AddRigidbody(&m_particles[0]);
+    m_physicsSystem.AddRigidbody(&m_particles[1]);
+    m_physicsSystem.AddRigidbody(&m_particles[2]);
+    m_physicsSystem.AddRigidbody(&m_particles[3]);
+
+    Spring spring1(100.0f, 1.0f, 0.0f, QColor(255, 0, 0));
+    spring1.SetParticles(&m_particles[0], &m_particles[1]);
+
+    Spring spring2(100.0f, 1.0f, 0.0f, QColor(0, 0, 255));
+    spring2.SetParticles(&m_particles[0], &m_particles[2]);
+
+    Spring spring3(100.0f, 1.0f, 0.0f, QColor(0, 255, 0));
+    spring3.SetParticles(&m_particles[0], &m_particles[3]);
+
+    m_physicsSystem.AddSpring(spring1);
+    m_physicsSystem.AddSpring(spring2);
+    m_physicsSystem.AddSpring(spring3);*/
+
+
+    
 
 
 }
@@ -297,6 +335,8 @@ void OpenGLWidget::paintGL()
     glUseProgram(m_program->programId());
 
     m_program->bind();
+    m_program->setUniformValue("projection", m_camera->GetProjectionMatrix());
+    m_program->setUniformValue("view", m_camera->GetViewMatrix());
 
     m_physicsSystem.Render(m_program);
 
@@ -311,17 +351,26 @@ void OpenGLWidget::paintGL()
 
 void OpenGLWidget::mousePressEvent(QMouseEvent *event)
 {
-    
+    // Camera rotation
+    m_camera->mousePressEvent(event);
+}
+
+void OpenGLWidget::mouseReleaseEvent(QMouseEvent *event)
+{
+    // Camera rotation
+    m_camera->mouseReleaseEvent(event);
 }
 
 void OpenGLWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    
+    // Camera rotation
+    m_camera->mouseMoveEvent(event);
 }
 
 void OpenGLWidget::wheelEvent(QWheelEvent *event)
 {
-    
+    // Camera zoom
+    m_camera->wheelEvent(event);
 }
 
 void OpenGLWidget::keyPressEvent(QKeyEvent *event)

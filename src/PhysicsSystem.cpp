@@ -42,19 +42,15 @@ void PhysicsSystem::Render(QOpenGLShaderProgram* shaderProgram)
 void PhysicsSystem::ChangeGravityParticle(const QVector3D& g)
 {
     for (int i = 0, size = bodies.size(); i < size; ++i) {
-        if (bodies[i]->type == RIGIDBODY_TYPE_PARTICLE) {
-            Particle* p = static_cast<Particle*>(bodies[i]);
-            p->SetGravity(g);
-        }
+        bodies[i]->SetGravity(g);
     }
+        
+    
 }
 
 void PhysicsSystem::ChangeFrictionParticle(float f)
 {
     for (int i = 0, size = bodies.size(); i < size; ++i) {
-        if (bodies[i]->type == RIGIDBODY_TYPE_PARTICLE) {
-            Particle* p = static_cast<Particle*>(bodies[i]);
-            p->SetFriction(f);
-        }
+        bodies[i]->SetFriction(f);
     }
 }

@@ -5,10 +5,10 @@
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
-#include <QOpenGLShader>
 #include <QKeyEvent>
 
 #include "Constants.h"
+#include "Camera.h"
 #include "PhysicsSystem.h"
 
 #include <memory>
@@ -30,6 +30,7 @@ protected:
     void resizeGL(int width, int height) override;
 
     void mousePressEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
 
@@ -37,8 +38,11 @@ protected:
     void keyReleaseEvent(QKeyEvent *event) override;
 
 private:
+    void initShaders(QOpenGLShaderProgram *program, QString vertex_shader, QString fragment_shader);
     QOpenGLShaderProgram *m_program;
-    QOpenGLShader *m_shader;
+
+    Camera *m_camera;
+    QOpenGLVertexArrayObject m_vao;
 
     PhysicsSystem m_physicsSystem;
     std::vector<Particle> m_particles;

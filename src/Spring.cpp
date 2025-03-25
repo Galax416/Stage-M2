@@ -24,19 +24,6 @@ void Spring::ApplyForce(float deltaTime)
 {
     if (!p1 || !p2) return;
 
-    /*QVector3D delta = p2->GetPosition() - p1->GetPosition();
-    float length = delta.length();
-    QVector3D direction = delta.normalized();
-    
-    float displacement = length - restingLength;
-    QVector3D force = k * displacement * direction;
-    
-    QVector3D velocityDiff = p2->GetVelocity() - p1->GetVelocity();
-    QVector3D damping = -b * velocityDiff;
-    
-    p1->AddImpulse(force * deltaTime + damping * deltaTime);
-    p2->AddImpulse(-force * deltaTime - damping * deltaTime);*/
-
     QVector3D relPos = p2->GetPosition() - p1->GetPosition();
 	QVector3D relVel = p2->GetVelocity() - p1->GetVelocity();
 
@@ -62,6 +49,7 @@ void Spring::Render(QOpenGLShaderProgram* shaderProgram)
     if (!p1 || !p2) return;
 
     shaderProgram->setUniformValue("color", color);
+    shaderProgram->setUniformValue("model", QMatrix4x4());
 
     Line line(p1->GetPosition(), p2->GetPosition());
     ::Render(line);

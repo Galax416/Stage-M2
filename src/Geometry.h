@@ -7,13 +7,15 @@
 #include <QDebug>
 #include <qgenericmatrix.h>
 
+#include "Model.h"
+
 #define PI 3.14159265358979323846f
 
 
 // 2D Geometry
 typedef QVector2D Point2D;
 
-typedef struct Circle 
+struct Circle 
 {
 	Point2D position;
 	float radius;
@@ -21,7 +23,7 @@ typedef struct Circle
 	inline Circle() : radius(1.0f) {}
 	inline Circle(const Point2D& p, float r):
 		position(p), radius(r) {}
-} Circle;
+};
 
 // Renderings 2D
 void Render(const Circle& circle);
@@ -29,7 +31,7 @@ void Render(const Circle& circle);
 // 3D Geometry
 typedef QVector3D Point;
 
-typedef struct Line 
+struct Line 
 {
 	Point start;
 	Point end;
@@ -37,9 +39,9 @@ typedef struct Line
 	inline Line() {}
 	inline Line(const Point& s, const Point& e) :
 		start(s), end(e) { }
-} Line;
+};
 
-typedef struct Ray 
+struct Ray 
 {
 	Point origin;
 	QVector3D direction;
@@ -52,50 +54,61 @@ typedef struct Ray
 	inline void NormalizeDirection() {
 		direction.normalize();
 	}
-} Ray;
+};
 
-typedef struct RaycastResult {
-	QVector3D point;
+struct RaycastResult {
+	Point point;
 	QVector3D normal;
 	float t;
 	bool hit;
-} RaycastResult;
+};
 
-typedef struct Sphere 
+struct Sphere : public Model
 {
-	Point position;
+	// Point position;
 	float radius;
 
 	inline Sphere() : radius(1.0f) { }
-	inline Sphere(const Point& p, float r) :
-		position(p), radius(r) { }
-} Sphere;
+	inline Sphere(const Point& p, float r) : radius(r) { position = p; }
+};
 
-typedef struct AABB {
-	Point position;
-	QVector3D size; // HALF SIZE!
+struct Plane : public Model
+{
+	// Point position;
+	QVector3D normal;
 
-	inline AABB() : size(1, 1, 1) { }
-	inline AABB(const Point& p, const QVector3D& s) :
-		position(p), size(s) { }
-} AABB;
+	inline Plane() : normal(1, 0, 0) { }
+	inline Plane(const Point& p, const QVector3D& n) : normal(n) { position = p; }
+};
 
-typedef struct OBB {
-	Point position;
-	QVector3D size; // HALF SIZE!
-	QMatrix3x3 orientation;
 
-	inline OBB() : size(1, 1, 1) { }
-	inline OBB(const Point& p, const QVector3D& s) :
-		position(p), size(s) { }
-	inline OBB(const Point& p, const QVector3D& s, const QMatrix3x3& o) :
-		position(p), size(s), orientation(o) { }
-} OBB;
 
-// Renderings 3D
+// Functions
+QVector3D GetMin(const AABB& aabb);
+QVector3D GetMax(const AABB& aabb);
+
+// Raycasting
+// void ResetRaycastResult(RaycastResult* outResult);
+// bool Raycast(const Sphere& sphere, const Ray& ray, RaycastResult* outResult);
+// bool Raycast(const AABB& aabb, const Ray& ray, RaycastResult* outResult);
+// bool Raycast(const OBB& obb, const Ray& ray, RaycastResult* outResult);
+// bool Raycast(const Plane& plane, const Ray& ray, RaycastResult* outResult);
+// bool Raycast(const Triangle& triangle, const Ray& ray, RaycastResult* outResult);
+
+
+// Renderings
 // void Render(const Point& point);
 void Render(const Line& line);
 void Render(const Ray& ray);
 void Render(const Sphere& sphere);
-void Render(const AABB& aabb);
-void Render(const OBB& obb);
+// void Render(const AABB& aabb);
+// void Render(const OBB& obb);
+void Render(const Plane& plane);
+// void Render(const Triangle& triangle);
+// void Render(const BVHNode& bvh);
+
+
+
+
+
+

@@ -1,6 +1,9 @@
 /.qmake.stash
 /.vscode
 /debug
-/Makefile
+/Makefile*
 /release
 /tmp
+/libs/assimp*
+/App*
+/main*

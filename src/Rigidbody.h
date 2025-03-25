@@ -15,6 +15,13 @@ class Rigidbody
 public:
     int type;
 
+    QVector3D gravity { 0.0f, -9.82f, 0.0f };
+    float friction { 0.99f };
+    QVector3D forces { 0.0f, 0.0f, 0.0f };
+
+    float mass { 1.0f }; // default mass
+    bool movable { true };
+
     inline Rigidbody() {
         type = RIGIDBODY_TYPE_BASE;
     }
@@ -28,5 +35,10 @@ public:
     inline bool HasVolume() {
         return type == RIGIDBODY_TYPE_SPHERE || type == RIGIDBODY_TYPE_BOX;
     }
+
+    void SetGravity(const QVector3D& g) { gravity = g; }
+    void SetFriction(float f) { friction = f < 0 ? 0 : f; }
+    void SetMass(float m) { mass = m < 0 ? 0 : m; }
+    void SetMovable(bool m) { movable = m; }
 
 };

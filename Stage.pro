@@ -1,11 +1,11 @@
-########################################
-################# App ################## 
-########################################
+# -------------------------------------------------
+#                        App
+# -------------------------------------------------
 
 QT += core gui opengl widgets 
 win32: QT += openglwidgets
 
-CONFIG += c++11 release
+CONFIG += c++17 release
 QMAKE_CXXFLAGS_RELEASE = -O3 -Wno-unused-parameter
 
 TARGET = main
@@ -16,20 +16,29 @@ UI_DIR = ./tmp/ui
 
 SOURCES += ./src/Main.cpp \
            ./src/MainWindow.cpp \
+           ./src/stb_image.cpp \
            ./src/Geometry.cpp \
            ./src/Particle.cpp \
            ./src/Spring.cpp \
            ./src/PhysicsSystem.cpp \
-           ./src/widgets/OpenglWidget.cpp
+           ./src/Camera.cpp \
+           ./src/Mesh.cpp \
+           ./src/Model.cpp \
+           ./src/widgets/OpenglWidget.cpp 
 
 HEADERS += ./src/Constants.h \
            ./src/MainWindow.h \
+           ./src/stb_image.h \
            ./src/Geometry.h \
            ./src/Rigidbody.h \
            ./src/Particle.h \
            ./src/Spring.h \
            ./src/PhysicsSystem.h \
            ./src/Utils.h \
+           ./src/Transform.h \
+           ./src/Camera.h \
+           ./src/Mesh.h \
+           ./src/Model.h \
            ./src/widgets/OpenglWidget.h
 
 #FORMS += 
@@ -37,6 +46,8 @@ HEADERS += ./src/Constants.h \
 INCLUDEPATH += ./libs \
                ./src \
                ./src/widgets \
-               ./src/shaders
+               ./src/shaders \
+               ./libs/assimp-5.4.3/include
 
-win32: LIBS += -lopengl32
+win32: LIBS += -lopengl32 -lgdi32 -L"libs/assimp-5.4.3/bin"
+unix: LIBS += -lGL -ldl -lpthread -lassimp

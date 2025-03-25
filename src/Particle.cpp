@@ -8,9 +8,9 @@ Particle::Particle()
 Particle::Particle(QVector3D pos, float r, float m, bool mov, QColor c)
 {
     type = RIGIDBODY_TYPE_PARTICLE;
-    position = ScreenCordinateToUV(pos);
+    position = pos;//ScreenCordinateToUV(pos);
     oldPosition = position;
-    radius = r * 0.005f;
+    radius = r * 0.01f;
     mass = m;
     movable = mov;
     color = c;
@@ -31,12 +31,17 @@ void Particle::Render(QOpenGLShaderProgram* shaderProgram)
     // Sphere visual(position, radius);
     // ::Render(visual);
 
-    // Bind color to shader
     shaderProgram->setUniformValue("color", color);
+    // shaderProgram->setUniformValue("model", QMatrix4x4());
+
+    Sphere visual(position, radius);
+    shaderProgram->setUniformValue("model", visual.GetModelMatrix());
+    ::Render(visual);
+
 
     // Render form
-    Circle visual(QVector2D(position), radius);
-    ::Render(visual);
+    // Circle visual(QVector2D(position), radius);
+    // ::Render(visual);
 
 }
 

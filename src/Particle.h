@@ -9,23 +9,15 @@
 class Particle : public Rigidbody
 {
 private:
-    // QVector3D position { 0.0f, 0.0f, 0.0f };
-    QVector3D oldPosition { 0.0f, 0.0f, 0.0f };
-    // QVector3D velocity { 0.0f, 0.0f, 0.0f };
-    QVector3D forces { 0.0f, 0.0f, 0.0f };
+    QVector3D position { 0.0f, 0.0f, 0.0f };
+    QVector3D oldPosition { 0.0f, 0.0f, 0.0f };   
 
-    QVector3D gravity { 0.0f, -9.82f, 0.0f };
-    float friction { 0.99f }; 
     float bounce { 0.7f };
 
-    float mass { 1.0f }; // default mass
     float radius { 0.01f }; // default radius
     QColor color;
 
-    bool movable { true };
-
 public:
-    QVector3D position { 0.0f, 0.0f, 0.0f };
     Particle();
     Particle(QVector3D pos, float r, float m, bool mov = true, QColor c = Qt::white);
 
@@ -48,7 +40,5 @@ public:
     QVector3D GetVelocity() { return position - oldPosition; }
     float InvMass() { return mass == 0 ? 0 : 1.0f / mass; }
     void SetMass(float m) { mass = m < 0 ? 0 : m; }
-    void SetFriction(float f) { friction = f < 0 ? 0 : f; }
-    void SetGravity(const QVector3D& g) { gravity = g; }
 
 };

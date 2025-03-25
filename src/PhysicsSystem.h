@@ -24,6 +24,7 @@ public:
     void AddSpring(Spring& spring) { springs.push_back(spring); }
     void AddConstraint(Rigidbody* constraint) { constraints.push_back(constraint); }
 
+    void ClearAll() { ClearRigidbodys(); ClearSprings(); ClearConstraints(); }
     void ClearRigidbodys() { bodies.clear(); }
     void ClearSprings() { springs.clear(); }
     void ClearConstraints() { constraints.clear(); }
