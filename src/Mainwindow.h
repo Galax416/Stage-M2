@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QMainWindow>
-#include <QVBoxLayout>
+#include <QStatusBar>
 #include <QShortcut>
 
 #include "OpenglWidget.h"
@@ -16,10 +16,11 @@ public:
     explicit MainWindow(QWidget* parent = nullptr);
     ~MainWindow();
 
-// protected:
-    // void keyPressEvent(QKeyEvent* event) override;
+public slots:
+    void updateStatusBarMessage(const QString& message);
 
 private:
     OpenGLWidget* m_openGLWidget;
+    QStatusBar* m_statusBar;
 
 };

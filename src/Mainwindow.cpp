@@ -9,10 +9,15 @@ MainWindow::MainWindow(QWidget* parent)
     // Set window size
     //  x    y    w    h
     setGeometry(100, 100, SCREEN_WIDTH, SCREEN_HEIGHT);
-    // resize(SCREEN_WIDTH, SCREEN_HEIGHT);
 
     m_openGLWidget = new OpenGLWidget();
     setCentralWidget(m_openGLWidget);
+
+    // Set status bar
+    m_statusBar = new QStatusBar();
+    m_statusBar->setVisible(false);
+    setStatusBar(m_statusBar);
+    connect(m_openGLWidget, &OpenGLWidget::statusBarMessageChanged, this, &MainWindow::updateStatusBarMessage);
     
     // Créer un raccourci clavier pour la touche Tab
     // QShortcut* toggleUIShortcut = new QShortcut(QKeySequence(Qt::Key_Tab), this);
@@ -26,4 +31,15 @@ MainWindow::MainWindow(QWidget* parent)
 MainWindow::~MainWindow()
 {
     delete m_openGLWidget;
+}
+
+void MainWindow::updateStatusBarMessage(const QString& message)
+{
+    if (message.isEmpty()) {
+        m_statusBar->clearMessage();
+        m_statusBar->setVisible(false);
+        return;
+    }
+    m_statusBar->setVisible(true);
+    m_statusBar->showMessage(message);
 }

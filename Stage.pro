@@ -17,28 +17,29 @@ UI_DIR = ./tmp/ui
 SOURCES += ./src/Main.cpp \
            ./src/MainWindow.cpp \
            ./src/stb_image.cpp \
-           ./src/Geometry.cpp \
            ./src/Particle.cpp \
            ./src/Spring.cpp \
            ./src/PhysicsSystem.cpp \
            ./src/Camera.cpp \
            ./src/Mesh.cpp \
            ./src/Model.cpp \
+           ./src/Geometry.cpp \
            ./src/widgets/OpenglWidget.cpp 
 
 HEADERS += ./src/Constants.h \
            ./src/MainWindow.h \
            ./src/stb_image.h \
-           ./src/Geometry.h \
+           ./src/Utils.h \
+           ./src/Transform.h \
+           ./src/Collision.h \
            ./src/Rigidbody.h \
            ./src/Particle.h \
            ./src/Spring.h \
            ./src/PhysicsSystem.h \
-           ./src/Utils.h \
-           ./src/Transform.h \
            ./src/Camera.h \
            ./src/Mesh.h \
            ./src/Model.h \
+           ./src/Geometry.h \
            ./src/widgets/OpenglWidget.h
 
 #FORMS += 

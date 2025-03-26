@@ -6,9 +6,8 @@
 #include <QtMath>
 #include <QWheelEvent>
 
+#include "Constants.h"
 #include "Transform.h"
-
-const QVector3D WORLD_UP = QVector3D(0.0f, 1.0f, 0.0f);
 
 class Camera : public Transform
 {

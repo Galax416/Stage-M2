@@ -6,6 +6,7 @@
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
 #include <QKeyEvent>
+#include <QVector>
 
 #include "Constants.h"
 #include "Camera.h"
@@ -37,15 +38,19 @@ protected:
     void keyPressEvent(QKeyEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;
 
+signals:
+    void statusBarMessageChanged(const QString& message);
+
 private:
     void initShaders(QOpenGLShaderProgram *program, QString vertex_shader, QString fragment_shader);
     QOpenGLShaderProgram *m_program;
 
     Camera *m_camera;
-    QOpenGLVertexArrayObject m_vao;
+    // QOpenGLVertexArrayObject m_vao;
 
     PhysicsSystem m_physicsSystem;
-    std::vector<Particle> m_particles;
+    QVector<Particle> m_particles;
+    QVector<Model> m_models;
 
     float deltaTime { 0.0005f };
 

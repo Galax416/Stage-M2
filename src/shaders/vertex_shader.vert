@@ -29,7 +29,10 @@ void main()
     Tangent = mat3(model) * aTangent;
     Bitangent = mat3(model) * aBitangent;
 
-    vertexColor = color;
+    
+    if (color == vec4(0.0)) {
+        vertexColor = vec4(0.5);
+    } else vertexColor = color;
 
     gl_Position = projection * view * vec4(FragPos, 1.0);
     // gl_Position = vec4(FragPos, 1.0);

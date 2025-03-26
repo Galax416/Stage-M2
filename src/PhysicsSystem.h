@@ -1,18 +1,17 @@
 #pragma once
 
 #include <QOpenGLShaderProgram>
+#include <QVector>
 
 #include "Rigidbody.h"
 #include "Spring.h"
 
-#include <vector>
-
 class PhysicsSystem 
 {
 protected:
-    std::vector<Rigidbody*> bodies;
-    std::vector<Spring> springs;
-    std::vector<Rigidbody*> constraints;
+    QVector<Rigidbody*> bodies;
+    QVector<Spring> springs;
+    QVector<Rigidbody*> constraints;
 
 public:
     PhysicsSystem();
@@ -20,9 +19,9 @@ public:
     void Update(float deltaTime);
     void Render(QOpenGLShaderProgram* shaderProgram);
 
-    void AddRigidbody(Rigidbody* body) { bodies.push_back(body); }
-    void AddSpring(Spring& spring) { springs.push_back(spring); }
-    void AddConstraint(Rigidbody* constraint) { constraints.push_back(constraint); }
+    void AddRigidbody(Rigidbody* body) { bodies.append(body); }
+    void AddSpring(Spring& spring) { springs.append(spring); }
+    void AddConstraint(Rigidbody* constraint) { constraints.append(constraint); }
 
     void ClearAll() { ClearRigidbodys(); ClearSprings(); ClearConstraints(); }
     void ClearRigidbodys() { bodies.clear(); }

@@ -322,6 +322,13 @@ void OpenGLWidget::initializeGL()
     m_physicsSystem.AddSpring(spring2);
     m_physicsSystem.AddSpring(spring3);*/
 
+    // Scene particles-ground
+    /*m_particles.push_back(Particle(QVector3D(0, 0, 0), 10, 10, true, QColor(200, 0, 200)));
+    m_physicsSystem.AddRigidbody(&m_particles[0]);
+
+    Plane* plane = new Plane(QVector3D(0, -2, 0), QVector3D(0, 1, 0));
+    m_physicsSystem.AddRigidbody(plane);*/
+
 
     
 
@@ -343,8 +350,9 @@ void OpenGLWidget::paintGL()
     m_program->release();
     
     if (!m_isPaused) {
+        emit statusBarMessageChanged("Simulation running...");
         m_physicsSystem.Update(deltaTime);
-    }
+    } else emit statusBarMessageChanged("");
 
     update();
 }

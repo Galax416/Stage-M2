@@ -1,6 +1,11 @@
 #pragma once
 
+#include <cmath>
+
+#include "Geometry.h"
 #include "Particle.h"
+
+
 
 // Hooke's law
 // k - spring "tightness" constant [negative to 0] rigid at 0
@@ -24,8 +29,11 @@ public:
     void SetParticles(Particle* _p1, Particle* _p2);
     Particle* GetP1();
     Particle* GetP2();
+
     void SetConstants(float _k, float _b);
-    void ApplyForce(float deltaTime);
 
     void Render(QOpenGLShaderProgram* shaderProgram);
+    void ApplyForce(float deltaTime);
+    // void SolveConstraints(const std::vector<Rigidbody*>& constraints);
+
 };
