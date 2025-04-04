@@ -12,3 +12,8 @@ inline QVector3D UVToScreenCordinate(QVector3D uv)
 {
     return QVector3D(uv.x() * SCREEN_WIDTH, uv.y() * SCREEN_HEIGHT, 0.0f);
 }
+
+inline uint qHash(const QVector3D& key, uint seed = 0) 
+{
+    return qHash(key.x(), seed) ^ qHash(key.y(), seed << 1) ^ qHash(key.z(), seed << 2);
+}

@@ -5,8 +5,6 @@
 #include "Geometry.h"
 #include "Particle.h"
 
-
-
 // Hooke's law
 // k - spring "tightness" constant [negative to 0] rigid at 0
 // x - displacement of spring from equalibrium

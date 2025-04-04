@@ -1,21 +1,23 @@
 #pragma once    
 
+#include <QOpenGLShaderProgram>
 #include <QVector3D>
 #include <QColor>
-#include <QOpenGLShaderProgram>
+#include <vector>
 
+#include "Constants.h"
 #include "Rigidbody.h"
+#include "Model.h"
+#include "Geometry.h"
+
 
 class Particle : public Rigidbody
 {
 private:
-    QVector3D position { 0.0f, 0.0f, 0.0f };
-    QVector3D oldPosition { 0.0f, 0.0f, 0.0f };   
-
-    float bounce { 0.7f };
-
-    float radius { 0.01f }; // default radius
-    QColor color;
+    float m_bounce { 0.7f };
+    float m_radius { 0.01f }; // default radius
+    QColor m_color;
+    Model* m_particleModel;
 
 public:
     Particle();
@@ -23,22 +25,18 @@ public:
 
     void Update(float deltaTime);
     void Render(QOpenGLShaderProgram* shaderProgram);
-    void ApplyForces();
+    // void ApplyForces();
     void SolveConstraints(const std::vector<Rigidbody*>& constraints);
 
-    void SetPosition(const QVector3D& pos) { position = pos; oldPosition = position; }
-    QVector3D GetPosition() { return position; }
+    void SetPosition(const QVector3D& p) { transform.position = p; oldPosition = p; m_particleModel->transform.position = p; }
 
-    void SetBounce(float b) { bounce = b; }
-    float GetBounce() { return bounce; }
+    void SetBounce(float bounce) { m_bounce = bounce; }
+    float GetBounce() { return m_bounce; }
 
-    void SetRadius(float r) { radius = r; }
-    float GetRadius() { return radius; }
+    void SetRadius(float radius) { m_radius = radius; }
+    float GetRadius() { return m_radius; }
 
-    void AddImpulse(const QVector3D& impulse);
-    
-    QVector3D GetVelocity() { return position - oldPosition; }
-    float InvMass() { return mass == 0 ? 0 : 1.0f / mass; }
-    void SetMass(float m) { mass = m < 0 ? 0 : m; }
+    void SetColor(QColor c) { m_color = c; }
+    QColor GetColor() { return m_color; }
 
 };

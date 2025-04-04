@@ -1,0 +1,16 @@
+<RCC>
+    <qresource prefix="/">
+        <!-- Shaders files -->
+        <file>shaders/2D.vert</file>
+        <file>shaders/2D.frag</file>
+        <file>shaders/3D.vert</file>
+        <file>shaders/3D.frag</file>
+
+        <!-- Models files -->
+        <!-- <file>models/cube.obj</file>
+        <file>models/sphere.obj</file>
+        <file>models/suzanne.obj</file>
+        <file>models/femaletorso.obj</file>
+        <file>models/bugatti.obj</file> -->
+    </qresource>
+</RCC>

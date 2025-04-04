@@ -23,6 +23,10 @@ public:
         return modelMatrix;
     };
 
+    QMatrix3x3 GetRotationMatrix() const {
+        return rotation.toRotationMatrix();
+    };
+
     void Translate(const QVector3D &translation) {
         position += translation;
     };

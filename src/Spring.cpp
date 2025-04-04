@@ -7,7 +7,7 @@ void Spring::SetParticles(Particle* _p1, Particle* _p2)
     p1 = _p1;
     p2 = _p2;
     if (restingLength <= 0.0f && p1 && p2) {
-        restingLength = p1->GetPosition().distanceToPoint(p2->GetPosition());
+        restingLength = p1->transform.position.distanceToPoint(p2->transform.position);
     }
 }
 Particle* Spring::GetP1() { return p1; }
@@ -24,7 +24,7 @@ void Spring::ApplyForce(float deltaTime)
 {
     if (!p1 || !p2) return;
 
-    QVector3D relPos = p2->GetPosition() - p1->GetPosition();
+    QVector3D relPos = p2->transform.position - p1->transform.position;
 	QVector3D relVel = p2->GetVelocity() - p1->GetVelocity();
 
 	// Prevent underflow
@@ -39,8 +39,8 @@ void Spring::ApplyForce(float deltaTime)
 	float F = (k * x) * deltaTime + (-b * v) * deltaTime;
 
 	QVector3D impulse = relPos.normalized() * F;
-	p1->AddImpulse(impulse * p1->InvMass());
-	p2->AddImpulse(impulse*  -1.0f * p2->InvMass());
+	p1->AddLinearImpulse(impulse * p1->InvMass());
+	p2->AddLinearImpulse(impulse*  -1.0f * p2->InvMass());
 
 }
 
@@ -48,9 +48,14 @@ void Spring::Render(QOpenGLShaderProgram* shaderProgram)
 {
     if (!p1 || !p2) return;
 
+    shaderProgram->bind();
+
     shaderProgram->setUniformValue("color", color);
     shaderProgram->setUniformValue("model", QMatrix4x4());
 
-    Line line(p1->GetPosition(), p2->GetPosition());
+    Line line(p1->transform.position, p2->transform.position);
     ::Render(line);
+
+    shaderProgram->release();
+
 }

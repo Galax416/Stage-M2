@@ -8,7 +8,16 @@ OpenGLWidget::OpenGLWidget(QWidget *parent) : QOpenGLWidget(parent), m_program(0
 OpenGLWidget::~OpenGLWidget()
 {
     makeCurrent();
-    delete m_program;
+
+    // if (m_program->isLinked()) m_program->release();
+    // if (m_program) delete m_program;
+    // if (m_program2D->isLinked()) m_program2D->release();
+    // if (m_program2D) delete m_program2D;
+    // if (m_program3D->isLinked()) m_program3D->release();
+    // if (m_program3D) delete m_program3D;
+
+    // if (m_camera) delete m_camera;
+
     doneCurrent();
 }
 
@@ -29,7 +38,7 @@ void OpenGLWidget::resizeGL(int width, int height)
 
 }
 
-void OpenGLWidget::initShaders(QOpenGLShaderProgram *program, QString vertex_shader, QString fragment_shader)
+void OpenGLWidget::InitShaders(QOpenGLShaderProgram *program, QString vertex_shader, QString fragment_shader)
 {
     if (!program->addShaderFromSourceFile(QOpenGLShader::Vertex, vertex_shader)) {
         qWarning() << "Error when compiling the vertex shader:" << program->log();
@@ -49,13 +58,116 @@ void OpenGLWidget::initializeGL()
     initializeOpenGLFunctions();
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
-    m_program = new QOpenGLShaderProgram();
-    initShaders(m_program, "./src/shaders/vertex_shader.vert", "./src/shaders/fragment_shader.frag");
+    // Initializa shaders programs
+    // m_program = new QOpenGLShaderProgram();
+    m_program2D = new QOpenGLShaderProgram();
+    m_program3D = new QOpenGLShaderProgram();
 
+    // 2D shaders
+    InitShaders(m_program2D, ":/shaders/2D.frag", ":/shaders/3D.frag");
+    // 3D shaders
+    InitShaders(m_program3D, ":/shaders/3D.vert", ":/shaders/3D.frag");
+
+    if ( m_is2DMode ) m_program = m_program2D;
+    else m_program = m_program3D;
+
+    // Initialize the camera
     m_camera = new Camera(QVector3D(0.0f, 0.0f, 5.0f), QVector3D(0.0f, 0.0f, 0.0f));
 
-    m_physicsSystem.ClearAll();
+    // Initialize the physics system
+    m_model = new Model();
+    InitScene();
 
+}
+
+void OpenGLWidget::paintGL()
+{
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    // glEnable(GL_CULL_FACE);
+
+    glUseProgram(m_program->programId());
+
+    m_program->bind();
+    m_program->setUniformValue("projection", m_camera->GetProjectionMatrix());
+    m_program->setUniformValue("view", m_camera->GetViewMatrix());
+
+    m_program->setUniformValue("ligth_position", m_camera->GetPosition());
+    m_program->setUniformValue("viewPos", m_camera->GetPosition());
+
+    if (m_isWireMode) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    } else {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+
+    m_physicsSystem.Render(m_program);
+
+    m_program->release();
+    
+    if (!m_isPaused) m_physicsSystem.Update(m_deltaTime);
+
+    update();
+}
+
+void OpenGLWidget::mousePressEvent(QMouseEvent *event)
+{
+    // Camera rotation
+    m_camera->mousePressEvent(event);
+}
+
+void OpenGLWidget::mouseReleaseEvent(QMouseEvent *event)
+{
+    // Camera rotation
+    m_camera->mouseReleaseEvent(event);
+}
+
+void OpenGLWidget::mouseMoveEvent(QMouseEvent *event)
+{
+    // Camera rotation
+    m_camera->mouseMoveEvent(event);
+}
+
+void OpenGLWidget::wheelEvent(QWheelEvent *event)
+{
+    // Camera zoom
+    m_camera->wheelEvent(event);
+}
+
+void OpenGLWidget::keyPressEvent(QKeyEvent *event)
+{
+    // qDebug() << event->key();
+    switch (event->key())
+    {
+    case Qt::Key_Space:
+        if (m_isPaused) Play();
+        else Stop();
+        break;
+    case Qt::Key_W:
+        m_isWireMode = !m_isWireMode;
+        break;
+
+    default:
+        break;
+    }
+}
+
+void OpenGLWidget::keyReleaseEvent(QKeyEvent *event)
+{
+    
+}
+
+void OpenGLWidget::InitScene()
+{
+    // Initialize the scene here
+    makeCurrent();
+    Stop();
+    m_physicsSystem.ClearAll();
+    m_particles.clear();
+    m_springs.clear();
 
     // Spring test 1 (pendulum)
     /*m_particles.push_back(Particle(QVector3D(0, 0, 0), 10, 10, false, QColor(0, 255, 0))); // m1
@@ -97,10 +209,10 @@ void OpenGLWidget::initializeGL()
     m_physicsSystem.ChangeFrictionParticle(1.0f);*/
 
     // Spring test 3 (collision)
-    /*m_particles.push_back(Particle(QVector3D(-50, 0, 0), 5, 10.0, false));
-    m_particles.push_back(Particle(QVector3D(50, 0, 0), 5, 10.0, false));
-    m_particles.push_back(Particle(QVector3D(-400, 0, 0), 10, 10.0, true, QColor(255, 0, 0)));
-    m_particles.push_back(Particle(QVector3D(400, 0, 0), 10, 10.0, true, QColor(0, 0, 255)));
+    /*m_particles.push_back(Particle(QVector3D(-0.5, 0, 0), 5, 10.0, false));
+    m_particles.push_back(Particle(QVector3D(0.5, 0, 0), 5, 10.0, false));
+    m_particles.push_back(Particle(QVector3D(-2, 0, 0), 10, 10.0, true, QColor(255, 0, 0)));
+    m_particles.push_back(Particle(QVector3D(2, 0, 0), 10, 10.0, true, QColor(0, 0, 255)));
 
     m_physicsSystem.AddRigidbody(&m_particles[0]);
     m_physicsSystem.AddRigidbody(&m_particles[1]);
@@ -111,7 +223,7 @@ void OpenGLWidget::initializeGL()
     m_physicsSystem.AddConstraint(&m_particles[2]);
     m_physicsSystem.AddConstraint(&m_particles[3]);
 
-    m_physicsSystem.ChangeFrictionParticle(1.0f);
+    m_physicsSystem.ChangeFriction(1.0f);
 
     Spring spring1(10000.0f, 1.0f, 0.0f);
     spring1.SetParticles(&m_particles[0], &m_particles[2]);
@@ -143,7 +255,7 @@ void OpenGLWidget::initializeGL()
     }*/
 
     // Spring test 5 (breast)
-    int n = 15;
+    /*int n = 15;
     float r = 1;
     float e = 0.2;
     int s1 = 110;
@@ -156,7 +268,7 @@ void OpenGLWidget::initializeGL()
     float k1c = 900;
 
     float k2a = 450 * 5;
-    float k2b = 900 * 5;
+    float k2b = 900 * 5; 
     float k2c = 900 * 5;
 
 
@@ -168,7 +280,7 @@ void OpenGLWidget::initializeGL()
     float l2 = e;
     float l3 = 2 * (r + e) * sin(t0 / 2);
 
-    qDebug() << l1 << " " << l2 << " " << l3;
+    // qDebug() << l1 << " " << l2 << " " << l3;
 
     l1 = 0;
     l2 = 0;
@@ -289,113 +401,127 @@ void OpenGLWidget::initializeGL()
     m_particles.push_back(Particle(QVector3D(0.30, 0, 0), boule, bouleG, true, QColor(255, 0, 106)));
     m_particles.push_back(Particle(QVector3D(0.30, -0.30, 0), boule, bouleG, true, QColor(255, 0, 106)));
     m_particles.push_back(Particle(QVector3D(0.30, 0.30, 0), boule, bouleG, true, QColor(255, 0, 106)));
-    m_particles.push_back(Particle(QVector3D(0.60, 0, 0), boule, bouleG, true, QColor(255, 0, 106)));
-    m_particles.push_back(Particle(QVector3D(0.60, -0.30, 0), boule, bouleG, true, QColor(255, 0, 106)));
-    m_particles.push_back(Particle(QVector3D(0.60, 0.30, 0), boule, bouleG, true, QColor(255, 0, 106)));
+    m_particles.push_back(Particle(QVector3D(0.70, 0, 0), boule, bouleG, true, QColor(255, 0, 106)));
+    m_particles.push_back(Particle(QVector3D(0.70, -0.30, 0), boule, bouleG, true, QColor(255, 0, 106)));
+    m_particles.push_back(Particle(QVector3D(0.70, 0.30, 0), boule, bouleG, true, QColor(255, 0, 106)));
 
     // Add particles to physics system
     for (long unsigned int i = 0; i < m_particles.size(); i++) {
         m_physicsSystem.AddRigidbody(&m_particles[i]);
         m_physicsSystem.AddConstraint(&m_particles[i]);
-    }
+    }*/
 
-    /*m_particles.push_back(Particle(QVector3D(0, 0, 0), 30, 10, true, QColor(255, 255, 255))); // Base
-    m_particles.push_back(Particle(QVector3D(1, 0, 0), 30, 10, false, QColor(255, 0, 0))); // x
-    m_particles.push_back(Particle(QVector3D(0, 1, 0), 30, 10, false, QColor(0, 0, 255))); // y
-    m_particles.push_back(Particle(QVector3D(0, 0, 1), 30, 10, false, QColor(0, 255, 0))); // z
+    /*m_particles.push_back(std::make_unique<Particle>(QVector3D(0, 0, 0), 30, 20, true, QColor(255, 255, 255))); // Base
+    m_particles.push_back(std::make_unique<Particle>(QVector3D(1, 0, 0), 30, 10, false, QColor(255, 0, 0))); // x
+    m_particles.push_back(std::make_unique<Particle>(QVector3D(0, 1, 0), 30, 10, false, QColor(0, 0, 255))); // y
+    m_particles.push_back(std::make_unique<Particle>(QVector3D(0, 0, 1), 30, 10, false, QColor(0, 255, 0))); // z
 
-    m_physicsSystem.AddRigidbody(&m_particles[0]);
-    m_physicsSystem.AddRigidbody(&m_particles[1]);
-    m_physicsSystem.AddRigidbody(&m_particles[2]);
-    m_physicsSystem.AddRigidbody(&m_particles[3]);
+    m_physicsSystem.AddRigidbody(m_particles[0].get());
+    m_physicsSystem.AddRigidbody(m_particles[1].get());
+    m_physicsSystem.AddRigidbody(m_particles[2].get());
+    m_physicsSystem.AddRigidbody(m_particles[3].get());
 
-    Spring spring1(100.0f, 1.0f, 0.0f, QColor(255, 0, 0));
-    spring1.SetParticles(&m_particles[0], &m_particles[1]);
+    Spring spring1(1.0f, 0.5f, 0.0f, QColor(255, 0, 0));
+    spring1.SetParticles(m_particles[0].get(), m_particles[1].get());
 
-    Spring spring2(100.0f, 1.0f, 0.0f, QColor(0, 0, 255));
-    spring2.SetParticles(&m_particles[0], &m_particles[2]);
+    Spring spring2(1.0f, 0.5f, 0.0f, QColor(0, 0, 255));
+    spring2.SetParticles(m_particles[0].get(), m_particles[2].get());
 
-    Spring spring3(100.0f, 1.0f, 0.0f, QColor(0, 255, 0));
-    spring3.SetParticles(&m_particles[0], &m_particles[3]);
+    Spring spring3(1.0f, 0.5f, 0.0f, QColor(0, 255, 0));
+    spring3.SetParticles(m_particles[0].get(), m_particles[3].get());
 
     m_physicsSystem.AddSpring(spring1);
     m_physicsSystem.AddSpring(spring2);
-    m_physicsSystem.AddSpring(spring3);*/
+    m_physicsSystem.AddSpring(spring3);
 
     // Scene particles-ground
-    /*m_particles.push_back(Particle(QVector3D(0, 0, 0), 10, 10, true, QColor(200, 0, 200)));
-    m_physicsSystem.AddRigidbody(&m_particles[0]);
+    m_particles.push_back(std::make_unique<Particle>(QVector3D(0, 2, 0), 30, 10, true, QColor(255, 0, 255))); // Ground
+    m_physicsSystem.AddRigidbody(m_particles.back().get());
 
     Plane* plane = new Plane(QVector3D(0, -2, 0), QVector3D(0, 1, 0));
-    m_physicsSystem.AddRigidbody(plane);*/
+    plane->isMovable = false;
+    m_physicsSystem.AddRigidbody(plane);
+    m_physicsSystem.AddConstraint(plane);
+
+    for (size_t i = 0; i < m_particles.size(); i++) {
+        m_physicsSystem.AddConstraint(m_particles[i].get());
+    }*/
 
 
-    
+    // Test load model
+    /*Model* model = new Model("./resources/models/cube.obj");
+    // m_physicsSystem.AddRigidbody(model);
 
+    ConvertModelToParticleSprings(model, m_particles, m_springs);
 
-}
-
-void OpenGLWidget::paintGL()
-{
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glUseProgram(m_program->programId());
-
-    m_program->bind();
-    m_program->setUniformValue("projection", m_camera->GetProjectionMatrix());
-    m_program->setUniformValue("view", m_camera->GetViewMatrix());
-
-    m_physicsSystem.Render(m_program);
-
-    m_program->release();
-    
-    if (!m_isPaused) {
-        emit statusBarMessageChanged("Simulation running...");
-        m_physicsSystem.Update(deltaTime);
-    } else emit statusBarMessageChanged("");
-
-    update();
-}
-
-void OpenGLWidget::mousePressEvent(QMouseEvent *event)
-{
-    // Camera rotation
-    m_camera->mousePressEvent(event);
-}
-
-void OpenGLWidget::mouseReleaseEvent(QMouseEvent *event)
-{
-    // Camera rotation
-    m_camera->mouseReleaseEvent(event);
-}
-
-void OpenGLWidget::mouseMoveEvent(QMouseEvent *event)
-{
-    // Camera rotation
-    m_camera->mouseMoveEvent(event);
-}
-
-void OpenGLWidget::wheelEvent(QWheelEvent *event)
-{
-    // Camera zoom
-    m_camera->wheelEvent(event);
-}
-
-void OpenGLWidget::keyPressEvent(QKeyEvent *event)
-{
-    // qDebug() << event->key();
-    switch (event->key())
-    {
-    case Qt::Key_Space:
-        m_isPaused = !m_isPaused;
-        break;
-    
-    default:
-        break;
+    for (long unsigned int i = 0; i < m_particles.size(); i++) {
+        m_physicsSystem.AddRigidbody(m_particles[i].get());
+        m_physicsSystem.AddConstraint(m_particles[i].get());
     }
+
+    for (long unsigned int i = 0; i < m_springs.size(); i++) {
+        m_physicsSystem.AddSpring(*m_springs[i]);
+    }
+
+    Plane* plane = new Plane(QVector3D(0, -2, 0), QVector3D(0, 1, 0), QColor(100, 100, 100));
+    plane->isMovable = false;
+    m_physicsSystem.AddRigidbody(plane);
+    m_physicsSystem.AddConstraint(plane);*/
+
+    // Model* model = new Model("./resources/models/femaletorsoTriangulate.obj");
+    // model->color = QColor(255, 255, 255);
+    // m_physicsSystem.AddRigidbody(model);
+
+    // Test load custom model
+    qDebug() << m_model->customOBJ->isCustomOBJ;
+
+    if (!m_model->customOBJ->isCustomOBJ) ConvertModelToParticleSprings(m_model, m_particles, m_springs);
+    else ChargeModelParticleSprings(m_model, m_particles, m_springs);
+
+    Plane* plane = new Plane(QVector3D(0, -2, 0), QVector3D(0, 1, 0), QColor(100, 100, 100));
+    plane->isMovable = false;
+    m_physicsSystem.AddRigidbody(plane);
+    m_physicsSystem.AddConstraint(plane);
+
+    qDebug() << "Particles: " << m_particles.size() << " Springs: " << m_springs.size();
+
+    // Add particles and springs to the physics system
+    for (size_t i = 0, size = m_particles.size(); i < size; ++i) {
+        m_physicsSystem.AddRigidbody(m_particles[i].get());
+        m_physicsSystem.AddConstraint(m_particles[i].get());
+    }
+    for (size_t i = 0, size = m_springs.size(); i < size; ++i) {
+        m_physicsSystem.AddSpring(*m_springs[i]);
+    }
+
+    m_physicsSystem.ChangeFriction(m_globalFriction);
+    m_physicsSystem.RotateRigidbodies(m_globalRotation);
+
+    doneCurrent();
+    update();
+    
 }
 
-void OpenGLWidget::keyReleaseEvent(QKeyEvent *event)
+void OpenGLWidget::LoadOBJ(const QString& filename)
 {
-    
+    delete m_model;
+    m_model = nullptr;
+    emit statusBarMessageChanged("Loading model...");
+    m_model = new Model(filename);
+    emit statusBarMessageChanged("Model loaded");
+    Reset();
+}
+
+void OpenGLWidget::SaveOBJ(const QString& filename)
+{
+    if (m_model->mesh == nullptr) {
+        qDebug() << "No meshes to save.";
+        return;
+    }
+    m_model->customOBJ->SaveOBJ(filename);
+    emit statusBarMessageChanged("Model saved");
+    // m_model->SetUpColliders();
+    // m_physicsSystem.AddRigidbody(m_model);
+    // m_physicsSystem.AddConstraint(m_model);
+    // Reset();
 }

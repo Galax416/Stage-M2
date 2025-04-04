@@ -2,9 +2,18 @@
 
 #include <QMainWindow>
 #include <QStatusBar>
+#include <QMenuBar>
+#include <QSplitter>
+#include <QWidget>
+#include <QVBoxLayout>
+#include <QSurfaceFormat>
+#include <QScrollArea>
+#include <QPushButton>
 #include <QShortcut>
+#include <QFileDialog>
 
 #include "OpenglWidget.h"
+#include "GlobalSettingsWidget.h"
 
 
 // Main window class
@@ -18,9 +27,18 @@ public:
 
 public slots:
     void updateStatusBarMessage(const QString& message);
+    void updateButtonsState(bool isPaused);
 
 private:
-    OpenGLWidget* m_openGLWidget;
     QStatusBar* m_statusBar;
+    QMenuBar* m_menuBar;
+
+    QSplitter* m_splitter;
+    OpenGLWidget* m_openGLWidget;
+    QWidget* m_rightContainer;
+    QVBoxLayout* m_rightLayout;
+    GlobalSettingsWidget* m_globalSettingsWidget;
+
+    QPushButton* m_resetButton, *m_playStopButton;
 
 };
