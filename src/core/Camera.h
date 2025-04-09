@@ -6,10 +6,9 @@
 #include <QtMath>
 #include <QWheelEvent>
 
-#include "Constants.h"
 #include "Transform.h"
 
-class Camera : public Transform
+class Camera
 {
 public:
     Camera();
@@ -25,7 +24,7 @@ public:
     void SetFar(const float far)            { m_far = far; ComputeView(m_viewMatrix, m_projectionMatrix); }
 
     // Getters
-    QVector3D GetPosition()          const { return position; }
+    QVector3D GetPosition()          const { return m_transform.position; }
     QVector3D GetTarget()            const { return m_target; }
     QVector3D GetFront()             const { return m_front; }
     float GetFov()                   const { return m_fov; }
@@ -43,8 +42,11 @@ public:
 
 private:
     void Initialize();
-    void ComputeView(QMatrix4x4& view, QMatrix4x4& projection, QVector3D up = WORLD_UP);
+    void ComputeView(QMatrix4x4& view, QMatrix4x4& projection, QVector3D up = QVector3D(0.0f, 1.0f, 0.0f));
     void UpdateCameraPosition();
+
+    // Transform
+    Transform m_transform;
 
     // Parameters
     QVector3D m_target   { QVector3D(0.0f, 0.0f, 0.0f) };

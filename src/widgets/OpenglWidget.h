@@ -9,9 +9,15 @@
 #include <vector>
 #include <memory>
 
-#include "Constants.h"
 #include "Camera.h"
+#include "Geometry3D.h"
 #include "PhysicsSystem.h"
+
+// SCREEN SIZE
+#define SCREEN_WIDTH  1080
+#define SCREEN_HEIGHT 720
+
+#define DeltaTime 0.001f // 1ms
 
 
 class OpenGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
@@ -50,29 +56,31 @@ public slots:
     void setGlobalDeltaTime(float value) { m_deltaTime = value; }
     void setGlobalFriction(float value) { m_globalFriction = (1.0f - value); m_physicsSystem.ChangeFriction(m_globalFriction);}
     void setGlobalRotation(QVector3D rotation) { m_globalRotation = rotation; Stop(); m_physicsSystem.RotateRigidbodies(m_globalRotation); makeCurrent(); update(); doneCurrent(); }
-    // void setGlobalGravity(QVector3D value) { m_physicsSystem.ChangeGravity(value); }
 
     void Reset() { InitScene(); emit statusBarMessageChanged(""); }
-    void Stop() { m_isPaused = true; emit statusBarMessageChanged("Simulation stopped..."); emit buttonStateChanged(m_isPaused); }
-    void Play() { m_isPaused = false; emit statusBarMessageChanged("Simulation running..."); emit buttonStateChanged(m_isPaused); }
+    void Stop() { m_isPaused = true; /* emit statusBarMessageChanged("Simulation stopped...") */; emit buttonStateChanged(m_isPaused); }
+    void Play() { m_isPaused = false; /* emit statusBarMessageChanged("Simulation running...") */; emit buttonStateChanged(m_isPaused); }
     
 
 private:
     void InitShaders(QOpenGLShaderProgram *program, QString vertex_shader, QString fragment_shader);
     void InitScene();
     
-    QOpenGLShaderProgram *m_program, *m_program2D, *m_program3D;
+    // QOpenGLVertexArrayObject* m_vao;
+
+    QOpenGLShaderProgram *m_program;
+    std::shared_ptr<QOpenGLShaderProgram> m_program2D, m_program3D;
 
     Camera *m_camera;
 
     PhysicsSystem m_physicsSystem;
-    std::vector<std::unique_ptr<Particle>> m_particles;
-    std::vector<std::unique_ptr<Spring>> m_springs; // To load springs from file
+    std::vector<std::shared_ptr<Particle>> m_particles;
+    std::vector<std::shared_ptr<Spring>> m_springs; // To load springs from file
     Model *m_model; // To load model from file
 
     // Global settings
     float m_deltaTime = DeltaTime;
-    float m_globalFriction { 0.99f };
+    float m_globalFriction { 0.95f };
     QVector3D m_globalRotation { 0.0f, 0.0f, 0.0f };
 
     // Mode

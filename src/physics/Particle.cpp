@@ -1,4 +1,5 @@
 #include "Particle.h"
+#include "Geometry3D.h"
 
 Particle::Particle()
 {
@@ -14,41 +15,43 @@ Particle::Particle(QVector3D pos, float r, float m, bool mov, QColor c)
     mass = m;
     isMovable = mov;
     m_color = c;
-    cor = m_bounce;
+    cor = 0.5f;
 
     m_particleModel = new Sphere(pos, m_radius, m_color);
+    sphereCollider.position = transform.position;
+    sphereCollider.radius = m_radius;
 }
 
 void Particle::Update(float deltaTime)
 {
     if (!isMovable) return;
 
+    // Apply forces to the particle
     QVector3D velocity = (transform.position - oldPosition);
-    // Rigidbody::velocity = velocity;
 	oldPosition = transform.position;
 	float deltaSquare = deltaTime * deltaTime;
 	transform.position += (velocity * friction + forces * deltaSquare);
     m_particleModel->transform.position = transform.position;
+    sphereCollider.position = transform.position;
 }
 
 void Particle::Render(QOpenGLShaderProgram* shaderProgram)
 {
-    // shaderProgram->setUniformValue("color", m_color);
     m_particleModel->Render(shaderProgram);
 }
 
-void Particle::SolveConstraints(const std::vector<Rigidbody*>& constraints) {
+/*void Particle::SolveConstraints(const std::vector<std::shared_ptr<Rigidbody>>& constraints) {
     if (!isMovable) return;
-    for (Rigidbody* rb : constraints) {
+    for (auto& rb : constraints) {
         // Collision with OBB
         if (rb->type == RIGIDBODY_TYPE_BOX) {
             OBB box = rb->boxCollider;
 
-            // Convert sphere position to box local space
-            QVector3D localSpherePos = QMatrix4x4(box.orientation.transposed()).map(transform.position - box.position);
+            // Convert particle position to box local space
+            QVector3D localParticlePos = QMatrix4x4(box.orientation.transposed()).map(transform.position - box.position);
             
-            // Clamp local sphere position to box half-extents
-            QVector3D closestPoint = localSpherePos;
+            // Clamp local particle position to box half-extents
+            QVector3D closestPoint = localParticlePos;
             closestPoint.setX(qBound(-box.size.x(), closestPoint.x(), box.size.x()));
             closestPoint.setY(qBound(-box.size.y(), closestPoint.y(), box.size.y()));
             closestPoint.setZ(qBound(-box.size.z(), closestPoint.z(), box.size.z()));
@@ -78,6 +81,8 @@ void Particle::SolveConstraints(const std::vector<Rigidbody*>& constraints) {
                 
                 if (isMovable) AddLinearImpulse(impulse);
                 if (rb->isMovable) rb->AddLinearImpulse(-impulse);
+                // if (isMovable) AddLinearImpulse(impulse * invMassA);
+                // if (rb->isMovable) rb->AddLinearImpulse(-impulse * invMassB);
 
                 // Position correction
                 float totalInvMass = invMassA + invMassB;
@@ -104,7 +109,7 @@ void Particle::SolveConstraints(const std::vector<Rigidbody*>& constraints) {
         }
 
         // Collision with another particle
-        Particle* other = dynamic_cast<Particle*>(rb);
+        Particle* other = dynamic_cast<Particle*>(rb.get());
         if (!other || other == this) continue; 
 
         QVector3D delta = transform.position - other->transform.position;
@@ -119,15 +124,15 @@ void Particle::SolveConstraints(const std::vector<Rigidbody*>& constraints) {
             if (velocityAlongNormal > 0) continue; // Avoid double collision
             
             
-            float restitution = fminf(m_bounce, other->GetBounce()); // Coefficient of restitution
+            float restitution = fminf(cor, other->GetCor()); // Coefficient of restitution
             float invMassA = InvMass();
             float invMassB = other->InvMass();
             float impulseMagnitude = -(1.0f + restitution) * velocityAlongNormal / (invMassA + invMassB);
 
             QVector3D impulse = normal * impulseMagnitude;
 
-            AddLinearImpulse(impulse * invMassA);
-            other->AddLinearImpulse(-impulse * invMassB);
+            // AddLinearImpulse(impulse * invMassA);
+            // other->AddLinearImpulse(-impulse * invMassB);
 
             // Position correction
             float totalInvMass = invMassA + invMassB;
@@ -147,6 +152,10 @@ void Particle::SolveConstraints(const std::vector<Rigidbody*>& constraints) {
             }
         }
     }
-}
-   
+}*/
 
+void Particle::SetPosition(const QVector3D& p) {
+    transform.position = p;
+    oldPosition = p;
+    m_particleModel->transform.position = p;
+}

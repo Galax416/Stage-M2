@@ -11,6 +11,8 @@
 #include <QPushButton>
 #include <QShortcut>
 #include <QFileDialog>
+#include <QMessageBox>
+#include <QTimer>
 
 #include "OpenglWidget.h"
 #include "GlobalSettingsWidget.h"
@@ -30,14 +32,16 @@ public slots:
     void updateButtonsState(bool isPaused);
 
 private:
+    QTimer* m_timer;
+    
     QStatusBar* m_statusBar;
-    QMenuBar* m_menuBar;
+    QMenuBar*   m_menuBar;
 
-    QSplitter* m_splitter;
-    OpenGLWidget* m_openGLWidget;
-    QWidget* m_rightContainer;
-    QVBoxLayout* m_rightLayout;
-    GlobalSettingsWidget* m_globalSettingsWidget;
+    QSplitter*              m_splitter;
+    OpenGLWidget*           m_openGLWidget;
+    QWidget*                m_rightContainer;
+    QVBoxLayout*            m_rightLayout;
+    GlobalSettingsWidget*   m_globalSettingsWidget;
 
     QPushButton* m_resetButton, *m_playStopButton;
 

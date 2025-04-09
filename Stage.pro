@@ -17,35 +17,42 @@ RCC_DIR = ./tmp/qrc
 
 SOURCES += \
     ./src/Main.cpp \
-    ./src/stb_image.cpp \
-    ./src/Collision.cpp \
-    ./src/Rigidbody.cpp \
-    ./src/Particle.cpp \
-    ./src/Spring.cpp \
-    ./src/PhysicsSystem.cpp \
-    ./src/Camera.cpp \
-    ./src/Mesh.cpp \
-    ./src/Model.cpp \
-    ./src/Geometry.cpp \
+    ./libs/stb_image.cpp \
+    ./src/core/Rigidbody.cpp \
+    ./src/core/BVH.cpp \
+    ./src/core/Camera.cpp \
+    ./src/rendering/Render.cpp \
+    ./src/rendering/Mesh.cpp \
+    ./src/rendering/Model.cpp \
+    ./src/rendering/Geometry3D.cpp \
+    ./src/physics/Particle.cpp \
+    ./src/physics/Spring.cpp \
+    ./src/physics/CollisionSolver.cpp \
+    ./src/physics/PhysicsSystem.cpp \
+    ./src/physics/ModelPhysicsConverter.cpp \
     ./src/MainWindow.cpp \
     ./src/widgets/OpenglWidget.cpp \
     ./src/widgets/GlobalSettingsWidget.cpp 
 
 HEADERS += \
-    ./src/Constants.h \
-    ./src/Utils.h \
-    ./src/Transform.h \
-    ./src/Collision.h \
-    ./src/Rigidbody.h \
-    ./src/Particle.h \
-    ./src/Spring.h \
-    ./src/PhysicsSystem.h \
-    ./src/Camera.h \
-    ./src/Mesh.h \
-    ./src/Model.h \
-    ./src/Geometry.h \
-    ./src/CustomOBJLoader.h \
-    ./src/stb_image.h \
+    ./libs/stb_image.h \
+    ./src/core/Transform.h \
+    ./src/core/BoundingBox.h \
+    ./src/core/Collider.h \
+    ./src/core/GeometryPrimitives.h \
+    ./src/core/Rigidbody.h \
+    ./src/core/BVH.h \
+    ./src/core/Camera.h \
+    ./src/rendering/Render.h \
+    ./src/rendering/CustomOBJLoader.h \
+    ./src/rendering/Mesh.h \
+    ./src/rendering/Model.h \
+    ./src/rendering/Geometry3D.h \
+    ./src/physics/Particle.h \
+    ./src/physics/Spring.h \
+    ./src/physics/CollisionSolver.h \
+    ./src/physics/PhysicsSystem.h \
+    ./src/physics/ModelPhysicsConverter.h \
     ./src/MainWindow.h \
     ./src/widgets/OpenglWidget.h \
     ./src/widgets/GlobalSettingsWidget.h \
@@ -56,6 +63,9 @@ INCLUDEPATH += \
     ./libs \
     ./resources \
     ./src \
+    ./src/core \
+    ./src/physics \
+    ./src/rendering \
     ./src/widgets 
     #./libs/assimp-5.4.3/include
 

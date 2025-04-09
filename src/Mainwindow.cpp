@@ -10,6 +10,11 @@ MainWindow::MainWindow(QWidget* parent)
     //  x    y    w    h
     setGeometry(100, 100, SCREEN_WIDTH, SCREEN_HEIGHT);
 
+    // Set Timer
+    // m_timer = new QTimer(this);
+    // m_timer->setInterval(16); // 60 FPS
+
+
     // Set status bar
     m_statusBar = new QStatusBar();
     m_statusBar->setVisible(false);
@@ -73,6 +78,7 @@ MainWindow::MainWindow(QWidget* parent)
     setCentralWidget(m_splitter);
 
     // Connections
+    // connect(m_timer, &QTimer::timeout, m_openGLWidget, QOverload<>::of(&OpenGLWidget::update));
     // Menu bar
     connect(loadAction, &QAction::triggered, this, [this]() {
         QString fileName = QFileDialog::getOpenFileName(this, "Open File", "", "OBJ Files (*.obj);;All Files (*)");

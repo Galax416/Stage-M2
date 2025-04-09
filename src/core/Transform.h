@@ -1,21 +1,30 @@
 #pragma once
 
-#include <QMatrix4x4>
 #include <QVector3D>
+#include <QQuaternion>
+#include <QMatrix4x4>
 
 #include <cmath>
 
 class Transform 
 {
 public:
-    Transform() {};
+    QVector3D position;
+    QVector3D rotationEuler;
+    QQuaternion rotation;
+    QVector3D scale;
 
-    QVector3D position        { QVector3D(0.0f, 0.0f, 0.0f) };
-    QVector3D rotationEuler   { QVector3D(0.0f, 0.0f, 0.0f) };
-    QQuaternion rotation      { QQuaternion() };
-    QVector3D scale           { QVector3D(1.0f, 1.0f, 1.0f) };
+public:
+    Transform() 
+    {
+        position      = QVector3D(0.0f, 0.0f, 0.0f);
+        rotationEuler = QVector3D(0.0f, 0.0f, 0.0f);
+        rotation      = QQuaternion::fromEulerAngles(rotationEuler);
+        scale         = QVector3D(1.0f, 1.0f, 1.0f);
+    }
 
-    QMatrix4x4 GetModelMatrix() const {
+    QMatrix4x4 GetModelMatrix() const 
+    {
         QMatrix4x4 modelMatrix;
         modelMatrix.QMatrix4x4::translate(position);
         modelMatrix.QMatrix4x4::rotate(rotation);
@@ -23,20 +32,24 @@ public:
         return modelMatrix;
     };
 
-    QMatrix3x3 GetRotationMatrix() const {
+    QMatrix3x3 GetRotationMatrix() const 
+    {
         return rotation.toRotationMatrix();
     };
 
-    void Translate(const QVector3D &translation) {
+    void Translate(const QVector3D &translation) 
+    {
         position += translation;
     };
 
-    void Rotate(const QQuaternion &rotation) {
+    void Rotate(const QQuaternion &rotation) 
+    {
         this->rotation = rotation * this->rotation;
         this->rotationEuler = this->rotation.toEulerAngles();
     };
 
-    void Rotate(const QVector3D &euler) {
+    void Rotate(const QVector3D &euler) 
+    {
         this->rotationEuler += euler;
         this->rotationEuler.setX(fmod(this->rotationEuler.x(), 360.0f));
         this->rotationEuler.setY(fmod(this->rotationEuler.y(), 360.0f));
@@ -44,11 +57,13 @@ public:
         this->rotation = QQuaternion::fromEulerAngles(rotationEuler);
     };
 
-    void ScaleBy(const QVector3D &scale) {
+    void ScaleBy(const QVector3D &scale) 
+    {
         this->scale *= scale;
     };
 
-    void SetRotationEuler(const QVector3D &euler) {
+    void SetRotationEuler(const QVector3D &euler) 
+    {
         this->rotationEuler = euler;
         this->rotationEuler.setX(fmod(this->rotationEuler.x(), 360.0f));
         this->rotationEuler.setY(fmod(this->rotationEuler.y(), 360.0f));

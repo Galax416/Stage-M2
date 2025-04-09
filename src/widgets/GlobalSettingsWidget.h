@@ -11,8 +11,6 @@
 #include <QVector3D>
 #include <QDebug>
 
-#include "Constants.h"
-
 class GlobalSettingsWidget : public QWidget
 {
     Q_OBJECT

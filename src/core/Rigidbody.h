@@ -6,7 +6,8 @@
 #include <vector>
 
 #include "Transform.h"
-#include "Collision.h"
+#include "BoundingBox.h"
+#include "Collider.h"
 
 #define RIGIDBODY_TYPE_BASE		0
 #define RIGIDBODY_TYPE_PARTICLE	1
@@ -15,6 +16,10 @@
 
 class Rigidbody
 {
+private:
+    unsigned int id;
+    static unsigned int nextId;
+
 public:
     int type; // 0: base, 1: particle, 2: sphere, 3: box
 
@@ -34,7 +39,7 @@ public:
     QVector3D gravity { 0.0f, -9.82f, 0.0f };
 
     float mass { 1.0f }; // default mass
-    float cor { 0.7f }; // Coefficient of restitution
+    float cor { 0.5f }; // Coefficient of restitution
 
     float friction { 0.99f }; // default friction
 
@@ -45,6 +50,7 @@ public:
     SphereCollider sphereCollider;
 
     inline Rigidbody() {
+        id = nextId++;
         type = RIGIDBODY_TYPE_BASE;
     }
     virtual inline ~Rigidbody() { }
@@ -54,26 +60,35 @@ public:
     
     virtual inline void ApplyForces() { forces = gravity * mass; } // gravity
     virtual void AddLinearImpulse(const QVector3D& impulse);
-    virtual void AddRotationalImpulse(const QVector3D& impulse) { }
-    virtual inline void SolveConstraints(const std::vector<Rigidbody*>& constraints) { }
+    virtual void AddRotationalImpulse(const QVector3D& impulse) {}
+    virtual void SolveConstraints(const std::vector<std::shared_ptr<Rigidbody>>& constraints);
 
     virtual inline void SynsCollisionVolumes() { }
 
-    inline bool HasVolume() { return type == RIGIDBODY_TYPE_SPHERE || type == RIGIDBODY_TYPE_BOX; }
-    inline float InvMass() { return mass == 0 ? 0 : 1.0f / mass; }
+    // inline bool HasVolume() { return type == RIGIDBODY_TYPE_SPHERE || type == RIGIDBODY_TYPE_BOX; }
+    inline float InvMass()  { return mass == 0 ? 0 : 1.0f / mass; }
     QMatrix4x4 InvTensor();
 
+    unsigned int GetID()    { return id; }
+    int GetType()           { return type; }
+    float GetMass()         { return mass; }
+    float GetCor()          { return cor; }
     QVector3D GetVelocity() { return transform.position - oldPosition; }
+    AABB GetAABB();
 
-    void SetType(int t) { type = t; }
+    void SetType(int t)                 { type = t; }
     void SetGravity(const QVector3D& g) { gravity = g; }
-    void SetFriction(float f) { friction = f < 0 ? 0 : f; }
-    void SetMass(float m) { mass = m < 0 ? 0 : m; }
-    void SetMovable(bool m) { isMovable = m; }
+    void SetFriction(float f)           { friction = f < 0 ? 0 : f; }
+    void SetMass(float m)               { mass = m < 0 ? 0 : m; }
+    void SetCor(float c)                { cor = c < 0 ? 0 : c > 1 ? 1 : c; }
+    void SetMovable(bool m)             { isMovable = m; }
     virtual inline void SetPosition(const QVector3D& p) { }
 
-    void SolveSphereSphereCollision(SphereCollider& s1, SphereCollider& s2, Rigidbody* rb);
-    void SolveSphereOBBCollision(SphereCollider& sphere, OBB& box, Rigidbody* rb);
-    void SolveOBBOBBCollision(OBB& box1, OBB& box2, Rigidbody* rb);
+    void SolveParticleParticleCollision(Particle& p1, Particle& p2);
+    // void SolveParticleSphereCollision(Particle& p, SphereCollider& sphere, Rigidbody* rb) {}
+    void SolveParticleOBBCollision(Particle& p, Rigidbody* rb);
+    // void SolveSphereSphereCollision(SphereCollider& s1, SphereCollider& s2, Rigidbody* rb) {}
+    // void SolveSphereOBBCollision(SphereCollider& sphere, OBB& box, Rigidbody* rb) {}
+    // void SolveOBBOBBCollision(OBB& box1, OBB& box2, Rigidbody* rb) {}
 
 };

@@ -2,7 +2,6 @@
 
 #include <cmath>
 
-#include "Geometry.h"
 #include "Particle.h"
 
 // Hooke's law
@@ -17,13 +16,11 @@ public:
     Particle* p1;
     Particle* p2;
 
-    float k; // [-x to 0] higher = stiff sprint, lower = loose spring
+    float k; // [0 to x] higher = stiff sprint, lower = loose spring
     float b; // [0 to 1] higher = more dampening, lower = less dampening
     float restingLength;
 
-    QColor color;
-
-    Spring(float _k, float _b, float len, QColor c = Qt::white);
+    Spring(float _k, float _b, float len);    
     void SetParticles(Particle* _p1, Particle* _p2);
     Particle* GetP1();
     Particle* GetP2();
@@ -32,6 +29,7 @@ public:
 
     void Render(QOpenGLShaderProgram* shaderProgram);
     void ApplyForce(float deltaTime);
-    // void SolveConstraints(const std::vector<Rigidbody*>& constraints);
-
+    
+private:
+    QVector3D GetColorSpring();
 };

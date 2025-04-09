@@ -1,5 +1,7 @@
 #include "Camera.h"
 
+const QVector3D WORLD_UP(0.0f, 1.0f, 0.0f);
+
 Camera::Camera()
 {
     Initialize();
@@ -7,7 +9,7 @@ Camera::Camera()
 
 Camera::Camera(const QVector3D& position, const QVector3D& target)
 {
-    this->position = position;
+    m_transform.position = position;
     m_target = target;
 
     Initialize();
@@ -15,13 +17,13 @@ Camera::Camera(const QVector3D& position, const QVector3D& target)
 
 void Camera::Initialize()
 {
-    m_front = (m_target - position).normalized();
-    m_distance = (position - m_target).length();
+    m_front = (m_target - m_transform.position).normalized();
+    m_distance = (m_transform.position - m_target).length();
 
-    rotationEuler.setX(qRadiansToDegrees(asin(m_front.y())));
-    rotationEuler.setY(qRadiansToDegrees(atan2(m_front.x(), -m_front.z())));
-    rotationEuler.setZ(0.0f);
-    rotation = QQuaternion::fromEulerAngles(rotationEuler);
+    m_transform.rotationEuler.setX(qRadiansToDegrees(asin(m_front.y())));
+    m_transform.rotationEuler.setY(qRadiansToDegrees(atan2(m_front.x(), -m_front.z())));
+    m_transform.rotationEuler.setZ(0.0f);
+    m_transform.rotation = QQuaternion::fromEulerAngles(m_transform.rotationEuler);
 
     QVector3D right = QVector3D::crossProduct(m_front, WORLD_UP).normalized();
     QVector3D up = QVector3D::crossProduct(right, m_front).normalized();
@@ -47,21 +49,21 @@ void Camera::ComputeView(QMatrix4x4& view, QMatrix4x4& projection, QVector3D up)
     }
 
     view.setToIdentity();
-    view.lookAt(position, m_target, up);
+    view.lookAt(m_transform.position, m_target, up);
 
-    m_front = (m_target - position).normalized();
+    m_front = (m_target - m_transform.position).normalized();
 }
 
 void Camera::UpdateCameraPosition()
 {
-    float yawRad = qDegreesToRadians(rotationEuler.y());
-    float pitchRad = qDegreesToRadians(rotationEuler.x());
+    float yawRad = qDegreesToRadians(m_transform.rotationEuler.y());
+    float pitchRad = qDegreesToRadians(m_transform.rotationEuler.x());
 
     float x = m_distance * cos(pitchRad) * sin(yawRad);
     float y = m_distance * sin(pitchRad);
     float z = m_distance * cos(pitchRad) * cos(yawRad);
 
-    position = m_target + QVector3D(x, y, z);
+    m_transform.position = m_target + QVector3D(x, y, z);
 
     QVector3D right = QVector3D::crossProduct(m_front, WORLD_UP).normalized();
     QVector3D up = QVector3D::crossProduct(right, m_front).normalized();
@@ -97,19 +99,18 @@ void Camera::mouseMoveEvent(QMouseEvent* event)
     }
     else
     {
-        rotationEuler.setX(rotationEuler.x() + dy);
-        rotationEuler.setY(rotationEuler.y() - dx);
+        m_transform.rotationEuler.setX(m_transform.rotationEuler.x() + dy);
+        m_transform.rotationEuler.setY(m_transform.rotationEuler.y() - dx);
         
-        rotationEuler.setX(qBound(-89.0f, rotationEuler.x(), 89.0f)); // Clamp pitch to avoid gimbal lock
-        rotationEuler.setY(fmod(rotationEuler.y(), 360.0f)); // Wrap yaw to [0, 360]
+        m_transform.rotationEuler.setX(qBound(-89.0f, m_transform.rotationEuler.x(), 89.0f)); // Clamp pitch to avoid gimbal lock
+        m_transform.rotationEuler.setY(fmod(m_transform.rotationEuler.y(), 360.0f)); // Wrap yaw to [0, 360]
         
-        rotation = QQuaternion::fromEulerAngles(rotationEuler);
+        m_transform.rotation = QQuaternion::fromEulerAngles(m_transform.rotationEuler);
 
         UpdateCameraPosition(); 
         
     }
     
-
 }
 
 void Camera::wheelEvent(QWheelEvent* event)
@@ -124,9 +125,5 @@ void Camera::wheelEvent(QWheelEvent* event)
     if (m_distance > maxDistance) m_distance = maxDistance;
     
     UpdateCameraPosition();
-    // QVector3D direction = (position - m_target).normalized();
-    // position = m_target + direction * m_distance;
 
-
-    // ComputeView(m_viewMatrix, m_projectionMatrix);
 }

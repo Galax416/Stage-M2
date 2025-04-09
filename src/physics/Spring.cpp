@@ -1,6 +1,7 @@
 #include "Spring.h"
+#include "Render.h"
 
-Spring::Spring(float _k, float _b, float len, QColor c) : p1(nullptr), p2(nullptr), k(_k), b(_b), restingLength(len), color(c) {}
+Spring::Spring(float _k, float _b, float len) : p1(nullptr), p2(nullptr), k(_k), b(_b), restingLength(len) {}
 
 void Spring::SetParticles(Particle* _p1, Particle* _p2) 
 {
@@ -44,13 +45,27 @@ void Spring::ApplyForce(float deltaTime)
 
 }
 
+QVector3D Spring::GetColorSpring()
+{
+    QColor color1 = p1->GetColor();
+    QColor color2 = p2->GetColor();
+
+    QVector3D colorSpring = QVector3D(
+        (color1.redF() + color2.redF()) * 0.5f,
+        (color1.greenF() + color2.greenF()) * 0.5f,
+        (color1.blueF() + color2.blueF()) * 0.5f
+    );
+
+    return colorSpring;
+}
+
 void Spring::Render(QOpenGLShaderProgram* shaderProgram)
 {
     if (!p1 || !p2) return;
 
     shaderProgram->bind();
 
-    shaderProgram->setUniformValue("color", color);
+    shaderProgram->setUniformValue("material.albedo", GetColorSpring());
     shaderProgram->setUniformValue("model", QMatrix4x4());
 
     Line line(p1->transform.position, p2->transform.position);
