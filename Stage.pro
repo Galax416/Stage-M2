@@ -19,7 +19,6 @@ SOURCES += \
     ./src/Main.cpp \
     ./libs/stb_image.cpp \
     ./src/core/Rigidbody.cpp \
-    ./src/core/BVH.cpp \
     ./src/core/Camera.cpp \
     ./src/rendering/Render.cpp \
     ./src/rendering/Mesh.cpp \
@@ -32,13 +31,14 @@ SOURCES += \
     ./src/physics/ModelPhysicsConverter.cpp \
     ./src/MainWindow.cpp \
     ./src/widgets/OpenglWidget.cpp \
-    ./src/widgets/GlobalSettingsWidget.cpp 
+    ./src/widgets/GlobalSettingsWidget.cpp \
+    ./src/widgets/SpringSettingsWidgets.cpp 
 
 HEADERS += \
     ./libs/stb_image.h \
+    ./src/core/Utils.h \
     ./src/core/Transform.h \
     ./src/core/BoundingBox.h \
-    ./src/core/Collider.h \
     ./src/core/GeometryPrimitives.h \
     ./src/core/Rigidbody.h \
     ./src/core/BVH.h \
@@ -48,6 +48,8 @@ HEADERS += \
     ./src/rendering/Mesh.h \
     ./src/rendering/Model.h \
     ./src/rendering/Geometry3D.h \
+    ./src/physics/SphereCollider.h \
+    ./src/physics/TriangleCollider.h \
     ./src/physics/Particle.h \
     ./src/physics/Spring.h \
     ./src/physics/CollisionSolver.h \
@@ -56,6 +58,7 @@ HEADERS += \
     ./src/MainWindow.h \
     ./src/widgets/OpenglWidget.h \
     ./src/widgets/GlobalSettingsWidget.h \
+    ./src/widgets/SpringSettingsWidgets.h
 
 #FORMS += 
 

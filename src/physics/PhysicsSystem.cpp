@@ -1,4 +1,5 @@
 #include "PhysicsSystem.h"
+#include "CollisionSolver.h"
 #include "Render.h"
 
 PhysicsSystem::PhysicsSystem()
@@ -16,19 +17,31 @@ void PhysicsSystem::Update(float deltaTime)
 
     // Apply spring forces
     for (size_t i = 0, size = springs.size(); i < size; ++i) {
-        springs[i].ApplyForce(deltaTime);
+        for (int step = 0, substeps = 4; step < substeps; ++step) {
+            springs[i]->ApplyForce(deltaTime / substeps);
+        }
+        // springs[i]->ApplyForce(deltaTime);
     }
 
     // Update BVH for collision detection
-    bvhRoot = BuildBVH(constraints);
+    bvhRigidbodies = BuildBVH(constraints);
+    bvhTriangleColliders = BuildBVH(triangleColliders);
 
     // Solve constraints
-    for (auto& body : constraints) {
-        std::vector<std::shared_ptr<Rigidbody>> nearby;
-        QueryBVH(body, bvhRoot.get(), nearby);
-        body->SolveConstraints(nearby);
-    }
+    const int constraintIterations = 4;
+    for (int iter = 0; iter < constraintIterations; ++iter) {
+        for (auto& constraint : constraints) {
+            std::vector<std::shared_ptr<Rigidbody>> nearbyRigdibodies;
+            std::vector<std::shared_ptr<TriangleCollider>> nearbyTriangles;
 
+            QueryBVH<Rigidbody>(constraint->GetAABB(), bvhRigidbodies.get(), nearbyRigdibodies);
+            constraint->SolveConstraints(nearbyRigdibodies);
+
+            QueryBVH<TriangleCollider>(constraint->GetAABB(), bvhTriangleColliders.get(), nearbyTriangles);
+            constraint->SolveConstraints(nearbyTriangles);
+        }
+        
+    }
 }
 
 void PhysicsSystem::Render(QOpenGLShaderProgram* shaderProgram)
@@ -40,11 +53,11 @@ void PhysicsSystem::Render(QOpenGLShaderProgram* shaderProgram)
 
     // Render springs
     for (size_t i = 0, size = springs.size(); i < size; ++i) {
-        springs[i].Render(shaderProgram);
+        springs[i]->Render(shaderProgram);
     }
 
     // Render BVH (debug)
-    // RenderBVH(shaderProgram, bvhRoot.get());
+    if ( m_renderBVH ) RenderBVH(shaderProgram, bvhRigidbodies.get());
     
 }
 

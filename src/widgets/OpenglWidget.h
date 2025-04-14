@@ -17,7 +17,7 @@
 #define SCREEN_WIDTH  1080
 #define SCREEN_HEIGHT 720
 
-#define DeltaTime 0.001f // 1ms
+#define DeltaTime  0.0016f 
 
 
 class OpenGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
@@ -51,6 +51,8 @@ protected:
 signals:
     void statusBarMessageChanged(const QString& message);
     void buttonStateChanged(bool isPaused);
+    void renderBVHChanged();
+    void updateSpringsStiffnessControlsChanged(const std::vector<std::shared_ptr<Spring>>& springs);
 
 public slots:
     void setGlobalDeltaTime(float value) { m_deltaTime = value; }
@@ -65,6 +67,7 @@ public slots:
 private:
     void InitShaders(QOpenGLShaderProgram *program, QString vertex_shader, QString fragment_shader);
     void InitScene();
+    void ClearScene() { m_physicsSystem.ClearAll(); m_particles.clear(); m_springs.clear(); m_triangleColliders.clear(); }
     
     // QOpenGLVertexArrayObject* m_vao;
 
@@ -76,6 +79,7 @@ private:
     PhysicsSystem m_physicsSystem;
     std::vector<std::shared_ptr<Particle>> m_particles;
     std::vector<std::shared_ptr<Spring>> m_springs; // To load springs from file
+    std::vector<std::shared_ptr<TriangleCollider>> m_triangleColliders; // To load triangle colliders from file
     Model *m_model; // To load model from file
 
     // Global settings

@@ -70,8 +70,8 @@ void Mesh::Render(QOpenGLShaderProgram* shaderProgram)
 {
     shaderProgram->bind();
 
-    // Send material properties to shader
-    shaderProgram->setUniformValue("material.albedo", m_material.albedo);
+    // // Send material properties to shader
+    // shaderProgram->setUniformValue("material.albedo", m_material.albedo);
     shaderProgram->setUniformValue("material.specular", m_material.specular);
     shaderProgram->setUniformValue("material.emissive", m_material.emissive);
     shaderProgram->setUniformValue("material.shininess", m_material.shininess);

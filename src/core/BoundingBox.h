@@ -24,6 +24,7 @@ struct AABB
 
 	inline OBB toOBB() const; // Convert AABB to OBB
 	inline bool Intersects(const AABB& other) const;
+	float SurfaceArea() const { return 2.0f * (size.x() * size.y() + size.x() * size.z() + size.y() * size.z()); } // Surface area of AABB
 };
 
 // Oriented Bounding Box

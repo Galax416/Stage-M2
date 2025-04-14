@@ -17,6 +17,8 @@ public:
 
 private:
     void SetUpPlane(const QVector3D& n = QVector3D(0.0, 1.0, 0.0));
+    static Mesh* GetSharedPlaneMesh();
+
     QVector3D normal;
     float distance;
 };
@@ -34,5 +36,7 @@ public:
 
 private:
     void SetUpSphere();
+    static Mesh* GetSharedSphereMesh();
+
     float radius;
 };

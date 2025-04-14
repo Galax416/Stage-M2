@@ -20,7 +20,6 @@ Model::~Model()
 
 void Model::ClearModel()
 {
-    if (mesh) delete mesh;
     mesh = nullptr;
     if (customOBJ) delete customOBJ;
     customOBJ = nullptr;
@@ -109,9 +108,9 @@ void Model::Update(float deltaTime)
 {
     if (!isMovable) return;
 
-    QVector3D velocity = (transform.position - oldPosition);
+    QVector3D velocity = GetVelocity();
     oldPosition = transform.position;
-    float deltaSquare = deltaTime * deltaTime;
+    float deltaSq = deltaTime * deltaTime;
     
     if (fabsf(velocity.x()) < 0.001f) {
         velocity.setX(0.0f);
@@ -139,7 +138,7 @@ void Model::Update(float deltaTime)
     //     }
     // }
 
-    transform.position += (velocity * friction + forces * deltaSquare);
+    transform.position += (velocity * friction + forces * deltaSq);
 
     // if (type == RIGIDBODY_TYPE_BOX) {
     //     orientation += angVel * deltaTime;
@@ -149,13 +148,17 @@ void Model::Update(float deltaTime)
 
     SynsCollisionVolumes();
 
+    forces = QVector3D(0.0f, 0.0f, 0.0f); // Reset forces after applying them
+
 }
 
 void Model::Render(QOpenGLShaderProgram* shaderProgram)
 {
     shaderProgram->bind();
     
+    shaderProgram->setUniformValue("material.albedo", QVector3D(color.redF(), color.greenF(), color.blueF()));
     shaderProgram->setUniformValue("model", transform.GetModelMatrix());
+    
     if (mesh) mesh->Render(shaderProgram);
     
     shaderProgram->release();
@@ -181,29 +184,8 @@ void Model::BuildAABB()
         maxBounds.setY(qMax(maxBounds.y(), vertex.position.y()));
         maxBounds.setZ(qMax(maxBounds.z(), vertex.position.z()));
     }
-    
 
     bounds.position = (minBounds + maxBounds) * 0.5f;
     bounds.size = (maxBounds - minBounds) * 0.5f;
 
 }
-
-// void Model::SolveConstraints(const std::vector<std::shared_ptr<Rigidbody>>& constraints)
-// {
-    /*for (auto& rb : constraints) {
-        if (rb.get() == this || !rb->HasVolume()) continue;
-
-        if (type == RIGIDBODY_TYPE_SPHERE && rb->type == RIGIDBODY_TYPE_SPHERE) {
-            SolveSphereSphereCollision(sphereCollider, rb->sphereCollider, rb.get());
-        }
-        else if (type == RIGIDBODY_TYPE_SPHERE && rb->type == RIGIDBODY_TYPE_BOX) {
-            SolveSphereOBBCollision(sphereCollider, rb->boxCollider, rb.get());
-        }
-        else if (type == RIGIDBODY_TYPE_BOX && rb->type == RIGIDBODY_TYPE_SPHERE) {
-            SolveSphereOBBCollision(rb->sphereCollider, boxCollider, this);
-        }
-        else if (type == RIGIDBODY_TYPE_BOX && rb->type == RIGIDBODY_TYPE_BOX) {
-            SolveOBBOBBCollision(boxCollider, rb->boxCollider, rb.get());
-        }
-    }*/
-// }

@@ -75,8 +75,11 @@ void OpenGLWidget::initializeGL()
     // Initialize the physics system
     // m_physicsSystem = PhysicsSystem();
 
-    // Initialize the physics system
+    // Initialize the model
     m_model = new Model();
+
+    connect(this, &OpenGLWidget::renderBVHChanged, &m_physicsSystem, &PhysicsSystem::renderBVH);
+    
     InitScene();
 
 }
@@ -88,6 +91,7 @@ void OpenGLWidget::paintGL()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
+    glDisable(GL_CULL_FACE);
     // glEnable(GL_CULL_FACE);
 
     glUseProgram(m_program->programId());
@@ -140,7 +144,7 @@ void OpenGLWidget::wheelEvent(QWheelEvent *event)
 
 void OpenGLWidget::keyPressEvent(QKeyEvent *event)
 {
-    // qDebug() << event->key();
+    qDebug() << event->key();
     switch (event->key())
     {
     case Qt::Key_Space:
@@ -150,6 +154,13 @@ void OpenGLWidget::keyPressEvent(QKeyEvent *event)
     case Qt::Key_W:
         m_isWireMode = !m_isWireMode;
         break;
+    case Qt::Key_B:
+        emit renderBVHChanged();
+        break;
+    case Qt::Key_E:
+        m_particles.push_back(std::make_shared<Particle>(QVector3D(0, 0, 0.2), 5, 10, true, QColor(255, 0, 255)));
+        m_physicsSystem.AddRigidbody(m_particles[m_particles.size() - 1]);
+        m_physicsSystem.AddConstraint(m_particles[m_particles.size() - 1]);
 
     default:
         break;
@@ -168,10 +179,7 @@ void OpenGLWidget::InitScene()
     makeCurrent();
 
     Stop();
-    
-    m_physicsSystem.ClearAll();
-    m_particles.clear();
-    m_springs.clear();
+    ClearScene();
 
     // Spring test 1 (pendulum)
     /*m_particles.push_back(Particle(QVector3D(0, 0, 0), 10, 10, false, QColor(0, 255, 0))); // m1
@@ -410,6 +418,7 @@ void OpenGLWidget::InitScene()
     m_particles.push_back(std::make_shared<Particle>(QVector3D(0.70, 0.30, 0), boule, bouleG, true, QColor(255, 0, 106)));
     */
 
+    /*
     m_particles.push_back(std::make_shared<Particle>(QVector3D(0, 0, 0), 30, 20, true, QColor(255, 255, 255))); // Base
     m_particles.push_back(std::make_shared<Particle>(QVector3D(1, 0, 0), 30, 10, false, QColor(255, 0, 0))); // x
     m_particles.push_back(std::make_shared<Particle>(QVector3D(0, 1, 0), 30, 10, false, QColor(0, 0, 255))); // y
@@ -430,7 +439,7 @@ void OpenGLWidget::InitScene()
 
     // Scene particles-ground
     m_particles.push_back(std::make_shared<Particle>(QVector3D(0, 2, 0), 30, 10, true, QColor(255, 0, 255))); // Ground
-
+    */
 
     // Test load model
     /*Model* model = new Model("./resources/models/cube.obj");
@@ -448,7 +457,7 @@ void OpenGLWidget::InitScene()
     }*/
 
     auto ground = std::make_shared<Plane>(QVector3D(0, -2, 0), QVector3D(0, 1, 0), QColor(100, 100, 100));
-    ground->isMovable = false;
+    ground->SetMovable(false);
     m_physicsSystem.AddRigidbody(ground);
     m_physicsSystem.AddConstraint(ground);
 
@@ -457,26 +466,33 @@ void OpenGLWidget::InitScene()
     // m_physicsSystem.AddRigidbody(model);
 
     // Test load custom model
-    if (!m_model->customOBJ->isCustomOBJ) ConvertModelToParticleSprings(m_model, m_particles, m_springs);
-    else ChargeModelParticleSprings(m_model, m_particles, m_springs);
+    if (!m_model->customOBJ->isCustomOBJ) ConvertModelToParticleSprings(m_model, m_particles, m_springs, m_triangleColliders, false);
+    else ChargeModelParticleSprings(m_model, m_particles, m_springs, m_triangleColliders);
 
-    // auto plane = std::make_shared<Plane>(QVector3D(0, 0, 0), QVector3D(0, 0, 1), QColor(100, 100, 100));
-    // plane->isMovable = false;
-    // m_physicsSystem.AddRigidbody(plane);
-    // m_physicsSystem.AddConstraint(plane);
+    auto plane = std::make_shared<Plane>(QVector3D(0, 0, 0), QVector3D(0, 0, 1), QColor(50, 50, 50));
+    plane->SetMovable(false);
+    m_physicsSystem.AddRigidbody(plane);
+    m_physicsSystem.AddConstraint(plane);
 
-    qDebug() << "Particles: " << m_particles.size() << " Springs: " << m_springs.size();
+    qDebug() << "Particles: " << m_particles.size() << " Springs: " << m_springs.size() << " Triangle colliders: " << m_triangleColliders.size();
     
+
     // Add particles and springs to the physics system
     for (auto& p : m_particles) {
         m_physicsSystem.AddRigidbody(p);
         m_physicsSystem.AddConstraint(p);
     }
-
-    for (auto& s : m_springs) m_physicsSystem.AddSpring(*s);
+    for (auto& s : m_springs) m_physicsSystem.AddSpring(s);
+    for (auto& t : m_triangleColliders) m_physicsSystem.AddTriangleCollider(t);
 
     m_physicsSystem.ChangeFriction(m_globalFriction);
     m_physicsSystem.RotateRigidbodies(m_globalRotation);
+
+    m_physicsSystem.SetUpBVH();
+
+    emit statusBarMessageChanged("Scene initialized");
+    emit updateSpringsStiffnessControlsChanged(m_springs);
+    
 
     doneCurrent();
     update();

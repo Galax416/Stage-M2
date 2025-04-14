@@ -59,6 +59,13 @@ MainWindow::MainWindow(QWidget* parent)
     m_globalSettingsWidget = new GlobalSettingsWidget(this);
     m_rightLayout->addWidget(m_globalSettingsWidget);
 
+    // Spring settings
+    m_springSettingsWidget = new SpringSettingsWidget(this);
+    m_rightLayout->addWidget(m_springSettingsWidget);
+
+    // Add void space to the bottom of the group box
+    m_rightLayout->addStretch(1);
+
     QHBoxLayout* buttonLayout = new QHBoxLayout();
 
     m_resetButton = new QPushButton("Reset", this);
@@ -100,6 +107,9 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_globalSettingsWidget, &GlobalSettingsWidget::DeltaTimeChanged, m_openGLWidget, &OpenGLWidget::setGlobalDeltaTime);
     connect(m_globalSettingsWidget, &GlobalSettingsWidget::FrictionChanged, m_openGLWidget, &OpenGLWidget::setGlobalFriction);
     connect(m_globalSettingsWidget, &GlobalSettingsWidget::RotationChanged, m_openGLWidget, &OpenGLWidget::setGlobalRotation);
+
+    // Spring settings
+    connect(m_openGLWidget, &OpenGLWidget::updateSpringsStiffnessControlsChanged, m_springSettingsWidget, &SpringSettingsWidget::UpdateSpringsStiffnessControls);
 
     // Buttons (reset, stop, resume)
     connect(m_openGLWidget, &OpenGLWidget::buttonStateChanged, this, &MainWindow::updateButtonsState);

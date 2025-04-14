@@ -55,7 +55,6 @@ void Render(const AABB& aabb)
 void Render(const OBB& obb) 
 {
     AABB aabb;
-    aabb.position = obb.position;
     aabb.size = obb.size;
     Render(aabb);
 }
@@ -87,34 +86,3 @@ void Render(const SphereCollider& sphere)
     glEnd();
 }
 
-void RenderBVH(QOpenGLShaderProgram* shader, BVHNode* node, int depth)
-{
-    if (!node) return;
-
-    static const QColor levelColors[] = {
-        QColor(255, 0, 0),    // rouge
-        QColor(0, 255, 0),    // vert
-        QColor(0, 0, 255),    // bleu
-        QColor(255, 255, 0),  // jaune
-        QColor(255, 0, 255),  // magenta
-        QColor(0, 255, 255),  // cyan
-        QColor(255, 128, 0),  // orange
-    };
-    QColor color = levelColors[depth % (sizeof(levelColors) / sizeof(QColor))];
-
-    QVector3D center = node->bounds.position;
-    QVector3D scale = node->bounds.size;
-
-    QMatrix4x4 model;
-    model.translate(center);
-    model.scale(scale);
-
-    shader->bind();
-    shader->setUniformValue("model", model);
-    shader->setUniformValue("material.color", QVector3D(color.redF(), color.greenF(), color.blueF()));
-    Render(node->bounds); // Render the bounding box
-    shader->release();
-
-    RenderBVH(shader, node->left.get(), depth + 1); // Render left child
-    RenderBVH(shader, node->right.get(), depth + 1); // Render right child
-}

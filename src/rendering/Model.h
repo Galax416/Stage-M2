@@ -22,34 +22,32 @@ class CustomOBJLoader;
 class Model : public Rigidbody, protected QOpenGLFunctions
 {
 protected:
+    QColor color { 255, 255, 255 };
+
     void Init();
     void BuildAABB();
     void SetUpColliders();
 
 public:
-    Mesh* mesh = nullptr;
-    CustomOBJLoader* customOBJ = nullptr;
-    QColor color { 255, 255, 255 };
-    AABB bounds;
-    // bool flag;
-    // Model *parent;
+    Mesh* mesh { nullptr };
+    CustomOBJLoader* customOBJ { nullptr };
 
     Model();
     Model(const QString &path);
     virtual ~Model();
 
     void ClearModel();
-
     void LoadModel(const QString &path);
-    void Update(float deltaTime);
-    void Render(QOpenGLShaderProgram* shaderProgram);
 
-    // void SolveConstraints(const std::vector<std::shared_ptr<Rigidbody>>& constraints);
-
-    inline void SetPosition(const QVector3D& p) { transform.position = p; oldPosition = p; }
+    void Update(float deltaTime) override;
+    void Render(QOpenGLShaderProgram* shaderProgram) override;
 
     void SynsCollisionVolumes();
 
+    void SetColor(const QColor& c) { color = c; }
+
+private:
+    AABB bounds;
 };
 
 

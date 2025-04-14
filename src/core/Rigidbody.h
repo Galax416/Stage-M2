@@ -7,12 +7,16 @@
 
 #include "Transform.h"
 #include "BoundingBox.h"
-#include "Collider.h"
+#include "SphereCollider.h"
 
 #define RIGIDBODY_TYPE_BASE		0
 #define RIGIDBODY_TYPE_PARTICLE	1
 #define RIGIDBODY_TYPE_SPHERE	2
 #define RIGIDBODY_TYPE_BOX		3
+
+// Forward declaration
+class Particle;
+struct TriangleCollider;
 
 class Rigidbody
 {
@@ -26,9 +30,6 @@ public:
     // Transform
     Transform transform;
     QVector3D oldPosition;
-
-    // Physics properties
-    // QVector3D velocity { 0.0f, 0.0f, 0.0f };
 
     QVector3D orientation { 0.0f, 0.0f, 0.0f };
     QVector3D angVel { 0.0f, 0.0f, 0.0f };
@@ -48,7 +49,7 @@ public:
     // Collision volumes
     OBB boxCollider;
     SphereCollider sphereCollider;
-
+    
     inline Rigidbody() {
         id = nextId++;
         type = RIGIDBODY_TYPE_BASE;
@@ -62,6 +63,7 @@ public:
     virtual void AddLinearImpulse(const QVector3D& impulse);
     virtual void AddRotationalImpulse(const QVector3D& impulse) {}
     virtual void SolveConstraints(const std::vector<std::shared_ptr<Rigidbody>>& constraints);
+    virtual void SolveConstraints(const std::vector<std::shared_ptr<TriangleCollider>>& constraints);
 
     virtual inline void SynsCollisionVolumes() { }
 
@@ -69,12 +71,13 @@ public:
     inline float InvMass()  { return mass == 0 ? 0 : 1.0f / mass; }
     QMatrix4x4 InvTensor();
 
-    unsigned int GetID()    { return id; }
-    int GetType()           { return type; }
-    float GetMass()         { return mass; }
-    float GetCor()          { return cor; }
-    QVector3D GetVelocity() { return transform.position - oldPosition; }
-    AABB GetAABB();
+    unsigned int GetID()    const { return id; }
+    int GetType()           const { return type; }
+    float GetMass()         const { return mass; }
+    float GetCor()          const { return cor; }
+    bool IsMovable()        const { return isMovable; }
+    QVector3D GetVelocity() const { return transform.position - oldPosition; }
+    virtual AABB GetAABB()  const;
 
     void SetType(int t)                 { type = t; }
     void SetGravity(const QVector3D& g) { gravity = g; }
@@ -82,13 +85,6 @@ public:
     void SetMass(float m)               { mass = m < 0 ? 0 : m; }
     void SetCor(float c)                { cor = c < 0 ? 0 : c > 1 ? 1 : c; }
     void SetMovable(bool m)             { isMovable = m; }
-    virtual inline void SetPosition(const QVector3D& p) { }
-
-    void SolveParticleParticleCollision(Particle& p1, Particle& p2);
-    // void SolveParticleSphereCollision(Particle& p, SphereCollider& sphere, Rigidbody* rb) {}
-    void SolveParticleOBBCollision(Particle& p, Rigidbody* rb);
-    // void SolveSphereSphereCollision(SphereCollider& s1, SphereCollider& s2, Rigidbody* rb) {}
-    // void SolveSphereOBBCollision(SphereCollider& sphere, OBB& box, Rigidbody* rb) {}
-    // void SolveOBBOBBCollision(OBB& box1, OBB& box2, Rigidbody* rb) {}
+    virtual inline void SetPosition(const QVector3D& p) { transform.position = p; oldPosition = p; }
 
 };

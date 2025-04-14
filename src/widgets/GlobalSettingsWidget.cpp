@@ -11,7 +11,20 @@ GlobalSettingsWidget::GlobalSettingsWidget(QWidget *parent) : QWidget(parent)
 
 GlobalSettingsWidget::~GlobalSettingsWidget()
 {
-    
+    // if (m_mainLayout) delete m_mainLayout;
+    // if (m_globalSettingsGroupBox) delete m_globalSettingsGroupBox;
+    // if (m_dtGroupBox) delete m_dtGroupBox;
+    // if (m_dtLineEdit) delete m_dtLineEdit;
+    // if (m_frictionGroupBox) delete m_frictionGroupBox;
+    // if (m_frictionSlider) delete m_frictionSlider;
+    // if (m_frictionSpinBox) delete m_frictionSpinBox;
+    // if (m_rotationGroupBox) delete m_rotationGroupBox;
+    // if (m_rotationXSlider) delete m_rotationXSlider;
+    // if (m_rotationXSpinBox) delete m_rotationXSpinBox;
+    // if (m_rotationYSlider) delete m_rotationYSlider;
+    // if (m_rotationYSpinBox) delete m_rotationYSpinBox;
+    // if (m_rotationZSlider) delete m_rotationZSlider;
+    // if (m_rotationZSpinBox) delete m_rotationZSpinBox;
 }
 
 
@@ -25,7 +38,7 @@ void GlobalSettingsWidget::InitUI()
     m_globalSettingsGroupBox->setStyleSheet("QGroupBox { font-size: 16px; font-weight: bold; }");
     m_globalSettingsGroupBox->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
-    QVBoxLayout* globalSettingsLayout = new QVBoxLayout(m_globalSettingsGroupBox);
+    QVBoxLayout* globalSettingsLayout = new QVBoxLayout();
     m_globalSettingsGroupBox->setLayout(globalSettingsLayout);
 
     // Delta time input
@@ -137,7 +150,7 @@ void GlobalSettingsWidget::InitUI()
     globalSettingsLayout->addWidget(m_rotationGroupBox);
 
     // Add void space to the bottom of the group box
-    globalSettingsLayout->addStretch(1);
+    // globalSettingsLayout->addStretch(1);
 
 
 

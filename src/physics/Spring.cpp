@@ -1,25 +1,28 @@
 #include "Spring.h"
 #include "Render.h"
 
-Spring::Spring(float _k, float _b, float len) : p1(nullptr), p2(nullptr), k(_k), b(_b), restingLength(len) {}
+Spring::Spring(double _k, double _b, double len) : p1(nullptr), p2(nullptr), k(_k), b(_b), restingLength(len) {}
 
 void Spring::SetParticles(Particle* _p1, Particle* _p2) 
 {
     p1 = _p1;
     p2 = _p2;
-    if (restingLength <= 0.0f && p1 && p2) {
-        restingLength = p1->transform.position.distanceToPoint(p2->transform.position);
-    }
+    if (restingLength <= 0.0f && p1 && p2) restingLength = p1->transform.position.distanceToPoint(p2->transform.position);
+    b = 2 * sqrt(k * (p1->GetMass() * p2->GetMass()) / (p1->GetMass() + p2->GetMass())); // Critical damping
 }
 Particle* Spring::GetP1() { return p1; }
 
 Particle* Spring::GetP2() { return p2; }
 
-void Spring::SetConstants(float _k, float _b) 
+void Spring::SetConstants(double _k, double _b) 
 {
     k = _k;
     b = _b;
 }
+
+double Spring::GetK() { return k; }
+
+double Spring::GetB() { return b; }
 
 void Spring::ApplyForce(float deltaTime) 
 {
@@ -28,20 +31,20 @@ void Spring::ApplyForce(float deltaTime)
     QVector3D relPos = p2->transform.position - p1->transform.position;
 	QVector3D relVel = p2->GetVelocity() - p1->GetVelocity();
 
-	// Prevent underflow
-	for (int i = 0; i < 3; ++i) {
-		relPos[i] = (fabsf(relPos[i]) < 0.0000001f) ? 0.0f : relPos[i];
-		relVel[i] = (fabsf(relVel[i]) < 0.0000001f) ? 0.0f : relVel[i];
-	}
+    double length = relPos.length();
+    if (length < 1e-6f) return; // Avoid division by zero
 
-	float x = relPos.length() - restingLength;
-	float v = relVel.length();
+    QVector3D direction = relPos.normalized();
 
-	float F = (k * x) * deltaTime + (-b * v) * deltaTime;
+	double x = length - restingLength;
+	double v = QVector3D::dotProduct(relVel, direction);
 
-	QVector3D impulse = relPos.normalized() * F;
-	p1->AddLinearImpulse(impulse * p1->InvMass());
-	p2->AddLinearImpulse(impulse*  -1.0f * p2->InvMass());
+	double F = (-k * x) + (-b * v); // Hooke's law
+
+	QVector3D impulse = direction * F * deltaTime;
+    
+	if (p1->IsMovable()) p1->AddLinearImpulse(-impulse * p1->InvMass());
+	if (p2->IsMovable()) p2->AddLinearImpulse( impulse * p2->InvMass()); 
 
 }
 

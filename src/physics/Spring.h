@@ -5,31 +5,35 @@
 #include "Particle.h"
 
 // Hooke's law
-// k - spring "tightness" constant [negative to 0] rigid at 0
+// k - spring "stiffness" constant [0 to +inf] rigid when k is high
 // x - displacement of spring from equalibrium
 // b - constant (coefficient) dampening
 // v - realtive velocity of points of spring
 
 class Spring
 {
-public:
+private:
     Particle* p1;
     Particle* p2;
 
-    float k; // [0 to x] higher = stiff sprint, lower = loose spring
-    float b; // [0 to 1] higher = more dampening, lower = less dampening
-    float restingLength;
+    double k; // [0 to x] higher = stiff sprint, lower = loose spring
+    double b; // [0 to 1] higher = more dampening, lower = less dampening
+    double restingLength;
 
-    Spring(float _k, float _b, float len);    
+public:
+    Spring(double _k, double _b, double len);
     void SetParticles(Particle* _p1, Particle* _p2);
     Particle* GetP1();
     Particle* GetP2();
 
-    void SetConstants(float _k, float _b);
+    void SetConstants(double _k, double _b);
+    double GetK();
+    double GetB();
 
     void Render(QOpenGLShaderProgram* shaderProgram);
     void ApplyForce(float deltaTime);
     
 private:
     QVector3D GetColorSpring();
+    
 };
