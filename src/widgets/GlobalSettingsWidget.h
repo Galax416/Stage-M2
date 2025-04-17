@@ -27,24 +27,24 @@ private:
     void InitUI();
     void InitConnections();
 
-    QVBoxLayout* m_mainLayout;
+    QHBoxLayout *m_mainLayout;
 
-    QGroupBox* m_globalSettingsGroupBox;
+    QGroupBox   *m_globalSettingsGroupBox;
 
-    QGroupBox* m_dtGroupBox;
-    QLineEdit* m_dtLineEdit;
+    QGroupBox *m_dtGroupBox;
+    QLineEdit *m_dtLineEdit;
 
-    QGroupBox* m_frictionGroupBox;
-    QSlider* m_frictionSlider;
-    QSpinBox* m_frictionSpinBox;
+    QGroupBox *m_frictionGroupBox;
+    QSlider   *m_frictionSlider;
+    QSpinBox  *m_frictionSpinBox;
 
-    QGroupBox* m_rotationGroupBox;
-    QSlider* m_rotationXSlider;
-    QSpinBox* m_rotationXSpinBox;
-    QSlider* m_rotationYSlider;
-    QSpinBox* m_rotationYSpinBox;
-    QSlider* m_rotationZSlider;
-    QSpinBox* m_rotationZSpinBox;
+    QGroupBox *m_rotationGroupBox;
+    QSlider   *m_rotationXSlider;
+    QSpinBox  *m_rotationXSpinBox;
+    QSlider   *m_rotationYSlider;
+    QSpinBox  *m_rotationYSpinBox;
+    QSlider   *m_rotationZSlider;
+    QSpinBox  *m_rotationZSpinBox;
 
 
 };

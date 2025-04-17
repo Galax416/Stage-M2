@@ -17,10 +17,6 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-// Color 
-uniform vec4 color;
-out vec4 VertexColor;
-
 void main()
 {
     FragPos = vec3(model * vec4(aPosition, 1.0));
@@ -28,8 +24,6 @@ void main()
     TexCoords = aTexCoords;
     Tangent = mat3(model) * aTangent;
     Bitangent = mat3(model) * aBitangent;
-
-    VertexColor = color;
 
     gl_Position = projection * view * vec4(FragPos, 1.0);
     // gl_Position = vec4(FragPos, 1.0);

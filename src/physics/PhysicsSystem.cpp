@@ -28,7 +28,7 @@ void PhysicsSystem::Update(float deltaTime)
     bvhTriangleColliders = BuildBVH(triangleColliders);
 
     // Solve constraints
-    const int constraintIterations = 4;
+    const int constraintIterations = 5;
     for (int iter = 0; iter < constraintIterations; ++iter) {
         for (auto& constraint : constraints) {
             std::vector<std::shared_ptr<Rigidbody>> nearbyRigdibodies;

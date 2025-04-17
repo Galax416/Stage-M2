@@ -19,6 +19,10 @@ static inline AABB MergeAABB(const AABB& a, const AABB& b)
 template <typename T>
 static inline AABB ComputeBVHBounds(const std::vector<std::shared_ptr<T>>& objects) 
 {
+    if (objects.empty() || !objects[0]) {
+        return AABB(); // Return an empty AABB if no objects are present
+    }
+
     AABB bounds = objects[0]->GetAABB();
     for (size_t i = 1; i < objects.size(); ++i)
         bounds = MergeAABB(bounds, objects[i]->GetAABB());
@@ -51,33 +55,46 @@ inline BVHSplit FindBestSplit(std::vector<std::shared_ptr<T>>& objects)
 
     for (int axis = 0; axis < 3; ++axis) {
         std::sort(objects.begin(), objects.end(), [axis](const auto& a, const auto& b) {
+            if (!a || !b) return false;
             return a->GetAABB().position[axis] < b->GetAABB().position[axis];
         });
 
-        std::vector<AABB> leftBounds(objects.size());
-        std::vector<AABB> rightBounds(objects.size());
+        size_t length = objects.size();
 
-        AABB left = objects[0]->GetAABB();
-        leftBounds[0] = left;
+        std::vector<AABB> leftBounds(length);
+        std::vector<AABB> rightBounds(length);
 
-        for (size_t i = 1; i < objects.size(); ++i) {
-            left = MergeAABB(left, objects[i]->GetAABB());
+        AABB left;
+        bool leftValid = false;
+        for (size_t i = 0; i < length; ++i) {
+            if (!objects[i]) continue;
+            if (!leftValid) {
+                left = objects[i]->GetAABB();
+                leftValid = true;
+            } else {
+                left = MergeAABB(left, objects[i]->GetAABB());
+            }
             leftBounds[i] = left;
         }
-
-        AABB right = objects.back()->GetAABB();
-        rightBounds[objects.size() - 1] = right;
-
-        for (int i = static_cast<int>(objects.size()) - 2; i >= 0; --i) {
-            right = MergeAABB(right, objects[i]->GetAABB());
+        
+        AABB right;
+        bool rightValid = false;
+        for (size_t i = length; i-- > 0;) {
+            if (!objects[i]) continue;
+            if (!rightValid) {
+                right = objects[i]->GetAABB();
+                rightValid = true;
+            } else {
+                right = MergeAABB(right, objects[i]->GetAABB());
+            }
             rightBounds[i] = right;
         }
 
-        for (size_t i = 1; i < objects.size(); ++i) {
+        for (size_t i = 1; i < length; ++i) {
             float leftArea = leftBounds[i - 1].SurfaceArea();
             float rightArea = rightBounds[i].SurfaceArea();
 
-            float cost = leftArea * i + rightArea * (objects.size() - i);
+            float cost = leftArea * i + rightArea * (length - i);
 
             if (cost < bestSplit.cost) {
                 bestSplit = { axis, i, cost };
@@ -91,6 +108,12 @@ inline BVHSplit FindBestSplit(std::vector<std::shared_ptr<T>>& objects)
 template <typename T>
 inline std::unique_ptr<BVHNode<T>> BuildBVH(std::vector<std::shared_ptr<T>>& objects)
 {
+    // Remove null objects
+    objects.erase(std::remove_if(objects.begin(), objects.end(), [](const std::shared_ptr<T>& obj) {
+        return !obj;
+    }), objects.end());
+    
+    // If no objects are left, return nullptr
     if (objects.empty()) return nullptr;
 
     auto node = std::make_unique<BVHNode<T>>();
@@ -108,6 +131,7 @@ inline std::unique_ptr<BVHNode<T>> BuildBVH(std::vector<std::shared_ptr<T>>& obj
 
     // Sort by center along axis
     std::sort(objects.begin(), objects.end(), [axis = best.axis](const auto& a, const auto& b) {
+        if (!a || !b) return false;
         return a->GetAABB().position[axis] < b->GetAABB().position[axis];
     });
 
@@ -118,6 +142,7 @@ inline std::unique_ptr<BVHNode<T>> BuildBVH(std::vector<std::shared_ptr<T>>& obj
 
     node->left = BuildBVH(left);
     node->right = BuildBVH(right);
+    
     return node;
 }
 

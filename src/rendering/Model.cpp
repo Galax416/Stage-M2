@@ -20,6 +20,7 @@ Model::~Model()
 
 void Model::ClearModel()
 {
+    // if (mesh) delete mesh;
     mesh = nullptr;
     if (customOBJ) delete customOBJ;
     customOBJ = nullptr;
@@ -32,6 +33,7 @@ void Model::Init()
     bounds = AABB();
     oldPosition = transform.position;
     customOBJ = new CustomOBJLoader();
+
 }
 
 void Model::SynsCollisionVolumes()
@@ -49,7 +51,7 @@ void Model::SynsCollisionVolumes()
 
 void Model::SetUpColliders()
 {
-    if (mesh == nullptr) return;
+    if (!mesh) return;
     BuildAABB();
     SynsCollisionVolumes();
 }
@@ -169,7 +171,7 @@ void Model::Render(QOpenGLShaderProgram* shaderProgram)
 
 void Model::BuildAABB()
 {
-    if (mesh == nullptr) return;
+    if (!mesh) return;
 
     QVector3D minBounds = mesh->m_vertices[0].position;
     QVector3D maxBounds = mesh->m_vertices[0].position;

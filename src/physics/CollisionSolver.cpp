@@ -19,6 +19,8 @@ void SolvePairCollision(Rigidbody* a, Rigidbody* b)
     if (typeA == RIGIDBODY_TYPE_PARTICLE && typeB == RIGIDBODY_TYPE_PARTICLE) {
         auto* pa = static_cast<Particle*>(a);
         auto* pb = static_cast<Particle*>(b);
+        if (pa->GetFlags() & PARTICLE_NO_COLLISION_WITH_US && 
+            pb->GetFlags() & PARTICLE_NO_COLLISION_WITH_US) return; // Skip if no collision with us
         SolveParticleParticleCollision(*pa, *pb);
     }
     else if (typeA == RIGIDBODY_TYPE_PARTICLE && typeB == RIGIDBODY_TYPE_SPHERE) {

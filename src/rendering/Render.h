@@ -6,6 +6,7 @@
 #include "SphereCollider.h"
 #include "GeometryPrimitives.h"
 #include "BVH.h"
+#include <cmath>
 
 void Render(const Line& line);
 void Render(const Ray& ray);

@@ -31,7 +31,7 @@ GlobalSettingsWidget::~GlobalSettingsWidget()
 void GlobalSettingsWidget::InitUI()
 {
     // Set the layout for the widget
-    m_mainLayout = new QVBoxLayout(this);
+    m_mainLayout = new QHBoxLayout(this);
     
     // Global settings group box
     m_globalSettingsGroupBox = new QGroupBox("Global Settings", this);
@@ -160,6 +160,8 @@ void GlobalSettingsWidget::InitUI()
 
 void GlobalSettingsWidget::InitConnections()
 {
+
+    // Friction
     connect(m_frictionSlider, &QSlider::valueChanged, this, [this](int value) { 
         m_frictionSpinBox->setValue(value);
         emit FrictionChanged((float)(value) * 0.01f); // value / 100.0f
@@ -169,6 +171,7 @@ void GlobalSettingsWidget::InitConnections()
         emit FrictionChanged((float)(value) * 0.01f); // value / 100.0f 
     });
 
+    // Delta time
     connect(m_dtLineEdit, &QLineEdit::editingFinished, this, [this]() {
         bool ok;
         float value = m_dtLineEdit->text().toFloat(&ok);
@@ -177,10 +180,11 @@ void GlobalSettingsWidget::InitConnections()
             m_dtLineEdit->setText(QString::number(value, 'f', 4));
             emit DeltaTimeChanged(value);
         } else {
-            m_dtLineEdit->setText("0.0005");
+            m_dtLineEdit->setText("0.0001");
         }
     });
 
+    // Rotation
     connect(m_rotationXSlider, &QSlider::valueChanged, this, [this](int value) {
         m_rotationXSpinBox->setValue(value);
         emit RotationChanged(QVector3D(value, m_rotationYSlider->value(), m_rotationZSlider->value()));

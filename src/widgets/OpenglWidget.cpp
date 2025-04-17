@@ -1,7 +1,7 @@
 #include "OpenglWidget.h"
+#include "Camera.h"
+#include "Geometry3D.h"
 #include "ModelPhysicsConverter.h"
-
-// const QVector3D WORLD_UP = QVector3D(0.0f, 1.0f, 0.0f);
 
 OpenGLWidget::OpenGLWidget(QWidget *parent) : QOpenGLWidget(parent), m_program(0)
 {
@@ -33,18 +33,30 @@ void OpenGLWidget::resizeGL(int width, int height)
     }
 }
 
-void OpenGLWidget::InitShaders(QOpenGLShaderProgram *program, QString vertex_shader, QString fragment_shader)
+void OpenGLWidget::InitShaders(QOpenGLShaderProgram *program, QString vertex_shader, QString geometry_shader, QString fragment_shader) 
 {
-    if (!program->addShaderFromSourceFile(QOpenGLShader::Vertex, vertex_shader)) {
-        qWarning() << "Error when compiling the vertex shader:" << program->log();
+
+    if (!vertex_shader.isEmpty()) {
+        if (!program->addShaderFromSourceFile(QOpenGLShader::Vertex, vertex_shader)) {
+            qWarning() << "Error when compiling the geometry shader:" << program->log();
+        }
     }
 
-    if (!program->addShaderFromSourceFile(QOpenGLShader::Fragment, fragment_shader)) {
-        qWarning() << "Error when compiling the fragment shader:" << program->log();
+    if (!geometry_shader.isEmpty()) {
+        if (!program->addShaderFromSourceFile(QOpenGLShader::Geometry, geometry_shader)) {
+            qWarning() << "Error when compiling the geometry shader:" << program->log();
+        }
+    }
+
+    if (!fragment_shader.isEmpty()) {
+        if (!program->addShaderFromSourceFile(QOpenGLShader::Fragment, fragment_shader)) {
+            qWarning() << "Error when compiling the geometry shader:" << program->log();
+        }
     }
 
     if (!program->link()) {
         qWarning() << "Error when linking the shader program:" << program->log();
+        exit(1);
     }
 }
 
@@ -52,6 +64,7 @@ void OpenGLWidget::initializeGL()
 {
     initializeOpenGLFunctions();
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+
 
     // m_vao = new QOpenGLVertexArrayObject();
     // m_vao->create();
@@ -62,9 +75,9 @@ void OpenGLWidget::initializeGL()
     m_program3D = std::make_shared<QOpenGLShaderProgram>();
 
     // 2D shaders
-    InitShaders(m_program2D.get(), ":/shaders/2D.frag", ":/shaders/3D.frag");
+    InitShaders(m_program2D.get(), ":/shaders/2D.vert", "", ":/shaders/2D.frag");
     // 3D shaders
-    InitShaders(m_program3D.get(), ":/shaders/3D.vert", ":/shaders/3D.frag");
+    InitShaders(m_program3D.get(), ":/shaders/3D.vert", "" , ":/shaders/3D.frag");
 
     if ( m_is2DMode ) m_program = m_program2D.get();
     else m_program = m_program3D.get();
@@ -158,10 +171,11 @@ void OpenGLWidget::keyPressEvent(QKeyEvent *event)
         emit renderBVHChanged();
         break;
     case Qt::Key_E:
+        makeCurrent();
         m_particles.push_back(std::make_shared<Particle>(QVector3D(0, 0, 0.2), 5, 10, true, QColor(255, 0, 255)));
         m_physicsSystem.AddRigidbody(m_particles[m_particles.size() - 1]);
         m_physicsSystem.AddConstraint(m_particles[m_particles.size() - 1]);
-
+        doneCurrent();
     default:
         break;
     }
@@ -179,309 +193,36 @@ void OpenGLWidget::InitScene()
     makeCurrent();
 
     Stop();
-    ClearScene();
 
-    // Spring test 1 (pendulum)
-    /*m_particles.push_back(Particle(QVector3D(0, 0, 0), 10, 10, false, QColor(0, 255, 0))); // m1
-    m_particles.push_back(Particle(QVector3D(200, -100, 0), 10, 100, true, QColor(255, 0, 255))); // m2
-    m_particles.push_back(Particle(QVector3D(-200, -100, 0), 10, 100, true, QColor(255, 0, 255))); // m3
-
-    m_physicsSystem.AddRigidbody(&m_particles[0]);
-    m_physicsSystem.AddRigidbody(&m_particles[1]);
-    m_physicsSystem.AddRigidbody(&m_particles[2]);
-
-    Spring spring1(15000.0f, 1.0f, 0.0f, QColor(255, 0, 0));
-    spring1.SetParticles(&m_particles[0], &m_particles[1]);
-    m_physicsSystem.AddSpring(spring1);
-
-    Spring spring2(15000.0f, 1.0f, 0.0f, QColor(255, 0, 0));
-    spring2.SetParticles(&m_particles[0], &m_particles[2]);
-    m_physicsSystem.AddSpring(spring2);
-
-    m_physicsSystem.ChangeFrictionParticle(1.0f);*/
-
-    // Spring test 2 (double pendulum)
-    /*m_particles.push_back(Particle(QVector3D(0, 0, 0), 10, 20, false));
-    m_particles.push_back(Particle(QVector3D(-200, -200, -100), 10, 200, true));
-    m_particles.push_back(Particle(QVector3D(0, -100, -100), 10, 20, true));
-
-    m_physicsSystem.AddRigidbody(&m_particles[0]);
-    m_physicsSystem.AddRigidbody(&m_particles[1]);
-    m_physicsSystem.AddRigidbody(&m_particles[2]);
-
-    Spring spring1(150000.0f, 1.0f, 0.0f);
-    spring1.SetParticles(&m_particles[0], &m_particles[1]);
-    
-    Spring spring2(15000.0f, 1.0f, 0.0f);
-    spring2.SetParticles(&m_particles[1], &m_particles[2]);
-
-    m_physicsSystem.AddSpring(spring1);
-    m_physicsSystem.AddSpring(spring2);
-
-    m_physicsSystem.ChangeFrictionParticle(1.0f);*/
-
-    // Spring test 3 (collision)
-    /*m_particles.push_back(Particle(QVector3D(-0.5, 0, 0), 5, 10.0, false));
-    m_particles.push_back(Particle(QVector3D(0.5, 0, 0), 5, 10.0, false));
-    m_particles.push_back(Particle(QVector3D(-2, 0, 0), 10, 10.0, true, QColor(255, 0, 0)));
-    m_particles.push_back(Particle(QVector3D(2, 0, 0), 10, 10.0, true, QColor(0, 0, 255)));
-
-    m_physicsSystem.AddRigidbody(&m_particles[0]);
-    m_physicsSystem.AddRigidbody(&m_particles[1]);
-    m_physicsSystem.AddRigidbody(&m_particles[2]);
-    m_physicsSystem.AddRigidbody(&m_particles[3]);
-
-    // add constraints (collision particles between red and blue particules)
-    m_physicsSystem.AddConstraint(&m_particles[2]);
-    m_physicsSystem.AddConstraint(&m_particles[3]);
-
-    m_physicsSystem.ChangeFriction(1.0f);
-
-    Spring spring1(10000.0f, 1.0f, 0.0f);
-    spring1.SetParticles(&m_particles[0], &m_particles[2]);
-
-    Spring spring2(10000.0f, 1.0f, 0.0f);
-    spring2.SetParticles(&m_particles[1], &m_particles[3]);
-
-    m_physicsSystem.AddSpring(spring1);
-    m_physicsSystem.AddSpring(spring2);*/
-
-    // Spring test 4 (rope)
-    /*int n = 30;
-    float l = 20;
-
-    m_particles.push_back(Particle(QVector3D(0, 0, 0), 2, 10.0, false));
-
-    for (int i = 1; i < n; ++i) {
-        m_particles.push_back(Particle(QVector3D(i*l+l, 0, 0), 2, 10.0, true));
-    }
-    for (int i = 1; i < n; ++i) {
-        Spring spring(15000.0f, 0.0f, 0.0f);
-        spring.SetParticles(&m_particles[i], &m_particles[i - 1]);
-        m_physicsSystem.AddSpring(spring);
-    }
-
-    for (long unsigned int i = 0; i < m_particles.size(); i++) {
-        m_physicsSystem.AddRigidbody(&m_particles[i]);
-        m_physicsSystem.AddConstraint(&m_particles[i]);
-    }*/
-
-    // Spring test 5 (breast)
-    /*int n = 15;
-    float r = 1;
-    float e = 0.2;
-    int s1 = 110;
-    int s2 = 70;
-    int boule = 17;
-    float bouleG = 30.0f;
-
-    float k1a = 450;
-    float k1b = 900;
-    float k1c = 900;
-
-    float k2a = 450 * 5;
-    float k2b = 900 * 5; 
-    float k2c = 900 * 5;
-
-
-    float t0 = M_PI / (n - 1);
-    float n1 = static_cast<int>(0.5 + (s1 * M_PI / 180) / t0);
-    float n2 = static_cast<int>(0.5 + (s2 * M_PI / 180) / t0);
-
-    float l1 = 2 * r * sin(t0 / 2);
-    float l2 = e;
-    float l3 = 2 * (r + e) * sin(t0 / 2);
-
-    // qDebug() << l1 << " " << l2 << " " << l3;
-
-    l1 = 0;
-    l2 = 0;
-    l3 = 0;
-
-    // qDebug() << l1 << " " << l2 << " " << l3;
-
-    // Set up the particles
-    m_particles.push_back(std::make_shared<Particle>(QVector3D(0, r, 0), 5, 10.0, false, QColor(255, 0, 106)));
-
-    for (int i = 1; i < n1; ++i) {
-        float t = i * t0;
-        float x = r * sin(t);
-        float y = r * cos(t);
-        m_particles.push_back(std::make_shared<Particle>(QVector3D(x, y, 0), 5, 10.0, true, QColor(255, 0, 0)));
-
-    }
-    for (int i = n1; i < n1+n2; ++i) {
-        float t = i * t0;
-        float x = r * sin(t);
-        float y = r * cos(t);
-        m_particles.push_back(std::make_shared<Particle>(QVector3D(x, y, 0), 5, 10.0, true, QColor(0, 0, 255)));
-        
-    }
-
-    m_particles.push_back(std::make_shared<Particle>(QVector3D(0, -r, 0), 5, 10.0, false, QColor(255, 0, 106)));
-    int m2 = m_particles.size() - 1;
-    
-    m_particles.push_back(std::make_shared<Particle>(QVector3D(0, r+e, 0), 5, 10.0, false, QColor(255, 0, 106)));
-    int m3 = m_particles.size() - 1;
-
-    for (int i = 1; i < n1; ++i) {
-        float t = i * t0;
-        float x = (r + e) * sin(t);
-        float y = (r + e) * cos(t);
-        m_particles.push_back(std::make_shared<Particle>(QVector3D(x, y, 0), 5, 10.0, true, QColor(255, 0, 0)));
-    }
-    for (int i = n1; i < n1 + n2; ++i) {
-        float t = i * t0;
-        float x = (r + e) * sin(t);
-        float y = (r + e) * cos(t);
-        m_particles.push_back(std::make_shared<Particle>(QVector3D(x, y, 0), 5, 10.0, true, QColor(0, 0, 255)));
-    }
-
-    m_particles.push_back(std::make_shared<Particle>(QVector3D(0, -r-e, 0), 5, 10.0, false, QColor(255, 0, 106)));
-    int m4 = m_particles.size() - 1;
-
-    float a = 0;
-    while (a < r) {
-        m_particles.push_back(std::make_shared<Particle>(QVector3D(0, a, 0), 5, 10.0, false, QColor(255, 0, 106)));
-        a = a + e / 2;
-    }
-
-    float b = -e / 2;
-    while (b > -r) {
-        m_particles.push_back(std::make_shared<Particle>(QVector3D(0, b, 0), 5, 10.0, false, QColor(255, 0, 106)));
-        b = b - e / 2;
-    }
-
-    // Set up the springs
-    for(int i = 1; i < n1; ++i) {
-        Spring spring(k1a, 1.0f, l1, QColor(255, 0, 0));
-        spring.SetParticles(m_particles[i].get(), m_particles[i-1].get());
-        m_springs.push_back(std::make_shared<Spring>(spring));
-    }
-    for(int i = n1; i < n1+n2; ++i) {
-        Spring spring(k2a, 1.0f, l1, QColor(0, 0, 255));
-        spring.SetParticles(m_particles[i].get(), m_particles[i-1].get());
-        m_springs.push_back(std::make_shared<Spring>(spring));
-    }
-    Spring spring1(k2a, 1.0f, l1, QColor(0, 0, 255));
-    spring1.SetParticles(m_particles[m2].get(), m_particles[n1+n2-1].get());
-    m_springs.push_back(std::make_shared<Spring>(spring1));
-
-    for (int i = 1; i < n1; ++i) {
-        Spring spring1(k1c, 1.0f, l3, QColor(255, 0, 0));
-        spring1.SetParticles(m_particles[i + n].get(), m_particles[i + n - 1].get());
-        m_springs.push_back(std::make_shared<Spring>(spring1));
-        Spring spring2(k1b, 1.0f, l2, QColor(255, 0, 0));
-        spring2.SetParticles(m_particles[i + n].get(), m_particles[i].get());
-        m_springs.push_back(std::make_shared<Spring>(spring2));
-        // Spring spring3(k1c, 1.0f, l3, QColor(255, 0, 0));
-        // spring3.SetParticles(m_particles[i + n].get(), m_particles[i + 1].get());
-        // m_springs.push_back(std::make_shared<Spring>(spring3));
-        // Spring spring4(k1b, 1.0f, l2, QColor(255, 0, 0));
-        // spring4.SetParticles(m_particles[i + n + 1].get(), m_particles[i].get())
-        // m_springs.push_back(std::make_shared<Spring>(spring4));
-    }
-    // Spring s8(k1c, 1.0f, l3, QColor(255, 0, 0));
-    // s8.SetParticles(m_particles[0].get(), m_particles[n+1].get());
-    // m_springs.push_back(std::make_shared<Spring>(s8));
-    // Spring s9(k1a, 1.0f, l1, QColor(255, 0, 0));
-    // s9.SetParticles(m_particles[1].get(), m_particles[n].get());
-    // m_springs.push_back(std::make_shared<Spring>(s9));
-    for (int i = n1; i < n1 + n2; ++i) {
-        Spring spring1(k2c, 1.0f, l3, QColor(0, 0, 255));
-        spring1.SetParticles(m_particles[i + n].get(), m_particles[i + n - 1].get());
-        m_springs.push_back(std::make_shared<Spring>(spring1));
-        Spring spring2(k2b, 0.0f, l2, QColor(0, 0, 255));
-        spring2.SetParticles(m_particles[i + n].get(), m_particles[i].get());
-        m_springs.push_back(std::make_shared<Spring>(spring2));
-        // Spring spring3(k2c, 1.0f, l3, QColor(0, 0, 255));
-        // spring3.SetParticles(m_particles[i + n].get(), m_particles[i + 1].get());
-        // m_springs.push_back(std::make_shared<Spring>(spring3));
-        // Spring spring4(k2b, 1.0f, l2, QColor(0, 0, 255));
-        // spring4.SetParticles(m_particles[i + n + 1].get(), m_particles[i].get())
-        // m_springs.push_back(std::make_shared<Spring>(spring4));
-    }
-    Spring spring2(k2c, 1.0f, l3, QColor(0, 0, 255));
-    spring2.SetParticles(m_particles[m4].get(), m_particles[2*(n1+n2)].get());
-    m_springs.push_back(std::make_shared<Spring>(spring2));
-
-    Spring spring3(0, 1.0f, 2*r+2*e, QColor(255, 0, 106));
-    spring3.SetParticles(m_particles[m3].get(), m_particles[m4].get());
-    m_springs.push_back(std::make_shared<Spring>(spring3));
-
-    // Set up particles in
-    m_particles.push_back(std::make_shared<Particle>(QVector3D(0.30, 0, 0), boule, bouleG, true, QColor(255, 0, 106)));
-    m_particles.push_back(std::make_shared<Particle>(QVector3D(0.30, -0.30, 0), boule, bouleG, true, QColor(255, 0, 106)));
-    m_particles.push_back(std::make_shared<Particle>(QVector3D(0.30, 0.30, 0), boule, bouleG, true, QColor(255, 0, 106)));
-    m_particles.push_back(std::make_shared<Particle>(QVector3D(0.70, 0, 0), boule, bouleG, true, QColor(255, 0, 106)));
-    m_particles.push_back(std::make_shared<Particle>(QVector3D(0.70, -0.30, 0), boule, bouleG, true, QColor(255, 0, 106)));
-    m_particles.push_back(std::make_shared<Particle>(QVector3D(0.70, 0.30, 0), boule, bouleG, true, QColor(255, 0, 106)));
-    */
-
-    /*
-    m_particles.push_back(std::make_shared<Particle>(QVector3D(0, 0, 0), 30, 20, true, QColor(255, 255, 255))); // Base
-    m_particles.push_back(std::make_shared<Particle>(QVector3D(1, 0, 0), 30, 10, false, QColor(255, 0, 0))); // x
-    m_particles.push_back(std::make_shared<Particle>(QVector3D(0, 1, 0), 30, 10, false, QColor(0, 0, 255))); // y
-    m_particles.push_back(std::make_shared<Particle>(QVector3D(0, 0, 1), 30, 10, false, QColor(0, 255, 0))); // z
-
-
-    Spring spring1(1.0f, 0.5f, 0.0f);
-    spring1.SetParticles(m_particles[0].get(), m_particles[1].get());
-    m_springs.push_back(std::make_shared<Spring>(spring1));
-
-    Spring spring2(1.0f, 0.5f, 0.0f);
-    spring2.SetParticles(m_particles[0].get(), m_particles[2].get());
-    m_springs.push_back(std::make_shared<Spring>(spring2));
-
-    Spring spring3(1.0f, 0.5f, 0.0f);
-    spring3.SetParticles(m_particles[0].get(), m_particles[3].get());
-    m_springs.push_back(std::make_shared<Spring>(spring3));
-
-    // Scene particles-ground
-    m_particles.push_back(std::make_shared<Particle>(QVector3D(0, 2, 0), 30, 10, true, QColor(255, 0, 255))); // Ground
-    */
-
-    // Test load model
-    /*Model* model = new Model("./resources/models/cube.obj");
-    // m_physicsSystem.AddRigidbody(model);
-
-    ConvertModelToParticleSprings(model, m_particles, m_springs);
-
-    for (long unsigned int i = 0; i < m_particles.size(); i++) {
-        m_physicsSystem.AddRigidbody(std::move(m_particles[i]));
-        m_physicsSystem.AddConstraint(m_particles[i].get());
-    }
-
-    for (long unsigned int i = 0; i < m_springs.size(); i++) {
-        m_physicsSystem.AddSpring(*m_springs[i]);
-    }*/
-
-    auto ground = std::make_shared<Plane>(QVector3D(0, -2, 0), QVector3D(0, 1, 0), QColor(100, 100, 100));
+    auto ground = std::make_shared<Plane>(QVector3D(0, -2, 0), QVector3D(0, 1, 0), QColor(150, 150, 150));
     ground->SetMovable(false);
     m_physicsSystem.AddRigidbody(ground);
     m_physicsSystem.AddConstraint(ground);
 
-    // auto model = std::make_shared<Model>("./resources/models/suzanne.obj");
-    // model->color = QColor(255, 255, 255);
-    // m_physicsSystem.AddRigidbody(model);
+    // auto plane = std::make_shared<Plane>(QVector3D(0, 0, 0), QVector3D(0, 0, 1), QColor(50, 50, 50));
+    // plane->SetMovable(false);
+    // m_physicsSystem.AddRigidbody(plane);
+    // m_physicsSystem.AddConstraint(plane);
 
-    // Test load custom model
-    if (!m_model->customOBJ->isCustomOBJ) ConvertModelToParticleSprings(m_model, m_particles, m_springs, m_triangleColliders, false);
-    else ChargeModelParticleSprings(m_model, m_particles, m_springs, m_triangleColliders);
-
-    auto plane = std::make_shared<Plane>(QVector3D(0, 0, 0), QVector3D(0, 0, 1), QColor(50, 50, 50));
-    plane->SetMovable(false);
-    m_physicsSystem.AddRigidbody(plane);
-    m_physicsSystem.AddConstraint(plane);
-
-    qDebug() << "Particles: " << m_particles.size() << " Springs: " << m_springs.size() << " Triangle colliders: " << m_triangleColliders.size();
-    
-
-    // Add particles and springs to the physics system
-    for (auto& p : m_particles) {
-        m_physicsSystem.AddRigidbody(p);
-        m_physicsSystem.AddConstraint(p);
+    if (!m_isCurve)
+    { 
+        if (!m_model->customOBJ->isCustomOBJ) {
+            // Convert the model into particles and springs
+            ConvertModelToParticleSprings(m_model, m_particles, m_springs, m_triangleColliders, !m_crossSpringModel);
+        } else {
+            // Load the model from file
+            ChargeModelParticleSprings(m_model, m_particles, m_springs, m_triangleColliders, !m_crossSpringModel);
+        }
+    } else {
+        for (auto p : m_curve.GetControlPoints()) {
+            m_particles.push_back(std::make_shared<Particle>(p, 2, 10, false));
+        }
     }
+
+    // qDebug() << "Particles: " << m_particles.size() << " Springs: " << m_springs.size() << " Triangle colliders: " << m_triangleColliders.size();
+    
+    // Add particles and springs to the physics system
+    for (auto& p : m_particles) { m_physicsSystem.AddRigidbody(p); m_physicsSystem.AddConstraint(p); }
     for (auto& s : m_springs) m_physicsSystem.AddSpring(s);
     for (auto& t : m_triangleColliders) m_physicsSystem.AddTriangleCollider(t);
 
@@ -490,10 +231,8 @@ void OpenGLWidget::InitScene()
 
     m_physicsSystem.SetUpBVH();
 
-    emit statusBarMessageChanged("Scene initialized");
     emit updateSpringsStiffnessControlsChanged(m_springs);
     
-
     doneCurrent();
     update();
     
@@ -501,14 +240,212 @@ void OpenGLWidget::InitScene()
 
 void OpenGLWidget::LoadOBJ(const QString& filename)
 {
+    m_isCurve = false;
     m_model->LoadModel(filename);
     Reset();
 }
 
 void OpenGLWidget::SaveOBJ(const QString& filename)
 {
-    // ConvertParticleSpringsToModel(m_model, m_particles, m_springs);
-
     m_model->customOBJ->SaveOBJ(filename);
-    emit statusBarMessageChanged("Model saved");
+    // emit statusBarMessageChanged("Model saved");
 }
+
+void OpenGLWidget::InitCurves()
+{
+    m_curve.Clear();
+
+    m_curve.AddControlPoint(QVector3D(0, 1, 0));
+    m_curve.AddControlPoint(QVector3D(-0.4, 0.8, 0));
+    m_curve.AddControlPoint(QVector3D(-0.4, 0.6, 0));
+    m_curve.AddControlPoint(QVector3D(-1, 0, 0));
+    m_curve.AddControlPoint(QVector3D(-0.8, -0.7, 0));
+    m_curve.AddControlPoint(QVector3D(0, -1, 0));
+    m_curve.AddControlPoint(QVector3D(0.8, -0.7, 0));
+    m_curve.AddControlPoint(QVector3D(1, 0, 0));
+    m_curve.AddControlPoint(QVector3D(0.4, 0.6, 0));
+    m_curve.AddControlPoint(QVector3D(0.4, 0.8, 0));
+    m_curve.AddControlPoint(QVector3D(0, 1, 0));
+
+    m_curvePoints = m_curve.GetControlPoints();
+
+    Reset();
+}
+
+void OpenGLWidget::CurveToParticlesSprings()
+{
+    if (!m_isCurve) return;
+
+    makeCurrent();
+    m_particles.clear();
+    m_springs.clear();
+    m_triangleColliders.clear();
+
+    auto points = m_curve.Sample(m_numSamples);
+
+    if ((points.front() - points.back()).length() < 0.001f) {
+        points.pop_back(); // Remove the last points to avoid duplicates
+    }
+
+    size_t numPoints = points.size();
+    if (numPoints < 3) return;
+
+    // Compute the center of the curve
+    QVector3D center(0, 0, 0);
+    for (const auto& pt : points)
+        center += pt;
+    center /= float(numPoints);
+
+    // Add offset to the center
+    center.setY(center.y() - 0.2f);
+
+    // Parameters
+    int numLayers = 7;
+    float height = 1.0f; // hauteur totale de l’extrusion
+    float layerStep = height / (numLayers - 1);
+    float ringWidth = 0.1f;
+    float ringHeight = 0.1f; 
+
+    std::vector<std::vector<std::shared_ptr<Particle>>> layers;
+
+    for (int layer = 0; layer < numLayers - 2; ++layer) 
+    {
+        std::vector<std::shared_ptr<Particle>> layerParticles;
+
+        float t = float(layer) / float(numLayers - 2); 
+        float z = layer * layerStep;
+
+        float scale = sin((1.0f - t) * M_PI_2); 
+
+        for (size_t i = 0; i < numPoints; ++i) {
+            QVector3D pos = points[i];
+
+            // Reduce the size of the layer
+            QVector3D offset = pos - center;
+            pos = center + offset * scale;
+            pos.setZ(z);
+
+            auto p = std::make_shared<Particle>(pos, 1, 10, layer != 0);
+            layerParticles.push_back(p);
+            m_particles.push_back(p);
+
+            // Horizontally connect particles in the same layer
+            if (i > 0) {
+                auto spring = std::make_shared<Spring>(1);
+                spring->SetParticles(layerParticles[i - 1].get(), layerParticles[i].get());
+                m_springs.push_back(spring);
+            }
+        }
+
+        // Close the curve
+        auto springLoop = std::make_shared<Spring>(1);
+        springLoop->SetParticles(layerParticles.front().get(), layerParticles.back().get());
+        m_springs.push_back(springLoop);
+
+        layers.push_back(layerParticles);
+    }
+
+    // Last layer center
+    QVector3D top(center.x(), center.y(), layerStep * (numLayers - 3) + layerStep * 0.5f);
+    auto topParticle = std::make_shared<Particle>(top, 1, 10);
+    m_particles.push_back(topParticle);
+
+    std::vector<std::shared_ptr<Particle>> lastRing;
+
+    for (size_t i = 0; i < numPoints; ++i) {
+        float angle = float(i) / float(numPoints) * 2.0f * M_PI + M_PI_2;
+
+        float x = top.x() + std::cos(angle) * ringWidth;
+        float y = top.y() + std::sin(angle) * ringHeight;
+        float z = top.z();
+
+        QVector3D pos(x, y, z);
+        auto p = std::make_shared<Particle>(pos, 1, 10, true);
+        p->SetFlags(PARTICLE_NO_COLLISION_WITH_US);
+        lastRing.push_back(p);
+        m_particles.push_back(p);
+
+        // Horizontal links
+        if (i > 0) {
+            auto spring = std::make_shared<Spring>(1);
+            spring->SetParticles(lastRing[i - 1].get(), lastRing[i].get());
+            m_springs.push_back(spring);
+        }
+
+    }
+
+    // Close the ring
+    auto ringLoop = std::make_shared<Spring>(1);
+    ringLoop->SetParticles(lastRing.front().get(), lastRing.back().get());
+    m_springs.push_back(ringLoop);
+
+    layers.push_back(lastRing);
+
+
+    // Vertical and diagonal connections between layers
+    for (int layer = 0; layer < numLayers - 2; ++layer) {
+        for (size_t i = 0; i < numPoints; ++i) {
+            auto spring = std::make_shared<Spring>(1);
+            spring->SetParticles(layers[layer][i].get(), layers[layer + 1][i].get());
+            m_springs.push_back(spring);
+
+            if (i > 0 && m_crossSpringModel) {
+                auto s1 = std::make_shared<Spring>(1);
+                s1->SetParticles(layers[layer][i].get(), layers[layer + 1][i - 1].get());
+                m_springs.push_back(s1);
+
+                auto s2 = std::make_shared<Spring>(1);
+                s2->SetParticles(layers[layer][i - 1].get(), layers[layer + 1][i].get());
+                m_springs.push_back(s2);
+            }
+        }
+
+        if (m_crossSpringModel)
+        {
+            auto s1 = std::make_shared<Spring>(1);
+            s1->SetParticles(layers[layer].back().get(), layers[layer + 1].front().get());
+            m_springs.push_back(s1);
+
+            auto s2 = std::make_shared<Spring>(1);
+            s2->SetParticles(layers[layer].front().get(), layers[layer + 1].back().get());
+            m_springs.push_back(s2);
+        }
+        
+    }
+
+    // Connect the center to the last layer
+    for (auto& p : layers.back()) {
+        auto spring = std::make_shared<Spring>(1);
+        spring->SetParticles(p.get(), topParticle.get());
+        m_springs.push_back(spring);
+    }
+
+    doneCurrent();
+}
+
+void OpenGLWidget::setDeformation(int p1, int p2, float value)
+{
+    if (!m_isCurve) return;
+
+    p1--;
+    p2--;
+
+    QVector3D A = m_curvePoints[p1];
+    QVector3D B = m_curvePoints[p2];
+
+    QVector3D center = (A + B) * 0.5f;
+
+    QVector3D dir = (B - A).normalized();
+    float halfDist = (B - A).length() * 0.5f;
+
+    float scaledHalfDist = halfDist * (1.0f + value);
+
+    A = center - dir * scaledHalfDist;
+    B = center + dir * scaledHalfDist;
+
+    if (p1 != 0) m_curve.SetControlPoint(p1, A);
+    if (p2 != 0) m_curve.SetControlPoint(p2, B);
+
+    Reset();
+}
+

@@ -20,7 +20,10 @@ private:
     double b; // [0 to 1] higher = more dampening, lower = less dampening
     double restingLength;
 
+    QColor m_color;
+
 public:
+    Spring(double _k);
     Spring(double _k, double _b, double len);
     void SetParticles(Particle* _p1, Particle* _p2);
     Particle* GetP1();
@@ -32,8 +35,8 @@ public:
 
     void Render(QOpenGLShaderProgram* shaderProgram);
     void ApplyForce(float deltaTime);
-    
-private:
-    QVector3D GetColorSpring();
+
+    void SetColor(QColor c) { m_color = c; }
+    QColor GetColor() { return m_color; }
     
 };

@@ -1,9 +1,11 @@
 #pragma once
 
+#include "Utils.h"
 #include <QVector3D>
 #include <QMatrix3x3>
 
 #include <cmath>
+
 
 // Forward declaration
 struct AABB;
@@ -44,6 +46,7 @@ struct OBB
 
 // Convert AABB to OBB
 inline OBB AABB::toOBB() const { return OBB(position, size); }
+
 // Check if AABB intersects with another AABB
 inline bool AABB::Intersects(const AABB& other) const 
 {
@@ -52,9 +55,7 @@ inline bool AABB::Intersects(const AABB& other) const
     QVector3D minB = GetMin(other);
     QVector3D maxB = GetMax(other);
 
-    return (minA.x() <= maxB.x() && maxA.x() >= minB.x()) &&
-           (minA.y() <= maxB.y() && maxA.y() >= minB.y()) &&
-           (minA.z() <= maxB.z() && maxA.z() >= minB.z());
+	return (minA <= maxB) && (maxA >= minB); // Check if AABB intersects with another AABB
 }
 
 // Convert OBB to AABB

@@ -14,7 +14,10 @@ void ConvertModelToParticleSprings(Model* model,
     // Convert the model into a set of particles and springs
     if (model == nullptr || model->customOBJ == nullptr) return;
 
-    float vertexOffset = particles.size(); // Offset for vertex indices
+    // Clear vectors
+    particles.clear();
+    springs.clear();
+    triangleColliders.clear();
 
     float mass = 10.0f; // Default mass for particles
     float radius = 1.0f; // Default radius for particles
@@ -40,8 +43,8 @@ void ConvertModelToParticleSprings(Model* model,
 
         for (size_t i = 0; i < count; ++i) {
             for (size_t j = i + 1; j < count; ++j) {
-                int a = vertexOffset + indices[i];
-                int b = vertexOffset + indices[j];
+                int a = indices[i];
+                int b = indices[j];
 
                 bool isEdge = (j == i + 1) || (i == 0 && j == count - 1); // Check if it's an edge in the face
                 if (edgeOnly && !isEdge) continue; // Skip if not an edge and edgeOnly is true
@@ -54,8 +57,7 @@ void ConvertModelToParticleSprings(Model* model,
                 auto spring = std::make_shared<Spring>(stiffness, 1.0f, 0.0f);
                 auto A = particles[a].get();
                 auto B = particles[b].get();
-                if (A->GetColor() == Qt::white) A->SetColor(floatToQColor(stiffness /* + A->GetMass() */));
-                if (B->GetColor() == Qt::white) B->SetColor(floatToQColor(stiffness /* + B->GetMass() */));
+
                 spring->SetParticles(A, B);
                 springs.push_back(spring);
 
@@ -74,8 +76,11 @@ void ConvertModelToParticleSprings(Model* model,
         int i2 = face.vertexIndices[2];
 
         auto p1 = particles[i0].get();
+        p1->SetFlags(PARTICLE_ATTACHED_TO_TRIANGLE);
         auto p2 = particles[i1].get();
+        p2->SetFlags(PARTICLE_ATTACHED_TO_TRIANGLE);
         auto p3 = particles[i2].get();
+        p3->SetFlags(PARTICLE_ATTACHED_TO_TRIANGLE);
     
         auto collider = std::make_shared<TriangleCollider>(p1, p2, p3);
     
@@ -84,12 +89,15 @@ void ConvertModelToParticleSprings(Model* model,
 
 }
 
-void ConvertParticleSpringsToModel(Model* model, 
+/*void ConvertParticleSpringsToModel(Model* model, 
     std::vector<std::shared_ptr<Particle>> &particles, 
     std::vector<std::shared_ptr<Spring>> &springs)
 {
     // Convert the particles and springs back into a model
     if (model == nullptr || model->customOBJ == nullptr) return;
+
+    if (model->mesh) delete model->mesh; // Clean up the mesh if it exists
+    model->mesh = nullptr; // Set the mesh pointer to null
     
     // Clear the model's customOBJ data
     model->customOBJ->clear();
@@ -129,20 +137,25 @@ void ConvertParticleSpringsToModel(Model* model,
 
     }
 
-}
+}*/
 
 void ChargeModelParticleSprings(Model* model, 
     std::vector<std::shared_ptr<Particle>> &particles, 
     std::vector<std::shared_ptr<Spring>> &springs,
-    std::vector<std::shared_ptr<TriangleCollider>> &triangleColliders)
+    std::vector<std::shared_ptr<TriangleCollider>> &triangleColliders,
+    bool edgeOnly)
 {
     // Charge the model into a set of particles and springs
     if (model == nullptr || model->customOBJ == nullptr) return;
 
+
     if (model->mesh) delete model->mesh; // Clean up the mesh if it exists
     model->mesh = nullptr; // Set the mesh pointer to null
 
-    float vertexOffset = particles.size(); // Offset for vertex indices
+    // Clear vectors
+    particles.clear();
+    springs.clear();
+    triangleColliders.clear();
 
     // Charge particles
     for (const auto& node : model->customOBJ->nodes) {
@@ -151,16 +164,37 @@ void ChargeModelParticleSprings(Model* model,
         particles.push_back(particle);
     }
 
+    // Verify if the spring is on the edge of the face
+    std::set<std::pair<int, int>> validEdges;
+    if (edgeOnly) {
+        for (const auto& face : model->customOBJ->originalFaces) {
+            const auto& indices = face.vertexIndices;
+            size_t count = indices.size();
+            for (size_t i = 0; i < count; ++i) {
+                int a = indices[i];
+                int b = indices[(i + 1) % count];
+                validEdges.insert({ std::min(a, b), std::max(a, b) });
+            }
+        }
+    }
+
     // Charge springs
     for (const auto& link : model->customOBJ->springLinks) {
+        int a = link.nodeA;
+        int b = link.nodeB;
+
+        if (edgeOnly) {
+            std::pair<int, int> key = { std::min(a, b), std::max(a, b) };
+            if (validEdges.find(key) == validEdges.end()) {
+                continue; // Skip si ce n'est pas une arête réelle
+            }
+        }
+
+        int indexA = a;
+        int indexB = b;
+
         auto spring = std::make_shared<Spring>(link.stiffness, 1.0f, 0.0f);
-        float a = link.nodeA + vertexOffset;
-        float b = link.nodeB + vertexOffset;
-        auto A = particles[a].get();
-        auto B = particles[b].get();
-        if (A->GetColor() == Qt::white) A->SetColor(floatToQColor(link.stiffness /* + A->GetMass() */));
-        if (B->GetColor() == Qt::white) B->SetColor(floatToQColor(link.stiffness /* + B->GetMass() */));
-        spring->SetParticles(A, B);
+        spring->SetParticles(particles[indexA].get(), particles[indexB].get());
         springs.push_back(spring);
     }
 
@@ -173,8 +207,11 @@ void ChargeModelParticleSprings(Model* model,
         int i2 = face.vertexIndices[2];
 
         auto p1 = particles[i0].get();
+        p1->SetFlags(PARTICLE_ATTACHED_TO_TRIANGLE);
         auto p2 = particles[i1].get();
+        p2->SetFlags(PARTICLE_ATTACHED_TO_TRIANGLE);
         auto p3 = particles[i2].get();
+        p3->SetFlags(PARTICLE_ATTACHED_TO_TRIANGLE);
     
         auto collider = std::make_shared<TriangleCollider>(p1, p2, p3);
     

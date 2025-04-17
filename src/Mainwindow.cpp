@@ -45,11 +45,12 @@ MainWindow::MainWindow(QWidget* parent)
     QScrollArea* scrollArea = new QScrollArea(this);
     scrollArea->setWidgetResizable(true);
     scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    scrollArea->setMaximumWidth(400);
-    scrollArea->setMinimumWidth(400);
+    scrollArea->setMaximumWidth(450);
+    scrollArea->setMinimumWidth(450);
 
     m_rightContainer = new QWidget();
-    m_rightContainer->setMaximumWidth(400);
+    m_rightContainer->setMaximumWidth(450);
+    // m_rightContainer->setMinimumWidth(450);
     m_rightLayout = new QVBoxLayout(m_rightContainer);
     m_rightContainer->setLayout(m_rightLayout);
 
@@ -57,10 +58,17 @@ MainWindow::MainWindow(QWidget* parent)
 
     // Global settings
     m_globalSettingsWidget = new GlobalSettingsWidget(this);
+    m_globalSettingsWidget->setMaximumWidth(450);
     m_rightLayout->addWidget(m_globalSettingsWidget);
+
+    // Model settings
+    m_modelSettingsWidget = new ModelSettingsWidget(this);
+    m_modelSettingsWidget->setMaximumWidth(450);
+    m_rightLayout->addWidget(m_modelSettingsWidget);
 
     // Spring settings
     m_springSettingsWidget = new SpringSettingsWidget(this);
+    m_springSettingsWidget->setMaximumWidth(450);
     m_rightLayout->addWidget(m_springSettingsWidget);
 
     // Add void space to the bottom of the group box
@@ -68,6 +76,8 @@ MainWindow::MainWindow(QWidget* parent)
 
     QHBoxLayout* buttonLayout = new QHBoxLayout();
 
+    // m_clearButton = new QPushButton("Clear", this);
+    // buttonLayout->addWidget(m_clearButton);
     m_resetButton = new QPushButton("Reset", this);
     buttonLayout->addWidget(m_resetButton);
     m_playStopButton = new QPushButton("Play", this);
@@ -108,18 +118,27 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_globalSettingsWidget, &GlobalSettingsWidget::FrictionChanged, m_openGLWidget, &OpenGLWidget::setGlobalFriction);
     connect(m_globalSettingsWidget, &GlobalSettingsWidget::RotationChanged, m_openGLWidget, &OpenGLWidget::setGlobalRotation);
 
+    // Model settings
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::CrossSpringModelChanged, m_openGLWidget, &OpenGLWidget::setCrossSpringModel);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::CreateModelButtonClicked, m_openGLWidget, &OpenGLWidget::setCurves);
+    connect(m_modelSettingsWidget, QOverload<int>::of(&ModelSettingsWidget::DeformModelChanged), m_openGLWidget, &OpenGLWidget::setSamplingModel);
+    connect(m_modelSettingsWidget, QOverload<int, int, float>::of(&ModelSettingsWidget::DeformModelChanged), m_openGLWidget, &OpenGLWidget::setDeformation);
+
     // Spring settings
     connect(m_openGLWidget, &OpenGLWidget::updateSpringsStiffnessControlsChanged, m_springSettingsWidget, &SpringSettingsWidget::UpdateSpringsStiffnessControls);
 
-    // Buttons (reset, stop, resume)
-    connect(m_openGLWidget, &OpenGLWidget::buttonStateChanged, this, &MainWindow::updateButtonsState);
+    // Buttons (clear, reset, play/stop)
+    connect(m_openGLWidget, &OpenGLWidget::buttonStateChanged, this, &MainWindow::updateButtonsState); // Dynamicly change Play to Stop and vice versa
+    // connect(m_clearButton, &QPushButton::clicked, this, [this]() {
+    //     m_openGLWidget->Clear();
+    // });
     connect(m_resetButton, &QPushButton::clicked, this, [this]() {
         m_openGLWidget->Reset();
     });
     connect(m_playStopButton, &QPushButton::clicked, this, [this]() {
         if (m_openGLWidget->IsPaused()) m_openGLWidget->Play();
         else m_openGLWidget->Stop();
-        emit updateButtonsState(m_openGLWidget->IsPaused());
+        updateButtonsState(m_openGLWidget->IsPaused());
     });
 
 

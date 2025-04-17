@@ -1,10 +1,6 @@
 #pragma once
 
 #include <QVector3D>
-#include <unordered_map>
-#include <vector>
-
-#include "BoundingBox.h"
 
 // Sphere Collider
 struct SphereCollider 

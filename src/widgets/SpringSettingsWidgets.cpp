@@ -44,8 +44,7 @@ void SpringSettingsWidget::InitUI()
 
 void SpringSettingsWidget::InitConnections()
 {
-    
-
+    // Connect signals and slots here if needed
 }
 
 void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std::shared_ptr<Spring>>& springs)
@@ -101,8 +100,7 @@ void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std:
             // // Update the spring stiffness
             for (const auto& spring : springGroup) {
                 spring->SetConstants(value, spring->GetB());
-                spring->GetP1()->SetColor(newColor);
-                spring->GetP2()->SetColor(newColor);
+                spring->SetColor(newColor);
             }
         });
         connect(spinBox, QOverload<int>::of(&QSpinBox::valueChanged), [=](int value) {
@@ -116,8 +114,7 @@ void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std:
             // // Update the spring stiffness
             for (const auto& spring : springGroup) {
                 spring->SetConstants(value, spring->GetB());
-                spring->GetP1()->SetColor(newColor);
-                spring->GetP2()->SetColor(newColor);
+                spring->SetColor(newColor);
             }
         });
 

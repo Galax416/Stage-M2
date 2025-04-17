@@ -17,6 +17,7 @@
 #include "OpenglWidget.h"
 #include "GlobalSettingsWidget.h"
 #include "SpringSettingsWidgets.h"
+#include "ModelSettingsWidget.h"
 
 
 // Main window class
@@ -43,8 +44,10 @@ private:
     QWidget*                m_rightContainer;
     QVBoxLayout*            m_rightLayout;
     GlobalSettingsWidget*   m_globalSettingsWidget;
+    ModelSettingsWidget*    m_modelSettingsWidget;
     SpringSettingsWidget*   m_springSettingsWidget;
 
-    QPushButton* m_resetButton, *m_playStopButton;
+
+    QPushButton *m_clearButton, *m_resetButton, *m_playStopButton;
 
 };

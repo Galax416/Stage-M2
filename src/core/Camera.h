@@ -43,7 +43,7 @@ public:
 private:
     void Initialize();
     void ComputeView(QMatrix4x4& view, QMatrix4x4& projection, QVector3D up = QVector3D(0.0f, 1.0f, 0.0f));
-    void UpdateCameraPosition();
+    void UpdateCameraRotation();
 
     // Transform
     Transform m_transform;

@@ -31,8 +31,10 @@ private:
     void InitConnections();
 
     QVBoxLayout* m_mainLayout;
+
     QGroupBox* m_springSettingsGroupBox;
     QVBoxLayout* m_springSettingsLayout;
+    
     QGroupBox* m_stiffnessGroupBox;
 
 };

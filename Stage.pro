@@ -24,6 +24,7 @@ SOURCES += \
     ./src/rendering/Mesh.cpp \
     ./src/rendering/Model.cpp \
     ./src/rendering/Geometry3D.cpp \
+    ./src/rendering/BezierCurve.cpp \
     ./src/physics/Particle.cpp \
     ./src/physics/Spring.cpp \
     ./src/physics/CollisionSolver.cpp \
@@ -32,6 +33,7 @@ SOURCES += \
     ./src/MainWindow.cpp \
     ./src/widgets/OpenglWidget.cpp \
     ./src/widgets/GlobalSettingsWidget.cpp \
+    ./src/widgets/ModelSettingsWidget.cpp \
     ./src/widgets/SpringSettingsWidgets.cpp 
 
 HEADERS += \
@@ -48,6 +50,7 @@ HEADERS += \
     ./src/rendering/Mesh.h \
     ./src/rendering/Model.h \
     ./src/rendering/Geometry3D.h \
+    ./src/rendering/BezierCurve.h \
     ./src/physics/SphereCollider.h \
     ./src/physics/TriangleCollider.h \
     ./src/physics/Particle.h \
@@ -58,6 +61,7 @@ HEADERS += \
     ./src/MainWindow.h \
     ./src/widgets/OpenglWidget.h \
     ./src/widgets/GlobalSettingsWidget.h \
+    ./src/widgets/ModelSettingsWidget.h \
     ./src/widgets/SpringSettingsWidgets.h
 
 #FORMS += 

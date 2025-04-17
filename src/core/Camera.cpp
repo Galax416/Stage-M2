@@ -17,18 +17,7 @@ Camera::Camera(const QVector3D& position, const QVector3D& target)
 
 void Camera::Initialize()
 {
-    m_front = (m_target - m_transform.position).normalized();
-    m_distance = (m_transform.position - m_target).length();
-
-    m_transform.rotationEuler.setX(qRadiansToDegrees(asin(m_front.y())));
-    m_transform.rotationEuler.setY(qRadiansToDegrees(atan2(m_front.x(), -m_front.z())));
-    m_transform.rotationEuler.setZ(0.0f);
-    m_transform.rotation = QQuaternion::fromEulerAngles(m_transform.rotationEuler);
-
-    QVector3D right = QVector3D::crossProduct(m_front, WORLD_UP).normalized();
-    QVector3D up = QVector3D::crossProduct(right, m_front).normalized();
-
-    ComputeView(m_viewMatrix, m_projectionMatrix, up);
+    ComputeView(m_viewMatrix, m_projectionMatrix);
 }
 
 void Camera::ComputeView(QMatrix4x4& view, QMatrix4x4& projection, QVector3D up)
@@ -52,23 +41,24 @@ void Camera::ComputeView(QMatrix4x4& view, QMatrix4x4& projection, QVector3D up)
     view.lookAt(m_transform.position, m_target, up);
 
     m_front = (m_target - m_transform.position).normalized();
+    m_distance = (m_transform.position - m_target).length();
+
+    UpdateCameraRotation();
 }
 
-void Camera::UpdateCameraPosition()
+void Camera::UpdateCameraRotation()
 {
-    float yawRad = qDegreesToRadians(m_transform.rotationEuler.y());
-    float pitchRad = qDegreesToRadians(m_transform.rotationEuler.x());
-
-    float x = m_distance * cos(pitchRad) * sin(yawRad);
-    float y = m_distance * sin(pitchRad);
-    float z = m_distance * cos(pitchRad) * cos(yawRad);
-
-    m_transform.position = m_target + QVector3D(x, y, z);
-
     QVector3D right = QVector3D::crossProduct(m_front, WORLD_UP).normalized();
-    QVector3D up = QVector3D::crossProduct(right, m_front).normalized();
+    QVector3D up    = QVector3D::crossProduct(right, m_front).normalized();
 
-    ComputeView(m_viewMatrix, m_projectionMatrix, up);
+    QMatrix4x4 rotationMatrix;
+    rotationMatrix.setColumn(0, QVector4D(right, 0.0f));
+    rotationMatrix.setColumn(1, QVector4D(up, 0.0f));
+    rotationMatrix.setColumn(2, QVector4D(-m_front, 0.0f));
+    rotationMatrix.setColumn(3, QVector4D(0, 0, 0, 1));
+
+    m_transform.rotation = QQuaternion::fromRotationMatrix(rotationMatrix.toGenericMatrix<3,3>());
+    m_transform.rotationEuler = m_transform.rotation.toEulerAngles();
 }
 
 void Camera::mousePressEvent(QMouseEvent* event)
@@ -95,21 +85,44 @@ void Camera::mouseMoveEvent(QMouseEvent* event)
 
     if ( m_is2DMode)
     {
+        QVector3D right = QVector3D(1.0f, 0.0f, 0.0f);
+        QVector3D up    = QVector3D(0.0f, 1.0f, 0.0f);
 
+        QVector3D translation = -dx * right * m_zoomSpeed + dy * up * m_zoomSpeed;
+
+        m_transform.position += translation;
+        m_target += translation;
     }
     else
     {
-        m_transform.rotationEuler.setX(m_transform.rotationEuler.x() + dy);
-        m_transform.rotationEuler.setY(m_transform.rotationEuler.y() - dx);
-        
-        m_transform.rotationEuler.setX(qBound(-89.0f, m_transform.rotationEuler.x(), 89.0f)); // Clamp pitch to avoid gimbal lock
-        m_transform.rotationEuler.setY(fmod(m_transform.rotationEuler.y(), 360.0f)); // Wrap yaw to [0, 360]
-        
-        m_transform.rotation = QQuaternion::fromEulerAngles(m_transform.rotationEuler);
+        QVector3D direction = m_transform.position - m_target;
+        float radius = direction.length();
 
-        UpdateCameraPosition(); 
+        // Convertir la direction en angles sphériques
+        float theta = qAtan2(direction.z(), direction.x()); // Azimut (angle horizontal)
+        float phi = qAcos(direction.y() / radius);           // Inclinaison (angle vertical)
+
+        // Appliquer les deltas souris aux angles
+        theta += qDegreesToRadians(dx);
+        phi   -= qDegreesToRadians(dy);
+
+        // Clamp pour éviter les problèmes au pôle
+        const float epsilon = 0.01f;
+        phi = qBound(epsilon, phi, float(M_PI) - epsilon);
+
+        // Recalculer la position
+        float x = radius * qSin(phi) * qCos(theta);
+        float y = radius * qCos(phi);
+        float z = radius * qSin(phi) * qSin(theta);
+
+        m_transform.position = m_target + QVector3D(x, y, z);
+
+        // Mettre à jour la direction de la caméra
+        m_front = (m_target - m_transform.position).normalized();
         
     }
+
+    ComputeView(m_viewMatrix, m_projectionMatrix);
     
 }
 
@@ -118,12 +131,15 @@ void Camera::wheelEvent(QWheelEvent* event)
     float delta = qBound(-120.0f, (float)event->angleDelta().y(), 120.0f) / 120.0f; // Normalize to -1, 0, or 1
     m_distance *= (1.0f - delta * m_zoomSpeed);  // Adjust distance with zoom sensitivity
 
+    QVector3D direction = (m_transform.position - m_target).normalized();
+    m_transform.position = m_target + direction * m_distance;
+
     // Ensure distance remains within reasonable bounds
     float minDistance = 0.5f;
     float maxDistance = 100.0f;
     if (m_distance < minDistance) m_distance = minDistance;
     if (m_distance > maxDistance) m_distance = maxDistance;
     
-    UpdateCameraPosition();
+    ComputeView(m_viewMatrix, m_projectionMatrix);
 
 }
