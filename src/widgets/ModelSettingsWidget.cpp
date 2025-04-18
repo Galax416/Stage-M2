@@ -44,7 +44,6 @@ void ModelSettingsWidget::InitUI()
     m_deformModelGroupBox->setVisible(false); // Initially hidden
 
     auto deformModelLayout = new QVBoxLayout(m_deformModelGroupBox);
-
     auto samplingLayout = new QHBoxLayout();
     auto samplingLabel = new QLabel("Sampling:", this);
     samplingLabel->setStyleSheet("QLabel { font-size: 12px; }");
@@ -57,6 +56,23 @@ void ModelSettingsWidget::InitUI()
     m_samplingModelSpinBox->setSuffix(" samples");
     samplingLayout->addWidget(m_samplingModelSpinBox);
     deformModelLayout->addLayout(samplingLayout);
+
+    auto layerLayout = new QHBoxLayout();
+    auto layerLabel = new QLabel("Layer:", this);
+    layerLabel->setStyleSheet("QLabel { font-size: 12px; }");
+    layerLayout->addWidget(layerLabel);
+    m_layerModelSpinBox = new QSpinBox(this);
+    m_layerModelSpinBox->setStyleSheet("QSpinBox { font-size: 12px; }");
+    m_layerModelSpinBox->setRange(1, 100);
+    m_layerModelSpinBox->setValue(7); // Default value
+    m_layerModelSpinBox->setSingleStep(1);
+    m_layerModelSpinBox->setSuffix(" layers");
+    layerLayout->addWidget(m_layerModelSpinBox);
+    deformModelLayout->addLayout(layerLayout);
+
+    QLabel *deformLabel = new QLabel("Form:", this);
+    deformLabel->setStyleSheet("QLabel { font-size: 12px; }");
+    deformModelLayout->addWidget(deformLabel);
 
     m_s1 = new QSlider(Qt::Horizontal, this);
     m_s1->setRange(0, 100);
@@ -88,9 +104,32 @@ void ModelSettingsWidget::InitUI()
     m_s5->setSingleStep(1);
     deformModelLayout->addWidget(m_s5);
 
+    QLabel *heightLabel = new QLabel("Height:", this);
+    heightLabel->setStyleSheet("QLabel { font-size: 12px; }");
+    deformModelLayout->addWidget(heightLabel);
 
-    
-    
+    m_sH = new QSlider(Qt::Horizontal, this);
+    m_sH->setRange(0, 100);
+    m_sH->setValue(50); // Default value
+    m_sH->setSingleStep(1);
+    deformModelLayout->addWidget(m_sH);
+
+    QLabel *ringLabel = new QLabel("Areola:", this);
+    ringLabel->setStyleSheet("QLabel { font-size: 12px; }");
+    deformModelLayout->addWidget(ringLabel);
+
+    m_sRingW = new QSlider(Qt::Horizontal, this);
+    m_sRingW->setRange(0, 100);
+    m_sRingW->setValue(50); // Default value
+    m_sRingW->setSingleStep(1);
+    deformModelLayout->addWidget(m_sRingW);
+
+    m_sRingH = new QSlider(Qt::Horizontal, this);
+    m_sRingH->setRange(0, 100);
+    m_sRingH->setValue(50); // Default value
+    m_sRingH->setSingleStep(1);
+    deformModelLayout->addWidget(m_sRingH);
+
     
     m_modelSettingsLayout->addWidget(m_deformModelGroupBox);    
 
@@ -124,6 +163,9 @@ void ModelSettingsWidget::InitConnections()
             m_s3->setValue(50); // Reset to default value
             m_s4->setValue(50); // Reset to default value
             m_s5->setValue(50); // Reset to default value
+            m_sH->setValue(50); // Reset to default value
+            m_sRingW->setValue(50); // Reset to default value
+            m_sRingH->setValue(50); // Reset to default value
         } else {
             m_createModelButton->setText("Create Model");
             m_deformModelGroupBox->setVisible(false);
@@ -132,26 +174,42 @@ void ModelSettingsWidget::InitConnections()
     });
 
     connect(m_samplingModelSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [=](int value) {
-        emit DeformModelChanged(value);
+        emit DeformModelSamplingChanged(value);
+    });
+
+    connect(m_layerModelSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [=](int value) {
+        emit DeformModelLayerChanged(value);
     });
 
     connect(m_s1, &QSlider::valueChanged, this, [=](int value) {
-        emit DeformModelChanged(2, 10, (value * 0.08f) - 4.0f);
+        emit DeformModelCurveChanged(2, 10, (value * 0.08f) - 4.0f);
     });
 
     connect(m_s2, &QSlider::valueChanged, this, [=](int value) {
-        emit DeformModelChanged(3, 9, (value * 0.08f) - 4.0f);
+        emit DeformModelCurveChanged(3, 9, (value * 0.08f) - 4.0f);
     });
 
     connect(m_s3, &QSlider::valueChanged, this, [=](int value) {
-        emit DeformModelChanged(4, 8, (value * 0.08f) - 4.0f);
+        emit DeformModelCurveChanged(4, 8, (value * 0.08f) - 4.0f);
     });
 
     connect(m_s4, &QSlider::valueChanged, this, [=](int value) {
-        emit DeformModelChanged(5, 7, (value * 0.08f) - 4.0f);
+        emit DeformModelCurveChanged(5, 7, (value * 0.08f) - 4.0f);
     });
 
     connect(m_s5, &QSlider::valueChanged, this, [=](int value) {
-        emit DeformModelChanged(1, 6, (value * 0.08f) - 4.0f);
+        emit DeformModelCurveChanged(1, 6, (value * 0.08f) - 4.0f);
+    });
+
+    connect(m_sH, &QSlider::valueChanged, this, [=](int value) {
+        emit DeformModelHeightChanged((value * 0.02f) - 1.0f);
+    });
+
+    connect(m_sRingW, &QSlider::valueChanged, this, [=](int value) {
+        emit DeformModelRingChanged((value * 0.02f) - 1.0f, (m_sRingH->value() * 0.02f) - 1.0f);
+    });
+
+    connect(m_sRingH, &QSlider::valueChanged, this, [=](int value) {
+        emit DeformModelRingChanged((m_sRingW->value() * 0.02f) - 1.0f, (value * 0.02f) - 1.0f);
     });
 }

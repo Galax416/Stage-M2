@@ -13,6 +13,9 @@ void Spring::SetParticles(Particle* _p1, Particle* _p2)
     if (restingLength <= 0.0f && p1 && p2) restingLength = p1->transform.position.distanceToPoint(p2->transform.position);
     b = 2 * sqrt(k * (p1->GetMass() * p2->GetMass()) / (p1->GetMass() + p2->GetMass())); // Critical damping
     m_color = floatToQColor(k); // Set color based on spring constant
+    // m_usePBDCorrection = false; // Default to no PBD correction
+    // m_rigidity = false; // Default to not rigid
+    // m_initialRelPos = p2->transform.position - p1->transform.position;
 }
 Particle* Spring::GetP1() { return p1; }
 
@@ -33,14 +36,21 @@ void Spring::ApplyForce(float deltaTime)
     if (!p1 || !p2) return;
 
     QVector3D relPos = p2->transform.position - p1->transform.position;
-    QVector3D relVel = p2->GetVelocity() - p1->GetVelocity();
-
     double length = relPos.length();
     if (length < 1e-6f) return; // Avoid division by zero
 
+    float w1 = p1->IsMovable() ? p1->InvMass() : 0.0f;
+    float w2 = p2->IsMovable() ? p2->InvMass() : 0.0f;
+    float w = w1 + w2;
+    if (w == 0.0f) return; // Both particles are immovable
+
+    float diff = length - restingLength;
+
+    QVector3D relVel = p2->GetVelocity() - p1->GetVelocity();
+
     QVector3D direction = relPos.normalized();
 
-    double x = length - restingLength;
+    double x = diff;
     double v = QVector3D::dotProduct(relVel, direction);
 
     double F = (-k * x) + (-b * v); // Hooke's law
@@ -52,8 +62,8 @@ void Spring::ApplyForce(float deltaTime)
     //     impulse = impulse.normalized() * 0.1f;
     // }
 
-    if (p1->IsMovable()) p1->AddLinearImpulse(-impulse * p1->InvMass());
-    if (p2->IsMovable()) p2->AddLinearImpulse( impulse * p2->InvMass());
+    if (p1->IsMovable()) p1->AddLinearImpulse(-impulse * w1);
+    if (p2->IsMovable()) p2->AddLinearImpulse( impulse * w2);
 
 }
 

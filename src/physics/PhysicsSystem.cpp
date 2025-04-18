@@ -17,7 +17,7 @@ void PhysicsSystem::Update(float deltaTime)
 
     // Apply spring forces
     for (size_t i = 0, size = springs.size(); i < size; ++i) {
-        for (int step = 0, substeps = 4; step < substeps; ++step) {
+        for (int step = 0, substeps = 5; step < substeps; ++step) {
             springs[i]->ApplyForce(deltaTime / substeps);
         }
         // springs[i]->ApplyForce(deltaTime);

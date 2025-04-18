@@ -121,8 +121,11 @@ MainWindow::MainWindow(QWidget* parent)
     // Model settings
     connect(m_modelSettingsWidget, &ModelSettingsWidget::CrossSpringModelChanged, m_openGLWidget, &OpenGLWidget::setCrossSpringModel);
     connect(m_modelSettingsWidget, &ModelSettingsWidget::CreateModelButtonClicked, m_openGLWidget, &OpenGLWidget::setCurves);
-    connect(m_modelSettingsWidget, QOverload<int>::of(&ModelSettingsWidget::DeformModelChanged), m_openGLWidget, &OpenGLWidget::setSamplingModel);
-    connect(m_modelSettingsWidget, QOverload<int, int, float>::of(&ModelSettingsWidget::DeformModelChanged), m_openGLWidget, &OpenGLWidget::setDeformation);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelSamplingChanged, m_openGLWidget, &OpenGLWidget::setSamplingModel);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelLayerChanged, m_openGLWidget, &OpenGLWidget::setLayerModel);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelCurveChanged, m_openGLWidget, &OpenGLWidget::setDeformation);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelRingChanged, m_openGLWidget, &OpenGLWidget::setRing);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelHeightChanged, m_openGLWidget, &OpenGLWidget::setHeight);
 
     // Spring settings
     connect(m_openGLWidget, &OpenGLWidget::updateSpringsStiffnessControlsChanged, m_springSettingsWidget, &SpringSettingsWidget::UpdateSpringsStiffnessControls);

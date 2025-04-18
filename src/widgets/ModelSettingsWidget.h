@@ -24,8 +24,11 @@ public:
 signals:
     void CrossSpringModelChanged(bool checked);
     void CreateModelButtonClicked(bool clicked);
-    void DeformModelChanged(int samplingModel);
-    void DeformModelChanged(int p1, int p2, float value);
+    void DeformModelSamplingChanged(int samplingModel);
+    void DeformModelLayerChanged(int layerModel);
+    void DeformModelCurveChanged(int p1, int p2, float value);
+    void DeformModelRingChanged(float ringW, float ringH);
+    void DeformModelHeightChanged(float height);
 
 private:
     void InitUI();
@@ -42,7 +45,9 @@ private:
 
     QGroupBox *m_deformModelGroupBox;
     QSpinBox  *m_samplingModelSpinBox;
+    QSpinBox  *m_layerModelSpinBox;
 
     // Sliders for model deformation
     QSlider *m_s1, *m_s2, *m_s3, *m_s4, *m_s5; 
+    QSlider *m_sH, *m_sRingW, *m_sRingH;
 };
