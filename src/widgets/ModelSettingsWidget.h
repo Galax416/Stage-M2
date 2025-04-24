@@ -27,7 +27,7 @@ signals:
     void DeformModelSamplingChanged(int samplingModel);
     void DeformModelLayerChanged(int layerModel);
     void DeformModelCurveChanged(int p1, int p2, float value);
-    void DeformModelRingChanged(float ringW, float ringH);
+    void DeformModelRingChanged(float radius);
     void DeformModelHeightChanged(float height);
 
 private:
@@ -49,5 +49,5 @@ private:
 
     // Sliders for model deformation
     QSlider *m_s1, *m_s2, *m_s3, *m_s4, *m_s5; 
-    QSlider *m_sH, *m_sRingW, *m_sRingH;
+    QSlider *m_sH, *m_sRing;
 };

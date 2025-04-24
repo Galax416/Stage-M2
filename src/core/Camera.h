@@ -63,7 +63,7 @@ private:
 
     // Mouse
     QPoint m_lastMousePosition;
-    bool m_isWheelPressed { false };
+    bool m_isLeftMouseButtonPressed { false };
 
     // Speed and sensibility
     float m_rotationSpeed { 0.2f };

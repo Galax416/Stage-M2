@@ -13,17 +13,10 @@ Model::Model(const QString& path)
     LoadModel(path);
 }
 
-Model::~Model()
+void Model::ResetModel()
 {
-    ClearModel();
-}
-
-void Model::ClearModel()
-{
-    // if (mesh) delete mesh;
-    mesh = nullptr;
-    if (customOBJ) delete customOBJ;
-    customOBJ = nullptr;
+    mesh = std::make_unique<Mesh>();
+    customOBJ = std::make_unique<CustomOBJLoader>();
 }
 
 void Model::Init()
@@ -32,8 +25,8 @@ void Model::Init()
     type = RIGIDBODY_TYPE_BOX;
     bounds = AABB();
     oldPosition = transform.position;
-    customOBJ = new CustomOBJLoader();
-
+    mesh = std::make_unique<Mesh>();
+    customOBJ = std::make_unique<CustomOBJLoader>();
 }
 
 void Model::SynsCollisionVolumes()
@@ -59,9 +52,7 @@ void Model::SetUpColliders()
 void Model::LoadModel(const QString& path)
 {
 
-    ClearModel();
-
-    customOBJ = new CustomOBJLoader();
+    ResetModel();
 
     bool ok = customOBJ->LoadOBJ(path.toStdString().c_str());
     if (!ok) {
@@ -101,7 +92,7 @@ void Model::LoadModel(const QString& path)
         }
     }
 
-    mesh = new Mesh(vertices, indices, material);
+    mesh = std::make_unique<Mesh>(vertices, indices, material);
     
     SetUpColliders();
 }
@@ -172,6 +163,7 @@ void Model::Render(QOpenGLShaderProgram* shaderProgram)
 void Model::BuildAABB()
 {
     if (!mesh) return;
+    if (mesh->m_vertices.empty()) return;
 
     QVector3D minBounds = mesh->m_vertices[0].position;
     QVector3D maxBounds = mesh->m_vertices[0].position;

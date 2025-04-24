@@ -8,6 +8,8 @@
 #include <QString>
 #include <QColor>
 #include <QHash>
+#include <vector>
+#include <memory>
 
 inline uint qHash(const QVector3D& key, uint seed = 0) 
 {
@@ -60,13 +62,14 @@ public:
     std::vector<unsigned int> m_indices;
     Material m_material;
 
+    Mesh() {}
     Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, Material material);
-	~Mesh();
+
     void Render(QOpenGLShaderProgram* shaderProgram);
     
 private:
-    QOpenGLVertexArrayObject *VAO;
-    QOpenGLBuffer *VBO, *IBO;
+    std::unique_ptr<QOpenGLVertexArrayObject> VAO;
+    std::unique_ptr<QOpenGLBuffer> VBO, IBO;
 
     void SetUpMesh();
     void ComputeNormals();

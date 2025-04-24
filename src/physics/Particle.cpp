@@ -13,7 +13,7 @@ Particle::Particle(QVector3D pos, float r, float m, bool mov, QColor color)
     m_color = color;
     cor = 0.01f;
 
-    m_particleModel = new Sphere(pos, m_radius, m_color);
+    m_particleModel = std::make_unique<Sphere>(pos, m_radius, m_color);
 
     sphereCollider.position = transform.position;
     sphereCollider.radius = m_radius;

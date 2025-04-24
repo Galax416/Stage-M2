@@ -2,7 +2,7 @@
 
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, Material material) :
     m_vertices(vertices), m_indices(indices), m_material(material),
-    VAO(new QOpenGLVertexArrayObject), VBO(new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer)), IBO(new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer))
+    VAO(std::make_unique<QOpenGLVertexArrayObject>()), VBO(std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer)), IBO(std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer))
 {
     initializeOpenGLFunctions();
 
@@ -12,26 +12,6 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, Mate
 
 	UnifySharedVertices();
     SetUpMesh();
-
-}
-
-Mesh::~Mesh()
-{
-    if (VAO) {
-        VAO->destroy();
-        delete VAO;
-        VAO = nullptr;
-    }
-    if (VBO) {
-        VBO->destroy();
-        delete VBO;
-        VBO = nullptr;
-    }
-    if (IBO) {
-        IBO->destroy();
-        delete IBO;
-        IBO = nullptr;
-    }
 
 }
 

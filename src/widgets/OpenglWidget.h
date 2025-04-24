@@ -11,7 +11,7 @@
 // #include <chrono>
 
 #include "PhysicsSystem.h"
-#include "BezierCurve.h"
+#include "Curve.h"
 
 // SCREEN SIZE
 #define SCREEN_WIDTH  1080
@@ -62,12 +62,12 @@ public slots:
     void setGlobalRotation(QVector3D rotation) { m_globalRotation = rotation; Stop(); m_physicsSystem.RotateRigidbodies(m_globalRotation); makeCurrent(); update(); doneCurrent(); }
 
     void setCrossSpringModel(bool value) { m_crossSpringModel = value; Reset(); }
-    void setCurves(bool create)          { m_isCurve = create; if (create) InitCurves(); Reset(); }
+    void setCurves(bool create)          { m_isCurve = create; if (create) InitCurves(); else Reset(); }
     void setSamplingModel(int value)     { m_numSamples  = value; Reset(); }
     void setLayerModel(int value)        { m_curveLayers = value; Reset(); }
     void setDeformation(int p1, int p2, float value);
     void setHeight(float value);
-    void setRing(float w, float h);
+    void setRing(float radius);
 
     // void Clear() { ClearScene(); /* InitScene(); */ }
     void Reset() { ClearScene(); CurveToParticlesSprings(); InitScene(); }
@@ -98,14 +98,14 @@ private:
     Model *m_model; // To load model from file
     
     // Custom Parametric Model
-    BezierCurve m_curve;
+    Curve m_curve; // Cubic closed curve
     std::vector<QVector3D> m_curvePoints; // Control points of the curve
     bool m_isCurve      { false };
     int m_numSamples    { 32 };
-    int m_curveLayers   { 7 };
+    int m_curveLayers   { 5 };
     float m_curveHeight { 1.0f };
-    float m_curveRingW  { 0.1f };
-    float m_curveRingH  { 0.1f };
+    float m_curveRingRadius  { 0.1f };
+    // float m_curveRingH  { 0.1f };
 
     // Global settings
     float m_globalFriction     { 0.95f };

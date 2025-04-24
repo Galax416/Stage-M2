@@ -64,18 +64,18 @@ void Camera::UpdateCameraRotation()
 void Camera::mousePressEvent(QMouseEvent* event)
 {   
     m_lastMousePosition = event->pos();
-    if (event->button() & Qt::MiddleButton) m_isWheelPressed = true;
+    if (event->button() & Qt::LeftButton) m_isLeftMouseButtonPressed = true;
 
 }
 
 void Camera::mouseReleaseEvent(QMouseEvent* event)
 {
-    m_isWheelPressed = false;
+    m_isLeftMouseButtonPressed = false;
 }
 
 void Camera::mouseMoveEvent(QMouseEvent* event)
 {
-    if (!m_isWheelPressed) return;
+    if (!m_isLeftMouseButtonPressed) return;
 
     QPoint delta = event->pos() - m_lastMousePosition;
     m_lastMousePosition = event->pos();

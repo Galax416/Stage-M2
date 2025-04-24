@@ -2,6 +2,7 @@
 
 #include <QOpenGLShaderProgram>
 #include <QVector3D>
+#include <QtConcurrent> // For concurrent processing
 #include <vector>
 #include <memory>
 
@@ -22,7 +23,7 @@ protected:
     std::vector<std::shared_ptr<Rigidbody>> constraints;
     std::vector<std::shared_ptr<TriangleCollider>> triangleColliders;
 
-    std::vector<QVector3D> rigidbodyPositions;
+    std::vector<Transform> rigidbodyTransformations;
 
     // Bounding Volume Hierarchy for collision detection
     std::unique_ptr<BVHNode<Rigidbody>> bvhRigidbodies;
@@ -40,7 +41,7 @@ public:
     inline void AddRigidbody(std::shared_ptr<Rigidbody> body) {
         if (body) {
             bodies.push_back(body);
-            rigidbodyPositions.push_back(body->transform.position);
+            rigidbodyTransformations.push_back(body->transform);
         }
         else qWarning() << "Warning: Tried to add a nullptr Rigidbody!";
     }
@@ -58,7 +59,7 @@ public:
     }
 
     inline void ClearAll() { ClearRigidbodys(); ClearSprings(); ClearConstraints(); ClearBVH(); }
-    inline void ClearRigidbodys() { bodies.clear(); rigidbodyPositions.clear(); }
+    inline void ClearRigidbodys() { bodies.clear(); rigidbodyTransformations.clear(); }
     inline void ClearSprings() { springs.clear(); }
     inline void ClearConstraints() { constraints.clear(); triangleColliders.clear(); }
     inline void ClearBVH() { bvhRigidbodies.reset(); bvhRigidbodies = nullptr; bvhTriangleColliders.reset(); bvhTriangleColliders = nullptr; }

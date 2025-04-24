@@ -1,9 +1,9 @@
 #include "Geometry3D.h"
 #include "Mesh.h"
 
-Mesh* Plane::GetSharedPlaneMesh()
+std::shared_ptr<Mesh> Plane::GetSharedPlaneMesh()
 {
-    static Mesh* sharedPlaneMesh = nullptr;
+    static std::shared_ptr<Mesh> sharedPlaneMesh = nullptr;
 
     if (!sharedPlaneMesh)
     {
@@ -41,20 +41,20 @@ Mesh* Plane::GetSharedPlaneMesh()
             2, 1, 0
         };
 
-        sharedPlaneMesh = new Mesh(vertices, indices, material);
+        sharedPlaneMesh = std::make_shared<Mesh>(vertices, indices, material);
     }
 
     return sharedPlaneMesh;
 }
 
-Mesh* Sphere::GetSharedSphereMesh()
+std::shared_ptr<Mesh> Sphere::GetSharedSphereMesh()
 {
-    static Mesh* sharedSphereMesh = nullptr;
+    static std::shared_ptr<Mesh> sharedSphereMesh = nullptr;
 
     if (!sharedSphereMesh)
     {
-        const int slices = 32;
-        const int stacks = 16;
+        const int slices = 9;
+        const int stacks = 5;
 
         std::vector<Vertex> vertices;
         std::vector<unsigned int> indices;
@@ -100,7 +100,7 @@ Mesh* Sphere::GetSharedSphereMesh()
             }
         }
 
-        sharedSphereMesh = new Mesh(vertices, indices, material);
+        sharedSphereMesh = std::make_shared<Mesh>(vertices, indices, material);
     }
 
     return sharedSphereMesh;

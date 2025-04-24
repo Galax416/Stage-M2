@@ -4,6 +4,7 @@
 #include <QVector3D>
 #include <QColor>
 #include <vector>
+#include <memory>
 
 #include "Rigidbody.h"
 
@@ -21,7 +22,7 @@ class Particle : public Rigidbody
 private:
     float  m_radius;
     QColor m_color;
-    Model* m_particleModel;
+    std::shared_ptr<Model> m_particleModel;
     ParticleFlags m_flags;
 
 public:
@@ -41,5 +42,8 @@ public:
 
     void SetFlags(ParticleFlags flags) { m_flags = flags; }
     ParticleFlags GetFlags() { return m_flags; }
+    void AddFlag(ParticleFlags flag) { m_flags = static_cast<ParticleFlags>(m_flags | flag); }
+    void RemoveFlag(ParticleFlags flag) { m_flags = static_cast<ParticleFlags>(m_flags & ~flag); }
+    bool HasFlag(ParticleFlags flag) const { return m_flags & flag; }
 
 };

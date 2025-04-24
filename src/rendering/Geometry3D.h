@@ -1,6 +1,7 @@
 #pragma once 
 
 #include "Model.h"
+#include <memory>
 
 class Plane : public Model
 {
@@ -17,7 +18,7 @@ public:
 
 private:
     void SetUpPlane(const QVector3D& n = QVector3D(0.0, 1.0, 0.0));
-    static Mesh* GetSharedPlaneMesh();
+    static std::shared_ptr<Mesh> GetSharedPlaneMesh();
 
     QVector3D normal;
     float distance;
@@ -36,7 +37,7 @@ public:
 
 private:
     void SetUpSphere();
-    static Mesh* GetSharedSphereMesh();
+    static std::shared_ptr<Mesh> GetSharedSphereMesh();
 
     float radius;
 };

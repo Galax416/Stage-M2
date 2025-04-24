@@ -19,8 +19,8 @@ void SolvePairCollision(Rigidbody* a, Rigidbody* b)
     if (typeA == RIGIDBODY_TYPE_PARTICLE && typeB == RIGIDBODY_TYPE_PARTICLE) {
         auto* pa = static_cast<Particle*>(a);
         auto* pb = static_cast<Particle*>(b);
-        if (pa->GetFlags() & PARTICLE_NO_COLLISION_WITH_US && 
-            pb->GetFlags() & PARTICLE_NO_COLLISION_WITH_US) return; // Skip if no collision with us
+        if (pa->HasFlag(PARTICLE_NO_COLLISION_WITH_US) && 
+            pb->HasFlag(PARTICLE_NO_COLLISION_WITH_US)) return; // Skip if no collision with us
         SolveParticleParticleCollision(*pa, *pb);
     }
     else if (typeA == RIGIDBODY_TYPE_PARTICLE && typeB == RIGIDBODY_TYPE_SPHERE) {
@@ -45,6 +45,7 @@ void SolvePairCollision(Rigidbody* a, Rigidbody* b)
 void SolvePairCollision(Particle* a, TriangleCollider* b)
 {
     if (!a || !b) return;
+    if (b->Contains(a)) return; // Avoid handling same pair twice
     SolvePaticleTriangleCollision(*a, *b);
 }
 
@@ -66,12 +67,14 @@ void SolveParticleParticleCollision(Particle& p1, Particle& p2)
 
         // Position correction
         if (totalInvMass > 0.0f) {
-            QVector3D correction = normal * penetration;
+            QVector3D correction = normal * penetration /* * 0.5f */; // Add a small offset to avoid sticking
             float ratioA = invMassA / totalInvMass;
             float ratioB = invMassB / totalInvMass;
             
-            if (p1.isMovable) p1.transform.position += correction * ratioA;
-            if (p2.isMovable) p2.transform.position -= correction * ratioB;
+            if (p1.isMovable) { p1.transform.position += correction * ratioA; }
+            if (p2.isMovable) { p2.transform.position -= correction * ratioB; }
+            // if (p1.isMovable) p1.SetPosition(p1.transform.position + correction * ratioA);
+            // if (p2.isMovable) p2.SetPosition(p2.transform.position - correction * ratioB);
 
         }
         
@@ -121,12 +124,14 @@ void SolveParticleOBBCollision(Particle& p, Rigidbody* rb)
         
         // Position correction
         if (totalInvMass > 0.0f) {
-            QVector3D correction = normal * penetration;
+            QVector3D correction = normal * penetration /* * 0.5f */;
             float ratioA = invMassA / totalInvMass;
             float ratioB = invMassB / totalInvMass;
             
-            if (p.isMovable) p.transform.position += correction * ratioA;
-            if (rb->isMovable) rb->transform.position -= correction * ratioB;
+            if (p.isMovable) { p.transform.position += correction * ratioA; }
+            if (rb->isMovable) { rb->transform.position -= correction * ratioB; }
+            // if (p.isMovable) p.SetPosition(p.transform.position + correction * ratioA);
+            // if (rb->isMovable) rb->SetPosition(rb->transform.position - correction * ratioB);
 
         }
 
@@ -141,9 +146,9 @@ void SolveParticleOBBCollision(Particle& p, Rigidbody* rb)
         float impulseMagnitude = -(1.0f + restitution) * velocityAlongNormal / totalInvMass;
         QVector3D impulse = normal * impulseMagnitude;
         
-        // if (isMovable) p.AddLinearImpulse(impulse);
+        // if (isMovable)     p.AddLinearImpulse(impulse);
         // if (rb->isMovable) rb->AddLinearImpulse(-impulse);
-        if (p.isMovable) p.AddLinearImpulse(impulse * invMassA);
+        if (p.isMovable)     p.AddLinearImpulse( impulse * invMassA);
         if (rb->isMovable) rb->AddLinearImpulse(-impulse * invMassB);
 
     }
@@ -156,7 +161,7 @@ void SolvePaticleTriangleCollision(Particle& p, TriangleCollider& tri)
 
     QVector3D correction;
     if (CheckParticleTriangleCollision(&p, tri, correction)) {
-        if (p.isMovable) p.transform.position += correction;
-        
+        if (p.isMovable) { p.transform.position += correction; }
+        // if(p.IsMovable()) p.SetPosition(p.transform.position + correction); 
     }
 }

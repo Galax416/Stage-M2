@@ -6,7 +6,7 @@ Spring::Spring(double _k) : p1(nullptr), p2(nullptr), k(_k), b(0.0f), restingLen
 
 Spring::Spring(double _k, double _b, double len) : p1(nullptr), p2(nullptr), k(_k), b(_b), restingLength(len) {}
 
-void Spring::SetParticles(Particle* _p1, Particle* _p2) 
+void Spring::SetParticles(std::shared_ptr<Particle> _p1, std::shared_ptr<Particle> _p2) 
 {
     p1 = _p1;
     p2 = _p2;
@@ -17,9 +17,9 @@ void Spring::SetParticles(Particle* _p1, Particle* _p2)
     // m_rigidity = false; // Default to not rigid
     // m_initialRelPos = p2->transform.position - p1->transform.position;
 }
-Particle* Spring::GetP1() { return p1; }
+std::shared_ptr<Particle> Spring::GetP1() { return p1; }
 
-Particle* Spring::GetP2() { return p2; }
+std::shared_ptr<Particle> Spring::GetP2() { return p2; }
 
 void Spring::SetConstants(double _k, double _b) 
 {
@@ -56,11 +56,6 @@ void Spring::ApplyForce(float deltaTime)
     double F = (-k * x) + (-b * v); // Hooke's law
 
     QVector3D impulse = direction * F * deltaTime;
-
-    // Clamp the impulse to avoid excessive forces
-    // if (impulse.length() > 0.1f) {
-    //     impulse = impulse.normalized() * 0.1f;
-    // }
 
     if (p1->IsMovable()) p1->AddLinearImpulse(-impulse * w1);
     if (p2->IsMovable()) p2->AddLinearImpulse( impulse * w2);

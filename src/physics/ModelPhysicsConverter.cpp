@@ -55,10 +55,7 @@ void ConvertModelToParticleSprings(Model* model,
                 springSet.insert(key);
 
                 auto spring = std::make_shared<Spring>(stiffness, 1.0f, 0.0f);
-                auto A = particles[a].get();
-                auto B = particles[b].get();
-
-                spring->SetParticles(A, B);
+                spring->SetParticles(particles[a], particles[b]);
                 springs.push_back(spring);
 
                 model->customOBJ->springLinks.push_back(SpringLink{ a, b, stiffness });
@@ -76,11 +73,11 @@ void ConvertModelToParticleSprings(Model* model,
         int i2 = face.vertexIndices[2];
 
         auto p1 = particles[i0].get();
-        p1->SetFlags(PARTICLE_ATTACHED_TO_TRIANGLE);
+        p1->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
         auto p2 = particles[i1].get();
-        p2->SetFlags(PARTICLE_ATTACHED_TO_TRIANGLE);
+        p2->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
         auto p3 = particles[i2].get();
-        p3->SetFlags(PARTICLE_ATTACHED_TO_TRIANGLE);
+        p3->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
     
         auto collider = std::make_shared<TriangleCollider>(p1, p2, p3);
     
@@ -148,9 +145,8 @@ void ChargeModelParticleSprings(Model* model,
     // Charge the model into a set of particles and springs
     if (model == nullptr || model->customOBJ == nullptr) return;
 
-
-    if (model->mesh) delete model->mesh; // Clean up the mesh if it exists
-    model->mesh = nullptr; // Set the mesh pointer to null
+    // if (model->mesh) delete model->mesh; // Clean up the mesh if it exists
+    // model->mesh = nullptr; // Set the mesh pointer to null
 
     // Clear vectors
     particles.clear();
@@ -194,7 +190,7 @@ void ChargeModelParticleSprings(Model* model,
         int indexB = b;
 
         auto spring = std::make_shared<Spring>(link.stiffness, 1.0f, 0.0f);
-        spring->SetParticles(particles[indexA].get(), particles[indexB].get());
+        spring->SetParticles(particles[indexA], particles[indexB]);
         springs.push_back(spring);
     }
 
@@ -207,11 +203,11 @@ void ChargeModelParticleSprings(Model* model,
         int i2 = face.vertexIndices[2];
 
         auto p1 = particles[i0].get();
-        p1->SetFlags(PARTICLE_ATTACHED_TO_TRIANGLE);
+        p1->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
         auto p2 = particles[i1].get();
-        p2->SetFlags(PARTICLE_ATTACHED_TO_TRIANGLE);
+        p2->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
         auto p3 = particles[i2].get();
-        p3->SetFlags(PARTICLE_ATTACHED_TO_TRIANGLE);
+        p3->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
     
         auto collider = std::make_shared<TriangleCollider>(p1, p2, p3);
     

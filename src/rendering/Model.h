@@ -8,6 +8,7 @@
 #include <QtMath>
 // #include <QFileInfo>
 #include <vector>
+#include <memory>
 
 // #include "stb_image.h"
 #include "Rigidbody.h"
@@ -29,14 +30,13 @@ protected:
     void SetUpColliders();
 
 public:
-    Mesh* mesh { nullptr };
-    CustomOBJLoader* customOBJ { nullptr };
+    std::shared_ptr<Mesh> mesh { nullptr };
+    std::shared_ptr<CustomOBJLoader> customOBJ { nullptr };
 
     Model();
     Model(const QString &path);
-    virtual ~Model();
 
-    void ClearModel();
+    void ResetModel();
     void LoadModel(const QString &path);
 
     void Update(float deltaTime) override;

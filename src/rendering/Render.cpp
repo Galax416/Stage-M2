@@ -6,8 +6,8 @@ void Render(const Line& line)
 	// glVertex3f(line.start[0], line.start[1], line.start[2]);
 	// glVertex3f(line.end[0], line.end[1], line.end[2]);
 	// glEnd();
-    int segments = 16; // Number of segments for the cylinder
-    float radius = 0.003f; // Radius of the cylinder
+    int segments = 6; // Number of segments for the cylinder
+    float radius = 0.004f; // Radius of the cylinder
 
     QVector3D start = line.start;
     QVector3D end = line.end;
