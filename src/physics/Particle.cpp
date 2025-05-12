@@ -11,7 +11,7 @@ Particle::Particle(QVector3D pos, float r, float m, bool mov, QColor color)
     mass = m;
     isMovable = mov;
     m_color = color;
-    cor = 0.01f;
+    cor = 0.5f;
 
     m_particleModel = std::make_unique<Sphere>(pos, m_radius, m_color);
 
@@ -53,4 +53,9 @@ void Particle::SetPosition(const QVector3D& p) {
     transform.position = p;
     oldPosition = p;
     m_particleModel->transform.position = p;
+}
+
+void Particle::SetRotation(const QQuaternion& q) {
+    transform.rotation = q;
+    m_particleModel->transform.rotation = q;
 }

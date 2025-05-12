@@ -38,34 +38,50 @@ inline void clearLayout(QLayout* layout)
     }
 }
 
-inline bool operator<=(const QVector3D& lhs, const QVector3D& rhs)
+// inline bool operator<=(const QVector3D& lhs, const QVector3D& rhs)
+// {
+//     return lhs.x() <= rhs.x() && lhs.y() <= rhs.y() && lhs.z() <= rhs.z();
+// }
+
+// inline bool operator<(const QVector3D& lhs, const QVector3D& rhs) {
+//     if (lhs.x() != rhs.x()) return lhs.x() < rhs.x();
+//     if (lhs.y() != rhs.y()) return lhs.y() < rhs.y();
+//     return lhs.z() < rhs.z();
+// }
+
+// inline bool operator>=(const QVector3D& lhs, const QVector3D& rhs)
+// {
+//     return lhs.x() >= rhs.x() && lhs.y() >= rhs.y() && lhs.z() >= rhs.z();
+// }
+
+enum Quadrant { Top, Bottom };
+
+inline Quadrant GetQuadrant(const QVector3D& pos, const QVector3D& center, float epsilon = 0.02f) 
 {
-    return lhs.x() <= rhs.x() && lhs.y() <= rhs.y() && lhs.z() <= rhs.z();
+    return (pos.y() > center.y() - epsilon) ? Top : Bottom;
 }
 
-inline bool operator>=(const QVector3D& lhs, const QVector3D& rhs)
+inline float GetStiffnessByQuadrant(QVector3D posA, QVector3D posB, const QVector3D& center) 
 {
-    return lhs.x() >= rhs.x() && lhs.y() >= rhs.y() && lhs.z() >= rhs.z();
-}
-
-enum Quadrant { TopLeft, TopRight, BottomLeft, BottomRight };
-
-inline Quadrant GetQuadrant(const QVector3D& pos, const QVector3D& center) {
-    if (pos.x() < center.x()) {
-        return (pos.y() > center.y()) ? TopLeft : BottomLeft;
-    } else {
-        return (pos.y() > center.y()) ? TopRight : BottomRight;
-    }
-}
-
-inline float GetStiffnessByQuadrant(QVector3D posA, QVector3D posB, const QVector3D& center) {
     Quadrant quadA = GetQuadrant(posA, center);
     Quadrant quadB = GetQuadrant(posB, center);
 
-    int stiffness = 1; // Default stiffness
-    if (quadA == TopLeft || quadB == TopLeft) stiffness = 450;
-    else if (quadA == TopRight || quadB == TopRight) stiffness = 450;
-    else if (quadA == BottomLeft || quadB == BottomLeft) stiffness = 900;
-    else if (quadA == BottomRight || quadB == BottomRight) stiffness = 900;
+    int stiffness = 1.0f; // Default stiffness
+    if (quadA == Top || quadB == Top) stiffness = 650.0f;
+    else if (quadA == Bottom || quadB == Bottom) stiffness = 250.0f;
     return stiffness;
 }
+
+namespace std 
+{
+    template <>
+    struct hash<QVector3D> {
+        size_t operator()(const QVector3D& v) const {
+            size_t h1 = std::hash<float>{}(v.x());
+            size_t h2 = std::hash<float>{}(v.y());
+            size_t h3 = std::hash<float>{}(v.z());
+            return h1 ^ (h2 << 1) ^ (h3 << 2);
+        }
+    };
+}
+

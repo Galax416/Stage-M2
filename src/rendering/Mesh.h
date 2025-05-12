@@ -58,14 +58,21 @@ struct Material
 class Mesh : protected QOpenGLFunctions 
 {
 public:
-    std::vector<Vertex> m_vertices;
-    std::vector<unsigned int> m_indices;
-    Material m_material;
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+    Material material;
 
     Mesh() {}
     Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, Material material);
 
     void Render(QOpenGLShaderProgram* shaderProgram);
+
+    void clear() 
+    {
+        vertices.clear();
+        indices.clear();
+        material = Material();
+    }
     
 private:
     std::unique_ptr<QOpenGLVertexArrayObject> VAO;

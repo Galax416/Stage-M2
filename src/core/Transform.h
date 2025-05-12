@@ -37,29 +37,10 @@ public:
         return rotation.toRotationMatrix();
     };
 
-    void Translate(const QVector3D &translation) 
+    void SetRotation(const QQuaternion &rotation) 
     {
-        position += translation;
-    };
-
-    void Rotate(const QQuaternion &rotation) 
-    {
-        this->rotation = rotation * this->rotation;
-        this->rotationEuler = this->rotation.toEulerAngles();
-    };
-
-    void Rotate(const QVector3D &euler) 
-    {
-        this->rotationEuler += euler;
-        this->rotationEuler.setX(fmod(this->rotationEuler.x(), 360.0f));
-        this->rotationEuler.setY(fmod(this->rotationEuler.y(), 360.0f));
-        this->rotationEuler.setZ(fmod(this->rotationEuler.z(), 360.0f));
-        this->rotation = QQuaternion::fromEulerAngles(rotationEuler);
-    };
-
-    void ScaleBy(const QVector3D &scale) 
-    {
-        this->scale *= scale;
+        this->rotation = rotation;
+        this->rotationEuler = rotation.toEulerAngles();
     };
 
     void SetRotationEuler(const QVector3D &euler) 

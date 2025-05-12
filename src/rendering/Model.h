@@ -23,7 +23,7 @@ class CustomOBJLoader;
 class Model : public Rigidbody, protected QOpenGLFunctions
 {
 protected:
-    QColor color { 255, 255, 255 };
+    QColor color { 255, 255, 255, 255 };
 
     void Init();
     void BuildAABB();
@@ -36,7 +36,7 @@ public:
     Model();
     Model(const QString &path);
 
-    void ResetModel();
+    // void ResetModel();
     void LoadModel(const QString &path);
 
     void Update(float deltaTime) override;
@@ -44,7 +44,11 @@ public:
 
     void SynsCollisionVolumes();
 
+    void SetPosition(const QVector3D& p) override { transform.position = p; oldPosition = p; SynsCollisionVolumes(); }
+    void SetRotation(const QQuaternion& q) override { transform.rotation = q; SynsCollisionVolumes(); }
+
     void SetColor(const QColor& c) { color = c; }
+    bool IsValid() const;
 
 private:
     AABB bounds;

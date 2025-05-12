@@ -12,6 +12,7 @@ void Rigidbody::Render(QOpenGLShaderProgram* shaderProgram)
     shaderProgram->bind();
 
     shaderProgram->setUniformValue("material.albedo", QVector3D(1, 0, 0));
+    shaderProgram->setUniformValue("transparency", static_cast<GLfloat>(0.5f)); // 50% transparent
     shaderProgram->setUniformValue("model", transform.GetModelMatrix());
     
     if (type == RIGIDBODY_TYPE_SPHERE) {

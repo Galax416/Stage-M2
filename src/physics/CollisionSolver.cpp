@@ -46,6 +46,7 @@ void SolvePairCollision(Particle* a, TriangleCollider* b)
 {
     if (!a || !b) return;
     if (b->Contains(a)) return; // Avoid handling same pair twice
+    if (a->GetFlags() & ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE) return; // Skip if attached to triangle
     SolvePaticleTriangleCollision(*a, *b);
 }
 
@@ -64,33 +65,28 @@ void SolveParticleParticleCollision(Particle& p1, Particle& p2)
         float invMassA = p1.InvMass();
         float invMassB = p2.InvMass();
         float totalInvMass = invMassA + invMassB;
-
-        // Position correction
-        if (totalInvMass > 0.0f) {
-            QVector3D correction = normal * penetration /* * 0.5f */; // Add a small offset to avoid sticking
-            float ratioA = invMassA / totalInvMass;
-            float ratioB = invMassB / totalInvMass;
-            
-            if (p1.isMovable) { p1.transform.position += correction * ratioA; }
-            if (p2.isMovable) { p2.transform.position -= correction * ratioB; }
-            // if (p1.isMovable) p1.SetPosition(p1.transform.position + correction * ratioA);
-            // if (p2.isMovable) p2.SetPosition(p2.transform.position - correction * ratioB);
-
-        }
         
-        QVector3D relativeVelocity = p1.GetVelocity() - p2.GetVelocity();
-        float velocityAlongNormal = QVector3D::dotProduct(relativeVelocity, normal);
+        if (penetration < 1e-5f || totalInvMass <= 0.0f) return; // Ignore very small penetrations and static objects
+        
+        // Position correction
+        QVector3D correction = normal * penetration * 0.5f;
+        
+        if (p1.isMovable) { p1.transform.position += correction * (invMassA / totalInvMass); }
+        if (p2.isMovable) { p2.transform.position -= correction * (invMassB / totalInvMass); }
 
-        if (velocityAlongNormal > 0) return; // Avoid double collision
+        // QVector3D relativeVelocity = p1.GetVelocity() - p2.GetVelocity();
+        // float velocityAlongNormal = QVector3D::dotProduct(relativeVelocity, normal);
 
-        float restitution = fminf(p1.GetCor(), p2.GetCor());
-        if (std::abs(velocityAlongNormal) < 0.1f) restitution = 0.0f; // Prevent sticking
+        // if (velocityAlongNormal > 0) return; // Avoid double collision
 
-        float impulseMagnitude = -(1.0f + restitution) * velocityAlongNormal / totalInvMass;
-        QVector3D impulse = normal * impulseMagnitude;
+        // float restitution = fminf(p1.GetCor(), p2.GetCor());
+        // if (std::abs(velocityAlongNormal) < 0.1f) restitution = 0.0f; // Prevent sticking
 
-        if (p1.isMovable) p1.AddLinearImpulse( impulse * invMassA);
-        if (p2.isMovable) p2.AddLinearImpulse(-impulse * invMassB);
+        // float impulseMagnitude = -(1.0f + restitution) * velocityAlongNormal / totalInvMass;
+        // QVector3D impulse = normal * impulseMagnitude;
+
+        // if (p1.isMovable) p1.AddLinearImpulse( impulse * invMassA);
+        // if (p2.isMovable) p2.AddLinearImpulse(-impulse * invMassB);
 
         
     }
@@ -117,39 +113,32 @@ void SolveParticleOBBCollision(Particle& p, Rigidbody* rb)
         float dist = std::sqrt(distSq);
         QVector3D normal = delta / dist;
         float penetration = radius - dist;
-        
+
         float invMassA = p.InvMass();
         float invMassB = rb->InvMass();
         float totalInvMass = invMassA + invMassB;
+
+        if (penetration < 1e-5f || totalInvMass <= 0.0f) return; // Ignore very small penetrations and static objects
         
         // Position correction
-        if (totalInvMass > 0.0f) {
-            QVector3D correction = normal * penetration /* * 0.5f */;
-            float ratioA = invMassA / totalInvMass;
-            float ratioB = invMassB / totalInvMass;
-            
-            if (p.isMovable) { p.transform.position += correction * ratioA; }
-            if (rb->isMovable) { rb->transform.position -= correction * ratioB; }
-            // if (p.isMovable) p.SetPosition(p.transform.position + correction * ratioA);
-            // if (rb->isMovable) rb->SetPosition(rb->transform.position - correction * ratioB);
+        QVector3D correction = normal * penetration * 0.5f;
+        
+        if (p.isMovable)     { p.transform.position += correction * (invMassA / totalInvMass); }
+        if (rb->isMovable) { rb->transform.position -= correction * (invMassB / totalInvMass); }
 
-        }
-
-        QVector3D relativeVelocity = p.GetVelocity() - rb->GetVelocity();
-        float velocityAlongNormal = QVector3D::dotProduct(relativeVelocity, normal);
+        // QVector3D relativeVelocity = p.GetVelocity() - rb->GetVelocity();
+        // float velocityAlongNormal = QVector3D::dotProduct(relativeVelocity, normal);
         
-        if (velocityAlongNormal > 0) return; // Avoid double collision
+        // if (velocityAlongNormal > 0) return; // Avoid double collision
         
-        float restitution = fminf(p.GetCor(), rb->GetCor());
-        if (std::abs(velocityAlongNormal) < 0.1f) restitution = 0.0f; // Prevent sticking
+        // float restitution = fminf(p.GetCor(), rb->GetCor());
+        // if (std::abs(velocityAlongNormal) < 0.1f) restitution = 0.0f; // Prevent sticking
         
-        float impulseMagnitude = -(1.0f + restitution) * velocityAlongNormal / totalInvMass;
-        QVector3D impulse = normal * impulseMagnitude;
+        // float impulseMagnitude = -(1.0f + restitution) * velocityAlongNormal / totalInvMass;
+        // QVector3D impulse = normal * impulseMagnitude;
         
-        // if (isMovable)     p.AddLinearImpulse(impulse);
-        // if (rb->isMovable) rb->AddLinearImpulse(-impulse);
-        if (p.isMovable)     p.AddLinearImpulse( impulse * invMassA);
-        if (rb->isMovable) rb->AddLinearImpulse(-impulse * invMassB);
+        // if (p.isMovable)     p.AddLinearImpulse( impulse * invMassA);
+        // if (rb->isMovable) rb->AddLinearImpulse(-impulse * invMassB);
 
     }
 }
@@ -159,9 +148,33 @@ void SolvePaticleTriangleCollision(Particle& p, TriangleCollider& tri)
     // Check if pa is a vertex of the triangle
     if (&p == tri.p0 || &p == tri.p1 || &p == tri.p2) return;
 
+    float invMassA = p.InvMass();
+    float invMassB = (tri.p0->InvMass() + tri.p1->InvMass() + tri.p2->InvMass()) / 3.0f;
+    float totalInvMass = invMassA + invMassB;
+
     QVector3D correction;
     if (CheckParticleTriangleCollision(&p, tri, correction)) {
-        if (p.isMovable) { p.transform.position += correction; }
+        float ratioA = invMassA / totalInvMass;
+        float ratioB = invMassB / totalInvMass;
+        if (p.isMovable) { p.transform.position += correction * ratioA; }
         // if(p.IsMovable()) p.SetPosition(p.transform.position + correction); 
-    }
+
+        if (tri.p0->isMovable) { tri.p0->transform.position -= correction * ratioB; }
+        if (tri.p1->isMovable) { tri.p1->transform.position -= correction * ratioB; }
+        if (tri.p2->isMovable) { tri.p2->transform.position -= correction * ratioB; }
+    }    
+
+    // QVector3D relativeVelocity = p.GetVelocity() - ((tri.p0->GetVelocity() + tri.p1->GetVelocity() + tri.p2->GetVelocity()) / 3.0f);
+    // QVector3D normal = (tri.p1->transform.position - tri.p0->transform.position).normalized();
+    // float velocityAlongNormal = QVector3D::dotProduct(relativeVelocity, normal);
+
+    // if (velocityAlongNormal > 0) return; // Avoid double collision
+
+    // float restitution = fminf(p.GetCor(), (tri.p0->GetCor() + tri.p1->GetCor() + tri.p2->GetCor()) / 3.0f);
+    // if (std::abs(velocityAlongNormal) < 0.1f) restitution = 0.0f; // Prevent sticking
+
+    // float impulseMagnitude = -(1.0f + restitution) * velocityAlongNormal / totalInvMass;
+    // QVector3D impulse = normal * impulseMagnitude;
+
+    // if (p.isMovable) p.AddLinearImpulse( impulse * invMassA);
 }

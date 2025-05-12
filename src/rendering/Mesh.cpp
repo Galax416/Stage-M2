@@ -1,7 +1,7 @@
 #include "Mesh.h"
 
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, Material material) :
-    m_vertices(vertices), m_indices(indices), m_material(material),
+    vertices(vertices), indices(indices), material(material),
     VAO(std::make_unique<QOpenGLVertexArrayObject>()), VBO(std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer)), IBO(std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer))
 {
     initializeOpenGLFunctions();
@@ -20,10 +20,10 @@ void Mesh::SetUpMesh()
     VAO->bind();
     
     VBO->bind();
-    VBO->allocate(m_vertices.data(), m_vertices.size() * sizeof(Vertex));
+    VBO->allocate(vertices.data(), vertices.size() * sizeof(Vertex));
 
     IBO->bind();
-    IBO->allocate(m_indices.data(), m_indices.size() * sizeof(unsigned int));
+    IBO->allocate(indices.data(), indices.size() * sizeof(unsigned int));
     
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0); // Position
@@ -52,18 +52,18 @@ void Mesh::Render(QOpenGLShaderProgram* shaderProgram)
 
     // // Send material properties to shader
     // shaderProgram->setUniformValue("material.albedo", m_material.albedo);
-    shaderProgram->setUniformValue("material.specular", m_material.specular);
-    shaderProgram->setUniformValue("material.emissive", m_material.emissive);
-    shaderProgram->setUniformValue("material.shininess", m_material.shininess);
-    shaderProgram->setUniformValue("material.metalness", m_material.metalness);
-    shaderProgram->setUniformValue("material.roughness", m_material.roughness);
+    shaderProgram->setUniformValue("material.specular", material.specular);
+    shaderProgram->setUniformValue("material.emissive", material.emissive);
+    shaderProgram->setUniformValue("material.shininess", material.shininess);
+    shaderProgram->setUniformValue("material.metalness", material.metalness);
+    shaderProgram->setUniformValue("material.roughness", material.roughness);
 
     // Bind the VAO and draw the mesh
     VAO->bind();
     VBO->bind();
     IBO->bind();
 
-    glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, nullptr);
 
     VBO->release();
     IBO->release();
@@ -76,26 +76,26 @@ void Mesh::ComputeNormals()
 {
 
 	// Reset normals to zero
-	for (auto& vertex : m_vertices) {
+	for (auto& vertex : vertices) {
 		vertex.normal = QVector3D(0.0f, 0.0f, 0.0f);
 	}
 
 	// Compute normals for each triangle and accumulate them in the vertices	
-	for (long unsigned int i = 0; i < m_indices.size(); i += 3) {
-		unsigned int index1 = m_indices[i];
-		unsigned int index2 = m_indices[i + 1];
-		unsigned int index3 = m_indices[i + 2];
+	for (long unsigned int i = 0; i < indices.size(); i += 3) {
+		unsigned int index1 = indices[i];
+		unsigned int index2 = indices[i + 1];
+		unsigned int index3 = indices[i + 2];
 
-		QVector3D edge1 = m_vertices[index2].position - m_vertices[index1].position;
-		QVector3D edge2 = m_vertices[index3].position - m_vertices[index1].position;
+		QVector3D edge1 = vertices[index2].position - vertices[index1].position;
+		QVector3D edge2 = vertices[index3].position - vertices[index1].position;
 		QVector3D normal = QVector3D::crossProduct(edge1, edge2).normalized();
 
-		m_vertices[index1].normal += normal;
-		m_vertices[index2].normal += normal;
-		m_vertices[index3].normal += normal;
+		vertices[index1].normal += normal;
+		vertices[index2].normal += normal;
+		vertices[index3].normal += normal;
 	}
 
-	for (auto& vertex : m_vertices) {
+	for (auto& vertex : vertices) {
 		vertex.normal.normalize();
 	}
 }
@@ -106,8 +106,8 @@ void Mesh::UnifySharedVertices()
     std::vector<Vertex> newVertices;
     std::vector<unsigned int> newIndices;
 
-	for (long unsigned int i = 0; i < m_indices.size(); ++i) {
-        const QVector3D& position = m_vertices[m_indices[i]].position;
+	for (long unsigned int i = 0; i < indices.size(); ++i) {
+        const QVector3D& position = vertices[indices[i]].position;
 
         if (uniqueVertices.contains(position)) {
             newIndices.push_back(uniqueVertices[position]);
@@ -115,13 +115,13 @@ void Mesh::UnifySharedVertices()
             int newIndex = newVertices.size();
             uniqueVertices[position] = newIndex;
 
-            newVertices.push_back(m_vertices[m_indices[i]]);
+            newVertices.push_back(vertices[indices[i]]);
             newIndices.push_back(newIndex);
         }
     }
 
-	m_vertices = newVertices;
-    m_indices = newIndices;
+	vertices = newVertices;
+    indices = newIndices;
 
 	ComputeNormals();
 

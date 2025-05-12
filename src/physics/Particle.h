@@ -33,12 +33,13 @@ public:
     void Render(QOpenGLShaderProgram* shaderProgram) override;
 
     void SetPosition(const QVector3D& p) override;
+    void SetRotation(const QQuaternion& q) override;
 
     void SetRadius(float radius) { m_radius = radius; }
-    float GetRadius() { return m_radius; }
+    float GetRadius() const { return m_radius; }
 
     void SetColor(QColor c);
-    QColor GetColor() { return m_color; }
+    QColor GetColor() const { return m_color; }
 
     void SetFlags(ParticleFlags flags) { m_flags = flags; }
     ParticleFlags GetFlags() { return m_flags; }

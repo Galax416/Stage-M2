@@ -31,10 +31,10 @@ public:
 
 public slots:
     void updateStatusBarMessage(const QString& message);
-    void updateButtonsState(bool isPaused);
+    void updateButtonsState(bool isRunning);
 
 private:
-    QTimer* m_timer;
+    // QTimer* m_timer;
     
     QStatusBar* m_statusBar;
     QMenuBar*   m_menuBar;

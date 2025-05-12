@@ -71,6 +71,7 @@ public:
     float GetMass()         const { return mass; }
     float GetCor()          const { return cor; }
     bool IsMovable()        const { return isMovable; }
+    QVector3D GetPosition() const { return transform.position; }
     QVector3D GetVelocity() const { return transform.position - oldPosition; }
     virtual AABB GetAABB()  const;
 
@@ -80,6 +81,7 @@ public:
     void SetMass(float m)               { mass = m < 0 ? 0 : m; }
     void SetCor(float c)                { cor = c < 0 ? 0 : c > 1 ? 1 : c; }
     void SetMovable(bool m)             { isMovable = m; }
-    virtual inline void SetPosition(const QVector3D& p) { transform.position = p; oldPosition = p; }
+    virtual inline void SetPosition(const QVector3D& p) {}
+    virtual inline void SetRotation(const QQuaternion& q) {}
 
 };

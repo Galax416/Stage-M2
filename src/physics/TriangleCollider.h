@@ -3,6 +3,8 @@
 #include "BoundingBox.h"
 #include "Rigidbody.h"
 #include "Particle.h"
+#include "GeometryPrimitives.h"
+#include "Intersections.h"
 
 struct TriangleCollider
 {
@@ -69,10 +71,44 @@ inline bool CheckParticleTriangleCollision(Particle* p, const TriangleCollider& 
     if (u >= 0.0f && v >= 0.0f && w >= 0.0f) {
         float penetration = radius - std::abs(distToPlane);
         if (penetration > 0.0f) {
-            outCorrection = n * penetration * (distToPlane < 0 ? -1.0f : 1.0f);
+            outCorrection = n * penetration * (distToPlane < 0 ? -1.0f : 1.0f) * 0.5f;
             return true;
         }
     }
 
     return false;
+}
+
+inline bool IsPointInsideMesh(const QVector3D& point, const std::vector<std::shared_ptr<TriangleCollider>>& triangles) {
+    int count = 0;
+    Ray ray(point, QVector3D(0, 0, 1));
+
+    for (const auto& triangle : triangles) {
+        if (RayIntersectsTriangle(ray, triangle)) ++count;
+    }
+
+    return count % 2 == 1; // Odd count means inside, even means outside
+}
+
+inline bool IsParticleInsideMesh(const std::shared_ptr<Particle> particle, const std::vector<std::shared_ptr<TriangleCollider>>& triangles) {
+{
+    QVector3D center = particle->GetPosition();
+    float radius = particle->GetRadius();
+
+    const QVector3D offsets[] = {
+        QVector3D(radius, 0, 0),
+        QVector3D(-radius, 0, 0),
+        QVector3D(0, radius, 0),
+        QVector3D(0, -radius, 0),
+        QVector3D(0, 0, radius),
+        QVector3D(0, 0, -radius)
+    };
+
+    for (const auto& offset : offsets) {
+        if (!IsPointInsideMesh(center + offset, triangles))
+            return false;
+    }
+
+    return true;
+}
 }

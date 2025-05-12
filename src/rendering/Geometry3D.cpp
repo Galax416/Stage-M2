@@ -1,6 +1,7 @@
 #include "Geometry3D.h"
 #include "Mesh.h"
 
+// PLANE
 std::shared_ptr<Mesh> Plane::GetSharedPlaneMesh()
 {
     static std::shared_ptr<Mesh> sharedPlaneMesh = nullptr;
@@ -47,6 +48,58 @@ std::shared_ptr<Mesh> Plane::GetSharedPlaneMesh()
     return sharedPlaneMesh;
 }
 
+// BOX
+std::shared_ptr<Mesh> Box::GetSharedBoxMesh()
+{
+    static std::shared_ptr<Mesh> sharedBoxMesh = nullptr;
+
+    if (!sharedBoxMesh)
+    {
+        std::vector<Vertex> vertices;
+        std::vector<unsigned int> indices;
+        Material material;
+
+        QVector3D positions[8] = {
+            {-1.0f, -1.0f, -1.0f}, // 0
+            { 1.0f, -1.0f, -1.0f}, // 1
+            { 1.0f,  1.0f, -1.0f}, // 2
+            {-1.0f,  1.0f, -1.0f}, // 3
+            {-1.0f, -1.0f,  1.0f}, // 4
+            { 1.0f, -1.0f,  1.0f}, // 5
+            { 1.0f,  1.0f,  1.0f}, // 6
+            {-1.0f,  1.0f,  1.0f}  // 7
+        };
+
+        auto addFace = [&](int i0, int i1, int i2, int i3, QVector3D normal) {
+            unsigned int startIndex = vertices.size();
+            //                       position, normal,    texCoords,     tangent,   bitangent
+            vertices.push_back({positions[i0], normal, {0.0f, 0.0f}, QVector3D(), QVector3D()});
+            vertices.push_back({positions[i1], normal, {1.0f, 0.0f}, QVector3D(), QVector3D()});
+            vertices.push_back({positions[i2], normal, {1.0f, 1.0f}, QVector3D(), QVector3D()});
+            vertices.push_back({positions[i3], normal, {0.0f, 1.0f}, QVector3D(), QVector3D()});
+
+            indices.push_back(startIndex + 0);
+            indices.push_back(startIndex + 1);
+            indices.push_back(startIndex + 2);
+            indices.push_back(startIndex + 2);
+            indices.push_back(startIndex + 3);
+            indices.push_back(startIndex + 0);
+        };
+
+        addFace(1, 0, 3, 2, {0.0f, 0.0f, -1.0f}); // back
+        addFace(4, 5, 6, 7, {0.0f, 0.0f, 1.0f});  // front
+        addFace(0, 4, 7, 3, {-1.0f, 0.0f, 0.0f}); // left
+        addFace(5, 1, 2, 6, {1.0f, 0.0f, 0.0f});  // right
+        addFace(2, 3, 7, 6, {0.0f, 1.0f, 0.0f});  // top
+        addFace(5, 4, 0, 1, {0.0f, -1.0f, 0.0f}); // bottom
+
+        sharedBoxMesh = std::make_shared<Mesh>(vertices, indices, material);
+    }
+
+    return sharedBoxMesh;
+}
+
+// SPHERE
 std::shared_ptr<Mesh> Sphere::GetSharedSphereMesh()
 {
     static std::shared_ptr<Mesh> sharedSphereMesh = nullptr;
@@ -107,6 +160,7 @@ std::shared_ptr<Mesh> Sphere::GetSharedSphereMesh()
 }
 
 
+
 // PLANE
 Plane::Plane() : Model()
 {
@@ -138,6 +192,41 @@ void Plane::SetUpPlane(const QVector3D& n)
     // Align the plane to the normal
     transform.rotation = QQuaternion::rotationTo(QVector3D(0.0f, 1.0f, 0.0f), normal);
     transform.rotationEuler = transform.rotation.toEulerAngles();
+
+    SetUpColliders();
+}
+
+// BOX
+Box::Box() : Model()
+{
+    size = QVector3D(1.0f, 1.0f, 1.0f);
+    SetUpBox();
+    SetUpColliders();
+}
+Box::Box(const QVector3D& p, const QVector3D& s) : Model()
+{
+    size = s;
+    SetPosition(p);
+    SetUpBox();
+    SetUpColliders();
+}
+Box::Box(const QVector3D& p, const QVector3D& s, QColor c) : Model()
+{
+    size = s;
+    SetPosition(p);
+    color = c;
+    SetUpBox();
+    SetUpColliders();
+}
+void Box::SetUpBox()
+{
+    // Change type to box
+    type = RIGIDBODY_TYPE_BOX;
+
+    mesh = GetSharedBoxMesh();
+
+    // Set the scale of the transform
+    transform.scale = size;
 
     SetUpColliders();
 }

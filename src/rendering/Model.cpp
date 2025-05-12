@@ -13,11 +13,11 @@ Model::Model(const QString& path)
     LoadModel(path);
 }
 
-void Model::ResetModel()
-{
-    mesh = std::make_unique<Mesh>();
-    customOBJ = std::make_unique<CustomOBJLoader>();
-}
+// void Model::ResetModel()
+// {
+//     mesh = std::make_unique<Mesh>();
+//     customOBJ = std::make_unique<CustomOBJLoader>();
+// }
 
 void Model::Init()
 {
@@ -52,7 +52,8 @@ void Model::SetUpColliders()
 void Model::LoadModel(const QString& path)
 {
 
-    ResetModel();
+    // ResetModel();
+    customOBJ->clear();
 
     bool ok = customOBJ->LoadOBJ(path.toStdString().c_str());
     if (!ok) {
@@ -150,6 +151,7 @@ void Model::Render(QOpenGLShaderProgram* shaderProgram)
     shaderProgram->bind();
     
     shaderProgram->setUniformValue("material.albedo", QVector3D(color.redF(), color.greenF(), color.blueF()));
+    shaderProgram->setUniformValue("transparency", static_cast<GLfloat>(color.alphaF()));
     shaderProgram->setUniformValue("model", transform.GetModelMatrix());
     
     if (mesh) mesh->Render(shaderProgram);
@@ -157,18 +159,18 @@ void Model::Render(QOpenGLShaderProgram* shaderProgram)
     shaderProgram->release();
 
     // Debug collider
-    Rigidbody::Render(shaderProgram);
+    // Rigidbody::Render(shaderProgram);
 }
 
 void Model::BuildAABB()
 {
     if (!mesh) return;
-    if (mesh->m_vertices.empty()) return;
+    if (mesh->vertices.empty()) return;
 
-    QVector3D minBounds = mesh->m_vertices[0].position;
-    QVector3D maxBounds = mesh->m_vertices[0].position;
+    QVector3D minBounds = mesh->vertices[0].position;
+    QVector3D maxBounds = mesh->vertices[0].position;
 
-    for (const Vertex& vertex : mesh->m_vertices)
+    for (const Vertex& vertex : mesh->vertices)
     {
         minBounds.setX(qMin(minBounds.x(), vertex.position.x()));
         minBounds.setY(qMin(minBounds.y(), vertex.position.y()));
@@ -181,5 +183,9 @@ void Model::BuildAABB()
 
     bounds.position = (minBounds + maxBounds) * 0.5f;
     bounds.size = (maxBounds - minBounds) * 0.5f;
+}
 
+bool Model::IsValid() const
+{
+    return mesh && !mesh->vertices.empty() && !mesh->indices.empty();
 }

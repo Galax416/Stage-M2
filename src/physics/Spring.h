@@ -16,26 +16,25 @@ private:
     std::shared_ptr<Particle> p1;
     std::shared_ptr<Particle> p2;
 
-    double k; // [0 to x] higher = stiff sprint, lower = loose spring
-    double b; // [0 to 1] higher = more dampening, lower = less dampening
-    double restingLength;
+    float k; // [0 to x] higher = stiff sprint, lower = loose spring
+    float b; // [0 to 1] higher = more dampening, lower = less dampening
+    float restingLength;
 
     QColor m_color;
     // bool m_rigidity { false };
     // bool m_usePBDCorrection { false };
-    // QVector3D m_initialRelPos;
 
 public:
-    Spring(double _k);
-    Spring(double _k, double _b, double len);
+    Spring(float _k);
+    Spring(float _k, float _b, float len);
     void SetParticles(std::shared_ptr<Particle> _p1, std::shared_ptr<Particle> _p2);
     std::shared_ptr<Particle> GetP1();
     std::shared_ptr<Particle> GetP2();
 
-    void SetConstants(double _k, double _b);
-    double GetK();
-    double GetB();
-    double GetRestLength() { return restingLength; }
+    void SetConstants(float _k, float _b);
+    float GetK();
+    float GetB();
+    float GetRestLength() { return restingLength; }
 
     void Render(QOpenGLShaderProgram* shaderProgram);
     void ApplyForce(float deltaTime);

@@ -17,10 +17,10 @@ in vec3 Tangent;
 in vec3 Bitangent;
 
 out vec4 FragColor;
-
 uniform Material material;
 uniform vec3 ligth_position;
 uniform vec3 viewPos;
+uniform float transparency; // Transparency value (0.0 = fully transparent, 1.0 = fully opaque)
 
 void main()
 {
@@ -29,7 +29,7 @@ void main()
     // ambient
     float ambientStrength = 0.6;
     vec3 ambient = ambientStrength * material.albedo;
-  	
+    
     // diffuse 
     vec3 norm = normalize(Normal);
     vec3 lightDir = normalize(ligth_position - FragPos);
@@ -44,6 +44,5 @@ void main()
     vec3 specular = vec3(0.1) * spec; 
         
     vec3 result = (ambient + diffuse + specular + material.emissive);
-    FragColor = vec4(result, 1.0);
-
+    FragColor = vec4(result, transparency); // Apply transparency to the final color
 }

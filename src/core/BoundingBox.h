@@ -55,7 +55,8 @@ inline bool AABB::Intersects(const AABB& other) const
     QVector3D minB = GetMin(other);
     QVector3D maxB = GetMax(other);
 
-	return (minA <= maxB) && (maxA >= minB); // Check if AABB intersects with another AABB
+	return (minA.x() <= maxB.x() && minA.y() <= maxB.y() && minA.z() <= maxB.z()) &&
+		   (maxA.x() >= minB.x() && maxA.y() >= minB.y() && maxA.z() >= minB.z()); // Check if AABB intersects with another AABB
 }
 
 // Convert OBB to AABB

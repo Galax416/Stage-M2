@@ -8,6 +8,9 @@
 #include <QSlider>
 #include <QDoubleSpinBox>
 #include <QLineEdit>
+#include <QSpinBox>
+#include <QPushButton>
+#include <QColorDialog>
 #include <QVector3D>
 #include <QDebug>
 
@@ -16,12 +19,13 @@ class GlobalSettingsWidget : public QWidget
     Q_OBJECT
 public:
     explicit GlobalSettingsWidget(QWidget *parent = nullptr);
-    ~GlobalSettingsWidget() override;
+    // ~GlobalSettingsWidget() override;
 
 signals:
     void FrictionChanged(float value);
     void DeltaTimeChanged(float value);
     void RotationChanged(QVector3D rotation);
+    void BackgroundColorChanged(QColor color);
 
 private:
     void InitUI();
@@ -37,6 +41,9 @@ private:
     QGroupBox *m_frictionGroupBox;
     QSlider   *m_frictionSlider;
     QSpinBox  *m_frictionSpinBox;
+
+    QGroupBox   *m_backgroundColorGroupBox;
+    QPushButton *m_backgroundColorButton;
 
     QGroupBox *m_rotationGroupBox;
     QSlider   *m_rotationXSlider;

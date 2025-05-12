@@ -9,23 +9,10 @@ GlobalSettingsWidget::GlobalSettingsWidget(QWidget *parent) : QWidget(parent)
     InitConnections();
 }
 
-GlobalSettingsWidget::~GlobalSettingsWidget()
-{
-    // if (m_mainLayout) delete m_mainLayout;
-    // if (m_globalSettingsGroupBox) delete m_globalSettingsGroupBox;
-    // if (m_dtGroupBox) delete m_dtGroupBox;
-    // if (m_dtLineEdit) delete m_dtLineEdit;
-    // if (m_frictionGroupBox) delete m_frictionGroupBox;
-    // if (m_frictionSlider) delete m_frictionSlider;
-    // if (m_frictionSpinBox) delete m_frictionSpinBox;
-    // if (m_rotationGroupBox) delete m_rotationGroupBox;
-    // if (m_rotationXSlider) delete m_rotationXSlider;
-    // if (m_rotationXSpinBox) delete m_rotationXSpinBox;
-    // if (m_rotationYSlider) delete m_rotationYSlider;
-    // if (m_rotationYSpinBox) delete m_rotationYSpinBox;
-    // if (m_rotationZSlider) delete m_rotationZSlider;
-    // if (m_rotationZSpinBox) delete m_rotationZSpinBox;
-}
+// GlobalSettingsWidget::~GlobalSettingsWidget()
+// {
+
+// }
 
 
 void GlobalSettingsWidget::InitUI()
@@ -38,16 +25,16 @@ void GlobalSettingsWidget::InitUI()
     m_globalSettingsGroupBox->setStyleSheet("QGroupBox { font-size: 16px; font-weight: bold; }");
     m_globalSettingsGroupBox->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
-    QVBoxLayout* globalSettingsLayout = new QVBoxLayout();
-    m_globalSettingsGroupBox->setLayout(globalSettingsLayout);
+    auto globalSettingsLayout = new QVBoxLayout(m_globalSettingsGroupBox);
 
     // Delta time input
     m_dtGroupBox = new QGroupBox("", this);
     m_dtGroupBox->setMaximumHeight(50);
     m_dtGroupBox->setStyleSheet("QGroupBox { font-size: 12px; font-weight: normal; }");
     m_dtGroupBox->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    QHBoxLayout* dtLayout = new QHBoxLayout(m_dtGroupBox);
-    QLabel* dtLabel = new QLabel("Delta time: ", this);
+    
+    auto dtLayout = new QHBoxLayout(m_dtGroupBox);
+    auto dtLabel = new QLabel("Delta time: ", this);
     dtLabel->setStyleSheet("QLabel { font-size: 12px; }");
     dtLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     dtLayout->addWidget(dtLabel);
@@ -55,7 +42,6 @@ void GlobalSettingsWidget::InitUI()
     m_dtLineEdit->setValidator(new QDoubleValidator(0.0, 1.0, 4, this));
     m_dtLineEdit->setText(QString::number(DeltaTime, 'f', 4));
     dtLayout->addWidget(m_dtLineEdit);
-    m_dtGroupBox->setLayout(dtLayout);
     globalSettingsLayout->addWidget(m_dtGroupBox);
 
     // Friction slider and spin box
@@ -63,7 +49,8 @@ void GlobalSettingsWidget::InitUI()
     m_frictionGroupBox->setMaximumHeight(60);
     m_frictionGroupBox->setStyleSheet("QGroupBox { font-size: 12px; font-weight: normal; }");
     m_frictionGroupBox->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    QHBoxLayout* frictionLayout = new QHBoxLayout(m_frictionGroupBox);
+
+    auto frictionLayout = new QHBoxLayout(m_frictionGroupBox);
     m_frictionSlider = new QSlider(Qt::Horizontal, this);
     m_frictionSlider->setRange(0, 100);
     m_frictionSlider->setValue(5);
@@ -72,23 +59,40 @@ void GlobalSettingsWidget::InitUI()
     m_frictionSpinBox->setRange(0, 100);
     m_frictionSpinBox->setValue(5);
     m_frictionSpinBox->setSingleStep(1);
-    QLabel* frictionLabel = new QLabel("%", this);
+    auto frictionLabel = new QLabel("%", this);
     frictionLabel->setStyleSheet("QLabel { font-size: 12px; }");
     frictionLayout->addWidget(m_frictionSlider);
     frictionLayout->addWidget(m_frictionSpinBox);
     frictionLayout->addWidget(frictionLabel);
-    m_frictionGroupBox->setLayout(frictionLayout);  
     globalSettingsLayout->addWidget(m_frictionGroupBox);
+
+    // Background color picker
+    m_backgroundColorGroupBox = new QGroupBox("Background Color", this);
+    m_backgroundColorGroupBox->setMaximumHeight(60);
+    m_backgroundColorGroupBox->setStyleSheet("QGroupBox { font-size: 12px; font-weight: normal; }");
+    m_backgroundColorGroupBox->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+
+    auto backgroundColorLayout = new QHBoxLayout(m_backgroundColorGroupBox);
+    auto backgroundColorLabel = new QLabel("Color: ", this);
+    backgroundColorLabel->setStyleSheet("QLabel { font-size: 12px; }");
+    backgroundColorLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    m_backgroundColorButton = new QPushButton(this);
+    m_backgroundColorButton->setStyleSheet("background-color: rgba(25, 25, 25, 255); border: 1px solid black;");
+    m_backgroundColorButton->setFixedSize(40, 20);
+    backgroundColorLayout->addWidget(backgroundColorLabel);
+    backgroundColorLayout->addWidget(m_backgroundColorButton);
+    globalSettingsLayout->addWidget(m_backgroundColorGroupBox);
 
     // Rotation slider and spin box
     m_rotationGroupBox = new QGroupBox("Rotation", this);
     m_rotationGroupBox->setMaximumHeight(180);
     m_rotationGroupBox->setStyleSheet("QGroupBox { font-size: 12px; font-weight: normal; }");
     m_rotationGroupBox->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    QVBoxLayout* rotationLayout = new QVBoxLayout(m_rotationGroupBox);
+    
+    auto rotationLayout = new QVBoxLayout(m_rotationGroupBox);
     // X
-    QHBoxLayout* rotationXLayout = new QHBoxLayout();
-    QLabel* rotationXLabel = new QLabel("X: ", this);
+    auto rotationXLayout = new QHBoxLayout();
+    auto rotationXLabel = new QLabel("X: ", this);
     rotationXLabel->setStyleSheet("QLabel { font-size: 12px; }");
     m_rotationXSlider = new QSlider(Qt::Horizontal, this);
     m_rotationXSlider->setRange(0, 360);
@@ -98,7 +102,7 @@ void GlobalSettingsWidget::InitUI()
     m_rotationXSpinBox->setRange(0, 360);
     m_rotationXSpinBox->setValue(0);
     m_rotationXSpinBox->setSingleStep(1);
-    QLabel* rotationLabel = new QLabel("°", this);
+    auto rotationLabel = new QLabel("°", this);
     rotationLabel->setStyleSheet("QLabel { font-size: 12px; }");
     rotationXLayout->addWidget(rotationXLabel);
     rotationXLayout->addWidget(m_rotationXSlider);
@@ -106,9 +110,8 @@ void GlobalSettingsWidget::InitUI()
     rotationXLayout->addWidget(rotationLabel);
     rotationLayout->addLayout(rotationXLayout);
     // Y
-    QHBoxLayout* rotationYLayout = new QHBoxLayout();
-    // rotationLayout->addSpacing(10); // Add spacing between X and Y controls
-    QLabel* rotationYLabel = new QLabel("Y: ", this);
+    auto rotationYLayout = new QHBoxLayout();
+    auto rotationYLabel = new QLabel("Y: ", this);
     rotationYLabel->setStyleSheet("QLabel { font-size: 12px; }");
     m_rotationYSlider = new QSlider(Qt::Horizontal, this);
     m_rotationYSlider->setRange(0, 360);
@@ -118,7 +121,7 @@ void GlobalSettingsWidget::InitUI()
     m_rotationYSpinBox->setRange(0, 360);
     m_rotationYSpinBox->setValue(0);
     m_rotationYSpinBox->setSingleStep(1);
-    QLabel* rotationYUnitLabel = new QLabel("°", this);
+    auto rotationYUnitLabel = new QLabel("°", this);
     rotationYUnitLabel->setStyleSheet("QLabel { font-size: 12px; }");
     rotationYLayout->addWidget(rotationYLabel);
     rotationYLayout->addWidget(m_rotationYSlider);
@@ -126,9 +129,8 @@ void GlobalSettingsWidget::InitUI()
     rotationYLayout->addWidget(rotationYUnitLabel);
     rotationLayout->addLayout(rotationYLayout);
     // Z
-    QHBoxLayout* rotationZLayout = new QHBoxLayout();
-    // rotationLayout->addSpacing(10); // Add spacing between Y and Z controls
-    QLabel* rotationZLabel = new QLabel("Z: ", this);
+    auto rotationZLayout = new QHBoxLayout();
+    auto rotationZLabel = new QLabel("Z: ", this);
     rotationZLabel->setStyleSheet("QLabel { font-size: 12px; }");
     m_rotationZSlider = new QSlider(Qt::Horizontal, this);
     m_rotationZSlider->setRange(0, 360);
@@ -138,7 +140,7 @@ void GlobalSettingsWidget::InitUI()
     m_rotationZSpinBox->setRange(0, 360);
     m_rotationZSpinBox->setValue(0);
     m_rotationZSpinBox->setSingleStep(1);
-    QLabel* rotationZUnitLabel = new QLabel("°", this);
+    auto rotationZUnitLabel = new QLabel("°", this);
     rotationZUnitLabel->setStyleSheet("QLabel { font-size: 12px; }");
     rotationZLayout->addWidget(rotationZLabel);
     rotationZLayout->addWidget(m_rotationZSlider);
@@ -146,13 +148,10 @@ void GlobalSettingsWidget::InitUI()
     rotationZLayout->addWidget(rotationZUnitLabel);
     rotationLayout->addLayout(rotationZLayout);
 
-    m_rotationGroupBox->setLayout(rotationLayout);
     globalSettingsLayout->addWidget(m_rotationGroupBox);
 
     // Add void space to the bottom of the group box
     // globalSettingsLayout->addStretch(1);
-
-
 
     m_mainLayout->addWidget(m_globalSettingsGroupBox);
 
@@ -181,6 +180,17 @@ void GlobalSettingsWidget::InitConnections()
             emit DeltaTimeChanged(value);
         } else {
             m_dtLineEdit->setText("0.0001");
+        }
+    });
+
+    // Background color
+    connect(m_backgroundColorButton, &QPushButton::clicked, this, [this]() {
+        QColor color = QColorDialog::getColor(Qt::white, this, "Select Background Color");
+        if (color.isValid()) {
+            m_backgroundColorButton->setStyleSheet(QString("background-color: %1; border: 1px solid black;").arg(color.name()));
+            emit BackgroundColorChanged(color);
+            qDebug() << "Background color changed to:" << color.name();
+            qDebug() << "Background color changed to:" << color.red() << color.green() << color.blue();
         }
     });
 

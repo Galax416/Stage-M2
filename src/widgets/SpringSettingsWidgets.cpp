@@ -12,10 +12,10 @@ SpringSettingsWidget::SpringSettingsWidget(QWidget *parent) : QWidget(parent)
     InitConnections();
 }
 
-SpringSettingsWidget::~SpringSettingsWidget()
-{
+// SpringSettingsWidget::~SpringSettingsWidget()
+// {
 
-}
+// }
 
 void SpringSettingsWidget::InitUI()
 {
@@ -26,7 +26,6 @@ void SpringSettingsWidget::InitUI()
     m_springSettingsGroupBox = new QGroupBox("Spring Settings", this);
     m_springSettingsGroupBox->setStyleSheet("QGroupBox { font-size: 16px; font-weight: bold; }");
     m_springSettingsGroupBox->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
- 
     m_springSettingsLayout = new QVBoxLayout(m_springSettingsGroupBox);
 
     // Stiffness group box
@@ -34,9 +33,8 @@ void SpringSettingsWidget::InitUI()
     m_stiffnessGroupBox->setStyleSheet("QGroupBox { font-size: 12px; font-weight: normal; }");
     m_stiffnessGroupBox->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     
-    QVBoxLayout* stiffnessLayout = new QVBoxLayout();
-    m_stiffnessGroupBox->setLayout(stiffnessLayout);
-
+    auto stiffnessLayout = new QVBoxLayout(m_stiffnessGroupBox);
+    stiffnessLayout->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
     m_mainLayout->addWidget(m_springSettingsGroupBox);
     
@@ -58,7 +56,7 @@ void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std:
 
     for (const auto& spring : springs) {
         if (spring) {
-            kGroups[spring->GetK()].append(spring);
+            kGroups[static_cast<int>(spring->GetK())].append(spring);
         }
     }
 
@@ -66,25 +64,26 @@ void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std:
     int numRows = kGroups.size();
     m_stiffnessGroupBox->setMaximumHeight(60 * numRows); 
 
+    // For each group of springs with the same stiffness, we can change the stiffness
     for (auto it = kGroups.begin(); it != kGroups.end(); ++it) {
         float initialK = it.key();
         QVector<std::shared_ptr<Spring>> springGroup = it.value();
         
-        QHBoxLayout* rowLayout = new QHBoxLayout();
+        auto rowLayout = new QHBoxLayout();
 
-        QLabel* colorLabel = new QLabel;
+        auto colorLabel = new QLabel;
         colorLabel->setFixedSize(20, 20);
         QPalette palette = colorLabel->palette();
         palette.setColor(QPalette::Window, floatToQColor(initialK));
         colorLabel->setAutoFillBackground(true);
         colorLabel->setPalette(palette);
 
-        QSlider* slider = new QSlider(Qt::Horizontal);
+        auto slider = new QSlider(Qt::Horizontal);
         slider->setRange(1, 10000);
         slider->setValue(static_cast<int>(initialK));
         slider->setSingleStep(1);
 
-        QSpinBox* spinBox = new QSpinBox;
+        auto spinBox = new QSpinBox;
         spinBox->setRange(1, 10000);
         spinBox->setValue(static_cast<int>(initialK));
         spinBox->setSingleStep(1);

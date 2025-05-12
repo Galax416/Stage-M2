@@ -18,6 +18,7 @@ RCC_DIR = ./tmp/qrc
 SOURCES += \
     ./src/Main.cpp \
     ./libs/stb_image.cpp \
+    ./src/core/Intersections.cpp \
     ./src/core/Rigidbody.cpp \
     ./src/core/Camera.cpp \
     ./src/rendering/Render.cpp \
@@ -25,6 +26,7 @@ SOURCES += \
     ./src/rendering/Model.cpp \
     ./src/rendering/Geometry3D.cpp \
     ./src/rendering/Curve.cpp \
+    ./src/rendering/Voxel.cpp \
     ./src/physics/Particle.cpp \
     ./src/physics/Spring.cpp \
     ./src/physics/CollisionSolver.cpp \
@@ -42,6 +44,7 @@ HEADERS += \
     ./src/core/Transform.h \
     ./src/core/BoundingBox.h \
     ./src/core/GeometryPrimitives.h \
+    ./src/core/Intersections.h \
     ./src/core/Rigidbody.h \
     ./src/core/BVH.h \
     ./src/core/Camera.h \
@@ -51,6 +54,7 @@ HEADERS += \
     ./src/rendering/Model.h \
     ./src/rendering/Geometry3D.h \
     ./src/rendering/Curve.h \
+    ./src/rendering/Voxel.h \
     ./src/physics/SphereCollider.h \
     ./src/physics/TriangleCollider.h \
     ./src/physics/Particle.h \
@@ -58,6 +62,8 @@ HEADERS += \
     ./src/physics/CollisionSolver.h \
     ./src/physics/PhysicsSystem.h \
     ./src/physics/ModelPhysicsConverter.h \
+    ./src/physics/PhysicsWorker.h \
+    ./src/physics/MaterialPropierties.h \
     ./src/MainWindow.h \
     ./src/widgets/OpenglWidget.h \
     ./src/widgets/GlobalSettingsWidget.h \

@@ -5,6 +5,55 @@
 #include "Utils.h"
 #include <set>
 
+void RemoveDuplicateVerticesAndFace(CustomOBJLoader* obj)
+{
+    // Remove duplicate vertices and faces from the obj
+    if (!obj) return;
+
+    // Remove duplicate vertices
+    std::vector<QVector3D>& vertices = obj->vertices;
+    std::unordered_map<QVector3D, int> vertexMap;
+    std::vector<QVector3D> uniqueVertices;
+    std::vector<int> vertexIndices(vertices.size(), -1);
+
+    for (size_t i = 0; i < vertices.size(); ++i) {
+        const QVector3D& vertex = vertices[i];
+        if (vertexMap.find(vertex) == vertexMap.end()) {
+            vertexMap[vertex] = uniqueVertices.size();
+            uniqueVertices.push_back(vertex);
+        }
+        vertexIndices[i] = vertexMap[vertex];
+    }
+    vertices = uniqueVertices;
+
+    // Update face vertex indices
+    for (Face& face : obj->faces) {
+        for (int& index : face.vertexIndices) {
+            index = vertexIndices[index];
+        }
+    }
+    for (Face& face : obj->originalFaces) {
+        for (int& index : face.vertexIndices) {
+            index = vertexIndices[index];
+        }
+    }
+
+    // Remove duplicate faces
+    std::set<std::vector<int>> faceSet;
+    std::vector<Face> uniqueFaces;
+
+    for (const Face& face : obj->faces) {
+        std::vector<int> sortedIndices = face.vertexIndices;
+        std::sort(sortedIndices.begin(), sortedIndices.end());
+        if (faceSet.find(sortedIndices) == faceSet.end()) {
+            faceSet.insert(sortedIndices);
+            uniqueFaces.push_back(face);
+        }
+    }
+    obj->faces = uniqueFaces;
+
+}
+
 void ConvertModelToParticleSprings(Model* model,
     std::vector<std::shared_ptr<Particle>> &particles,
     std::vector<std::shared_ptr<Spring>> &springs,
@@ -13,6 +62,9 @@ void ConvertModelToParticleSprings(Model* model,
 {
     // Convert the model into a set of particles and springs
     if (model == nullptr || model->customOBJ == nullptr) return;
+
+    // Remove duplicate vertices and faces
+    RemoveDuplicateVerticesAndFace(model->customOBJ.get());
 
     // Clear vectors
     particles.clear();
@@ -54,7 +106,7 @@ void ConvertModelToParticleSprings(Model* model,
 
                 springSet.insert(key);
 
-                auto spring = std::make_shared<Spring>(stiffness, 1.0f, 0.0f);
+                auto spring = std::make_shared<Spring>(stiffness);
                 spring->SetParticles(particles[a], particles[b]);
                 springs.push_back(spring);
 
@@ -74,10 +126,13 @@ void ConvertModelToParticleSprings(Model* model,
 
         auto p1 = particles[i0].get();
         p1->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
+        p1->AddFlag(ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE);
         auto p2 = particles[i1].get();
         p2->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
+        p2->AddFlag(ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE);
         auto p3 = particles[i2].get();
         p3->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
+        p3->AddFlag(ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE);
     
         auto collider = std::make_shared<TriangleCollider>(p1, p2, p3);
     
@@ -189,7 +244,7 @@ void ChargeModelParticleSprings(Model* model,
         int indexA = a;
         int indexB = b;
 
-        auto spring = std::make_shared<Spring>(link.stiffness, 1.0f, 0.0f);
+        auto spring = std::make_shared<Spring>(link.stiffness);
         spring->SetParticles(particles[indexA], particles[indexB]);
         springs.push_back(spring);
     }
@@ -204,10 +259,13 @@ void ChargeModelParticleSprings(Model* model,
 
         auto p1 = particles[i0].get();
         p1->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
+        p1->AddFlag(ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE);
         auto p2 = particles[i1].get();
         p2->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
+        p2->AddFlag(ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE);
         auto p3 = particles[i2].get();
         p3->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
+        p3->AddFlag(ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE);
     
         auto collider = std::make_shared<TriangleCollider>(p1, p2, p3);
     

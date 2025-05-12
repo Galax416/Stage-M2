@@ -14,21 +14,32 @@
 #include <QMap>
 #include <QDebug>
 
+#include "Voxel.h"
+
 class ModelSettingsWidget : public QWidget
 {
     Q_OBJECT
 public:
     explicit ModelSettingsWidget(QWidget *parent = nullptr);
-    ~ModelSettingsWidget() override;
+    // ~ModelSettingsWidget() override;
 
 signals:
     void CrossSpringModelChanged(bool checked);
-    void CreateModelButtonClicked(bool clicked);
+    void CreateBreastModelButtonClicked(bool clicked);
+    void Create3DModelButtonClicked(bool clicked);
+    void UpdateBreastModelButtonChanged(bool clicked);
+    void Update3DModelButtonChanged(bool clicked);
+    void DeformModelThicknessChanged(bool checked);
     void DeformModelSamplingChanged(int samplingModel);
     void DeformModelLayerChanged(int layerModel);
     void DeformModelCurveChanged(int p1, int p2, float value);
     void DeformModelRingChanged(float radius);
     void DeformModelHeightChanged(float height);
+
+public slots:
+    void UpdateBreastModelButton(bool clicked);
+    void Update3DModelButton(bool clicked);
+    void Update3DModelParameters(VoxelGrid voxel);
 
 private:
     void InitUI();
@@ -40,14 +51,26 @@ private:
     QVBoxLayout *m_modelSettingsLayout;
 
     QCheckBox   *m_crossSpringModel;
-    QPushButton *m_createModelButton;
-    bool m_createModelButtonClicked { false };
 
-    QGroupBox *m_deformModelGroupBox;
-    QSpinBox  *m_samplingModelSpinBox;
-    QSpinBox  *m_layerModelSpinBox;
+
+    // Breast Model
+    QPushButton *m_createBreastModelButton;
+    bool m_createBreastModelButtonClicked { false };
+
+    QGroupBox *m_deformBreastModelGroupBox;
+    QCheckBox *m_thicknessCheckBox;
+    QSpinBox  *m_samplingBreastModelSpinBox;
+    QSpinBox  *m_layerBreastModelSpinBox;
 
     // Sliders for model deformation
     QSlider *m_s1, *m_s2, *m_s3, *m_s4, *m_s5; 
     QSlider *m_sH, *m_sRing;
+
+
+    // 3D Model (voxel)
+    QPushButton *m_create3DModelButton;
+    bool m_create3DModelButtonClicked { false };
+
+    QGroupBox   *m_parameters3DModelGroupBox;
+    QVBoxLayout *m_parameters3DModelLayout;
 };

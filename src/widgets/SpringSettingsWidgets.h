@@ -19,7 +19,7 @@ class SpringSettingsWidget : public QWidget
     Q_OBJECT
 public:
     explicit SpringSettingsWidget(QWidget *parent = nullptr);
-    ~SpringSettingsWidget() override;
+    // ~SpringSettingsWidget() override;
 
 // signals:
 

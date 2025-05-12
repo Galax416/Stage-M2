@@ -38,6 +38,6 @@ void RenderBVH(QOpenGLShaderProgram* shader, BVHNode<T>* node, int depth = 0)
     Render(node->bounds); // Render the bounding box
     shader->release();
 
-    RenderBVH(shader, node->left.get(), depth + 1); // Render left child
-    RenderBVH(shader, node->right.get(), depth + 1); // Render right child
+    if ( node->left ) RenderBVH(shader, node->left.get(), depth + 1); // Render left child
+    if ( node->left ) RenderBVH(shader, node->right.get(), depth + 1); // Render right child
 }
