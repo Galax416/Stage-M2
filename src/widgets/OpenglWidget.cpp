@@ -464,7 +464,8 @@ void OpenGLWidget::CurveToParticlesSprings()
                 auto& p1 = layerParticles[i - 1];
                 auto& p2 = layerParticles[i];
                 float stiffness = GetStiffnessByQuadrant(p1->GetPosition(), p2->GetPosition(), center);
-                auto spring = std::make_shared<Spring>(stiffness);
+                auto spring = std::make_shared<Spring>(layer == 0 ? 100 : stiffness);
+                if (layer == 0) spring->SetRigidity(true);
                 spring->SetParticles(p1, p2);
                 m_springs.push_back(spring);
             }
@@ -474,7 +475,8 @@ void OpenGLWidget::CurveToParticlesSprings()
         auto& p1 = layerParticles.front();
         auto& p2 = layerParticles.back();
         float stiffness = GetStiffnessByQuadrant(p1->GetPosition(), p2->GetPosition(), center);
-        auto springLoop = std::make_shared<Spring>(stiffness);
+        auto springLoop = std::make_shared<Spring>(layer == 0 ? 100 : stiffness);
+        if (layer == 0) springLoop->SetRigidity(true);
         springLoop->SetParticles(p1, p2);
         m_springs.push_back(springLoop);
 
@@ -546,6 +548,7 @@ void OpenGLWidget::CurveToParticlesSprings()
             if (i == j) continue;
             auto& p2 = ringlayers[j];
             auto spring = std::make_shared<Spring>(100);
+            spring->SetRigidity(true);  
             spring->SetParticles(p1, p2);
             m_springs.push_back(spring);
         }

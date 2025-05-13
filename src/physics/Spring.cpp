@@ -39,17 +39,27 @@ void Spring::ApplyForce(float deltaTime)
 {
     if (!p1 || !p2) return;
 
+    
     QVector3D relPos = p2->GetPosition() - p1->GetPosition();
     QVector3D relVel = p2->GetVelocity() - p1->GetVelocity();
-
+    
     // Prevent underflow
 	for (int i = 0; i < 3; ++i) {
-		relPos[i] = (fabsf(relPos[i]) < 1e-6f) ? 0.0f : relPos[i];
+        relPos[i] = (fabsf(relPos[i]) < 1e-6f) ? 0.0f : relPos[i];
 		relVel[i] = (fabsf(relVel[i]) < 1e-6f) ? 0.0f : relVel[i];
 	}
-   
+    
     float length = relPos.length();
     if (length < 1e-6f) return; // Avoid division by zero
+    
+    // if (IsRigid()) {
+    //     float diff = (length - restingLength) / length;
+    //     QVector3D correction = relPos * 0.5f * diff;
+
+    //     if (p1->IsMovable()) p1->transform.position += correction;
+    //     if (p2->IsMovable()) p2->transform.position -= correction;
+    //     return;
+    // }
 
     float w1 = p1->IsMovable() ? p1->InvMass() : 0.0f;
     float w2 = p2->IsMovable() ? p2->InvMass() : 0.0f;

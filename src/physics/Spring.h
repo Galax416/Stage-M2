@@ -21,7 +21,7 @@ private:
     float restingLength;
 
     QColor m_color;
-    // bool m_rigidity { false };
+    bool m_rigidity { false };
     // bool m_usePBDCorrection { false };
 
 public:
@@ -42,8 +42,8 @@ public:
     void SetColor(QColor c) { m_color = c; }
     QColor GetColor() { return m_color; }
 
-    // void SetRigidity(bool r) { m_rigidity = r; }
-    // bool IsRigid() const { return m_rigidity; }
+    void SetRigidity(bool r) { m_rigidity = r; }
+    bool IsRigid() const { return m_rigidity; }
     // void EnablePBD(bool enable) { m_usePBDCorrection = enable; }
     // bool IsPBDEnabled() const { return m_usePBDCorrection; }
     
