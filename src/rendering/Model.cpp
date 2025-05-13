@@ -29,19 +29,6 @@ void Model::Init()
     customOBJ = std::make_unique<CustomOBJLoader>();
 }
 
-void Model::SynsCollisionVolumes()
-{
-    if (type == RIGIDBODY_TYPE_SPHERE) {
-        sphereCollider.position = transform.position;
-        sphereCollider.radius = transform.scale.x();
-    }
-    else if (type == RIGIDBODY_TYPE_BOX) {
-        boxCollider.position = bounds.position + transform.position;
-        boxCollider.size = bounds.size * transform.scale;
-        boxCollider.orientation = transform.GetRotationMatrix();
-    }
-}
-
 void Model::SetUpColliders()
 {
     if (!mesh) return;
@@ -100,49 +87,6 @@ void Model::LoadModel(const QString& path)
 
 void Model::Update(float deltaTime)
 {
-    if (!isMovable) return;
-
-    QVector3D velocity = GetVelocity();
-    oldPosition = transform.position;
-    float deltaSq = deltaTime * deltaTime;
-    
-    if (fabsf(velocity.x()) < 0.001f) {
-        velocity.setX(0.0f);
-    }
-    if (fabsf(velocity.y()) < 0.001f) {
-        velocity.setY(0.0f);
-    }
-    if (fabsf(velocity.z()) < 0.001f) {
-        velocity.setZ(0.0f);
-    }
-
-    // if (type == RIGIDBODY_TYPE_BOX) {
-    //     QVector3D angAccel = torques * InvTensor();
-    //     angVel += angAccel * deltaTime;
-    //     angVel *= friction; // à voir !
-
-    //     if (fabsf(angVel.x()) < 0.001f) {
-    //         angVel.setX(0.0f);
-    //     }
-    //     if (fabsf(angVel.y()) < 0.001f) {
-    //         angVel.setY(0.0f);
-    //     }
-    //     if (fabsf(angVel.z()) < 0.001f) {
-    //         angVel.setZ(0.0f);
-    //     }
-    // }
-
-    transform.position += (velocity * friction + forces * deltaSq);
-
-    // if (type == RIGIDBODY_TYPE_BOX) {
-    //     orientation += angVel * deltaTime;
-    //     transform.SetRotationEuler(orientation); // à voir !
-    //     boxCollider.orientation = transform.GetRotationMatrix();
-    // }
-
-    SynsCollisionVolumes();
-
-    forces = QVector3D(0.0f, 0.0f, 0.0f); // Reset forces after applying them
 
 }
 
@@ -183,6 +127,19 @@ void Model::BuildAABB()
 
     bounds.position = (minBounds + maxBounds) * 0.5f;
     bounds.size = (maxBounds - minBounds) * 0.5f;
+}
+
+void Model::SetPosition(const QVector3D& p) {
+    transform.position = p;
+    oldPosition = p;
+
+    SynsCollisionVolumes();
+}
+
+void Model::SetRotation(const QQuaternion& q) {
+    transform.rotation = q;
+
+    SynsCollisionVolumes();
 }
 
 bool Model::IsValid() const

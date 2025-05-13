@@ -8,13 +8,13 @@ void SolvePairCollision(Rigidbody* a, Rigidbody* b)
 {
     if (!a || !b) return;
 
-    int typeA = a->type;
-    int typeB = b->type;
+    int typeA = a->GetType();
+    int typeB = b->GetType();
 
     // Avoid handling same pair twice
     if (typeA > typeB) std::swap(a, b);
-    typeA = a->type;
-    typeB = b->type;
+    typeA = a->GetType();
+    typeB = b->GetType();
 
     if (typeA == RIGIDBODY_TYPE_PARTICLE && typeB == RIGIDBODY_TYPE_PARTICLE) {
         auto* pa = static_cast<Particle*>(a);
@@ -46,7 +46,7 @@ void SolvePairCollision(Particle* a, TriangleCollider* b)
 {
     if (!a || !b) return;
     if (b->Contains(a)) return; // Avoid handling same pair twice
-    if (a->GetFlags() & ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE) return; // Skip if attached to triangle
+    if (a->HasFlag(PARTICLE_ATTACHED_TO_TRIANGLE)) return; // Skip if attached to triangle
     SolvePaticleTriangleCollision(*a, *b);
 }
 
@@ -62,8 +62,8 @@ void SolveParticleParticleCollision(Particle& p1, Particle& p2)
         QVector3D normal = delta / dist;
         float penetration = minDist - dist;
 
-        float invMassA = p1.InvMass();
-        float invMassB = p2.InvMass();
+        float invMassA = p1.GetInvMass();
+        float invMassB = p2.GetInvMass();
         float totalInvMass = invMassA + invMassB;
         
         if (penetration < 1e-5f || totalInvMass <= 0.0f) return; // Ignore very small penetrations and static objects
@@ -71,8 +71,8 @@ void SolveParticleParticleCollision(Particle& p1, Particle& p2)
         // Position correction
         QVector3D correction = normal * penetration * 0.5f;
         
-        if (p1.isMovable) { p1.transform.position += correction * (invMassA / totalInvMass); }
-        if (p2.isMovable) { p2.transform.position -= correction * (invMassB / totalInvMass); }
+        if (p1.IsDynamic()) { p1.transform.position += correction * (invMassA / totalInvMass); }
+        if (p2.IsDynamic()) { p2.transform.position -= correction * (invMassB / totalInvMass); }
 
         // QVector3D relativeVelocity = p1.GetVelocity() - p2.GetVelocity();
         // float velocityAlongNormal = QVector3D::dotProduct(relativeVelocity, normal);
@@ -114,8 +114,8 @@ void SolveParticleOBBCollision(Particle& p, Rigidbody* rb)
         QVector3D normal = delta / dist;
         float penetration = radius - dist;
 
-        float invMassA = p.InvMass();
-        float invMassB = rb->InvMass();
+        float invMassA = p.GetInvMass();
+        float invMassB = rb->GetInvMass();
         float totalInvMass = invMassA + invMassB;
 
         if (penetration < 1e-5f || totalInvMass <= 0.0f) return; // Ignore very small penetrations and static objects
@@ -123,8 +123,8 @@ void SolveParticleOBBCollision(Particle& p, Rigidbody* rb)
         // Position correction
         QVector3D correction = normal * penetration * 0.5f;
         
-        if (p.isMovable)     { p.transform.position += correction * (invMassA / totalInvMass); }
-        if (rb->isMovable) { rb->transform.position -= correction * (invMassB / totalInvMass); }
+        if (p.IsDynamic())     { p.transform.position += correction * (invMassA / totalInvMass); }
+        if (rb->IsDynamic()) { rb->transform.position -= correction * (invMassB / totalInvMass); }
 
         // QVector3D relativeVelocity = p.GetVelocity() - rb->GetVelocity();
         // float velocityAlongNormal = QVector3D::dotProduct(relativeVelocity, normal);
@@ -148,20 +148,20 @@ void SolvePaticleTriangleCollision(Particle& p, TriangleCollider& tri)
     // Check if pa is a vertex of the triangle
     if (&p == tri.p0 || &p == tri.p1 || &p == tri.p2) return;
 
-    float invMassA = p.InvMass();
-    float invMassB = (tri.p0->InvMass() + tri.p1->InvMass() + tri.p2->InvMass()) / 3.0f;
+    float invMassA = p.GetInvMass();
+    float invMassB = (tri.p0->GetInvMass() + tri.p1->GetInvMass() + tri.p2->GetInvMass()) / 3.0f;
     float totalInvMass = invMassA + invMassB;
 
     QVector3D correction;
     if (CheckParticleTriangleCollision(&p, tri, correction)) {
         float ratioA = invMassA / totalInvMass;
         float ratioB = invMassB / totalInvMass;
-        if (p.isMovable) { p.transform.position += correction * ratioA; }
+        if (p.IsDynamic()) { p.transform.position += correction * ratioA; }
         // if(p.IsMovable()) p.SetPosition(p.transform.position + correction); 
 
-        if (tri.p0->isMovable) { tri.p0->transform.position -= correction * ratioB; }
-        if (tri.p1->isMovable) { tri.p1->transform.position -= correction * ratioB; }
-        if (tri.p2->isMovable) { tri.p2->transform.position -= correction * ratioB; }
+        if (tri.p0->IsDynamic()) { tri.p0->transform.position -= correction * ratioB; }
+        if (tri.p1->IsDynamic()) { tri.p1->transform.position -= correction * ratioB; }
+        if (tri.p2->IsDynamic()) { tri.p2->transform.position -= correction * ratioB; }
     }    
 
     // QVector3D relativeVelocity = p.GetVelocity() - ((tri.p0->GetVelocity() + tri.p1->GetVelocity() + tri.p2->GetVelocity()) / 3.0f);

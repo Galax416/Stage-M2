@@ -19,7 +19,7 @@ std::vector<std::shared_ptr<Spring>> VoxelGrid::GetSprings() const
             auto key = std::minmax(p1, p2); // Create a unique key for the pair of particles
 
             auto it = uniqueSpringsMap.find(key);
-            if (it == uniqueSpringsMap.end() || spring->GetK() > it->second->GetK()) {
+            if (it == uniqueSpringsMap.end() || spring->GetStiffness() > it->second->GetStiffness()) {
                 uniqueSpringsMap[key] = spring; // Store the spring with the highest stiffness
             }
         }
@@ -92,7 +92,7 @@ void VoxelGrid::Generate()
                     vs.corners[i] = p; // Store the corner particle
                 }
 
-                std::vector<std::vector<int>> springs = getSprings(m_isCross);
+                // std::vector<std::vector<int>> springs = getSprings(m_isCross);
 
                 // const int springs[28][2] = {
                 //     {0,1},{1,5},{5,4},{4,0}, // bottom face
@@ -104,23 +104,23 @@ void VoxelGrid::Generate()
                 //     {0,7},{1,6},{2,5},{3,4}  // diagonal intern
                 // };
 
-                float E = materialProps.E; // Young's modulus of the voxel
-                float A = spacing * spacing / 28.0f; // Effective cross-sectional area per spring
+                // float E = materialProps.E; // Young's modulus of the voxel
+                // float A = spacing * spacing / 28.0f; // Effective cross-sectional area per spring
 
-                for (const auto& spring : springs) {
-                    auto p1 = vs.corners[spring[0]];
-                    auto p2 = vs.corners[spring[1]];
+                // for (const auto& spring : springs) {
+                    // auto p1 = vs.corners[spring[0]];
+                    // auto p2 = vs.corners[spring[1]];
 
-                    float L = (p2->GetPosition() - p1->GetPosition()).length();
+                    // float L = (p2->GetPosition() - p1->GetPosition()).length();
 
-                    float K = ComputeSpringStiffness(E, L, A); 
+                    // float K = ComputeSpringStiffness(E, L, A); 
                     // float K = vs.materialType == MaterialType_Bone ? 200.0f : 90.0f; // Example stiffness values
 
-                    auto s = std::make_shared<Spring>(K);
-                    s->SetParticles(p1, p2);
+                    // auto s = std::make_shared<Spring>(K);
+                    // s->SetParticles(p1, p2);
                     // s->SetColor(floatToQColor(vs.materialType));
-                    vs.springs.push_back(s);
-                }
+                    // vs.springs.push_back(s);
+                // }
 
                 voxelSprings.push_back(vs);
             }

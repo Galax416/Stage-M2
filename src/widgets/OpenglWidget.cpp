@@ -243,11 +243,23 @@ void OpenGLWidget::InitScene()
     // Initialize the scene here
     makeCurrent();
 
-    // auto ground = std::make_shared<Plane>(QVector3D(0, -2, 0), QVector3D(0, 1, 0), QColor(150, 150, 150));
-    // ground->SetMovable(false);
-    // ground->SetColor(m_backgroundColor);
-    // m_physicsSystem->AddRigidbody(ground);
-    // m_physicsSystem->AddConstraint(ground);
+    auto p1 = std::make_shared<Particle>(QVector3D(-0.2, 0, 0), 10, 20, true);
+    auto p2 = std::make_shared<Particle>(QVector3D(0.2, 0, 0), 10, 20, true);
+    auto p3 = std::make_shared<Particle>(QVector3D(1, 0, 0), 10, 20);
+    auto p4 = std::make_shared<Particle>(QVector3D(-1, 0, 0), 10, 20);
+
+    m_particles.push_back(p1);
+    m_particles.push_back(p2);
+    m_particles.push_back(p3);
+    m_particles.push_back(p4);
+
+    
+
+    auto ground = std::make_shared<Plane>(QVector3D(0, -2, 0), QVector3D(0, 1, 0), QColor(150, 150, 150));
+    ground->SetStatic();
+    ground->SetColor(m_backgroundColor);
+    m_physicsSystem->AddRigidbody(ground);
+    m_physicsSystem->AddConstraint(ground);
     
     // CreateVoxelGrid(QVector3D(0, 0, 0), QVector3D(2, 2, 2), 10, 10, 10, m_particles, m_springs);
     
@@ -278,69 +290,69 @@ void OpenGLWidget::InitScene()
     // m_physicsSystem->AddConstraint(right);
     
     
-    if (m_isCurve)
-    { 
-        // Clear previous model
-        m_model->mesh->clear();
-        m_model->customOBJ->clear();
+    // if (m_isCurve)
+    // { 
+    //     // Clear previous model
+    //     m_model->mesh->clear();
+    //     m_model->customOBJ->clear();
 
-        auto plane = std::make_shared<Plane>(QVector3D(0, 0, 0), QVector3D(0, 0, 1));
-        plane->SetMovable(false);
-        plane->SetColor(m_backgroundColor);
-        m_physicsSystem->AddRigidbody(plane);
-        m_physicsSystem->AddConstraint(plane);
+    //     auto plane = std::make_shared<Plane>(QVector3D(0, 0, 0), QVector3D(0, 0, 1));
+    //     plane->SetMovable(false);
+    //     plane->SetColor(m_backgroundColor);
+    //     m_physicsSystem->AddRigidbody(plane);
+    //     m_physicsSystem->AddConstraint(plane);
 
-        for (auto p : m_curve.GetControlPoints()) {
-            m_physicsSystem->AddRigidbody(std::make_shared<Particle>(p, 2, 10, false ,QColor(255, 0, 0)));
-        }
+    //     for (auto p : m_curve.GetControlPoints()) {
+    //         m_physicsSystem->AddRigidbody(std::make_shared<Particle>(p, 2, 10, false ,QColor(255, 0, 0)));
+    //     }
 
-    } 
-    else if (m_isVoxelModel) 
-    {
-        // Clear previous model
-        m_model->mesh->clear();
-        m_model->customOBJ->clear();
+    // } 
+    // else if (m_isVoxelModel) 
+    // {
+    //     // Clear previous model
+    //     m_model->mesh->clear();
+    //     m_model->customOBJ->clear();
 
-        auto ground = std::make_shared<Box>(QVector3D(0, -2, 0), QVector3D(10, 0.2, 10), QColor(150, 150, 150));
-        ground->SetMovable(false);
-        m_physicsSystem->AddRigidbody(ground);
-        m_physicsSystem->AddConstraint(ground);
+    //     auto ground = std::make_shared<Box>(QVector3D(0, -2, 0), QVector3D(10, 0.2, 10), QColor(150, 150, 150));
+    //     ground->SetMovable(false);
+    //     m_physicsSystem->AddRigidbody(ground);
+    //     m_physicsSystem->AddConstraint(ground);
 
-        m_press = std::make_shared<Box>(QVector3D(0, 2, 0), QVector3D(2, 0.2, 2), QColor(200, 200, 200));
-        m_press->SetMovable(true);
-        m_press->SetMass(0.0f);
-        m_physicsSystem->AddRigidbody(m_press);
-        m_physicsSystem->AddConstraint(m_press);
+    //     m_press = std::make_shared<Box>(QVector3D(0, 2, 0), QVector3D(2, 0.2, 2), QColor(200, 200, 200));
+    //     m_press->SetMovable(true);
+    //     m_press->SetMass(0.0f);
+    //     m_physicsSystem->AddRigidbody(m_press);
+    //     m_physicsSystem->AddConstraint(m_press);
 
-        emit update3DModelParametersChanged(m_voxel);
+    //     emit update3DModelParametersChanged(m_voxel);
 
-    } 
-    else 
-    {
-        if (!m_model->customOBJ->isCustomOBJ) {
-            // Convert the model into particles and springs
-            ConvertModelToParticleSprings(m_model.get(), m_particles, m_springs, m_triangleColliders, !m_crossSpringModel);
-        } else {
-            // Load the model from file
-            ChargeModelParticleSprings(m_model.get(), m_particles, m_springs, m_triangleColliders, !m_crossSpringModel);
-        }
-    }
+    // } 
+    // else 
+    // {
+    //     if (!m_model->customOBJ->isCustomOBJ) {
+    //         // Convert the model into particles and springs
+    //         ConvertModelToParticleSprings(m_model.get(), m_particles, m_springs, m_triangleColliders, !m_crossSpringModel);
+    //     } else {
+    //         // Load the model from file
+    //         ChargeModelParticleSprings(m_model.get(), m_particles, m_springs, m_triangleColliders, !m_crossSpringModel);
+    //     }
+    // }
 
-    qDebug() << "Particles: " << m_particles.size() << " Springs: " << m_springs.size() << " Triangle colliders: " << m_triangleColliders.size();
+    // qDebug() << "Particles: " << m_particles.size() << " Springs: " << m_springs.size() << " Triangle colliders: " << m_triangleColliders.size();
     
-    // Add particles and springs to the physics system
+    // // Add particles and springs to the physics system
     for (auto& p : m_particles) { m_physicsSystem->AddRigidbody(p); m_physicsSystem->AddConstraint(p); }
     for (auto& s : m_springs) m_physicsSystem->AddSpring(s);
-    for (auto& t : m_triangleColliders) m_physicsSystem->AddTriangleCollider(t);
+    // for (auto& t : m_triangleColliders) m_physicsSystem->AddTriangleCollider(t);
 
     m_physicsSystem->Update(0.0f); // Initialize the physics system
 
-    m_physicsSystem->ChangeFriction(m_globalFriction);
-    m_physicsSystem->RotateRigidbodies(m_globalRotation);
+    // m_physicsSystem->ChangeFriction(m_globalFriction);
+    // m_physicsSystem->RotateRigidbodies(m_globalRotation);
 
-    m_physicsSystem->SetUpBVH();
+    // m_physicsSystem->SetUpBVH();
 
-    emit updateSpringsStiffnessControlsChanged(m_springs);
+    // emit updateSpringsStiffnessControlsChanged(m_springs);
     
     doneCurrent();
     update();
@@ -386,7 +398,7 @@ void OpenGLWidget::InitCurves()
 
 void OpenGLWidget::CurveToParticlesSprings()
 {
-    if (!m_isCurve) return;
+    /*if (!m_isCurve) return;
 
     makeCurrent();
     // Clear previous model
@@ -749,12 +761,12 @@ void OpenGLWidget::CurveToParticlesSprings()
 
     doneCurrent();
 
-    FillVolumeWithParticle();
+    FillVolumeWithParticle();*/
 }
 
 void OpenGLWidget::FillVolumeWithParticle()
 {
-    if (!m_isCurve) return;
+    /*if (!m_isCurve) return;
 
     makeCurrent();
 
@@ -834,7 +846,7 @@ void OpenGLWidget::setDeformation(int p1, int p2, float value)
     if (p1 != 0) m_curve.SetControlPoint(p1, A);
     if (p2 != 0) m_curve.SetControlPoint(p2, B);
 
-    Reset();
+    Reset();*/
 }
 
 void OpenGLWidget::setHeight(float value)

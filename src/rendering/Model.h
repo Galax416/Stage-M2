@@ -42,12 +42,11 @@ public:
     void Update(float deltaTime) override;
     void Render(QOpenGLShaderProgram* shaderProgram) override;
 
-    void SynsCollisionVolumes();
+    void SetPosition(const QVector3D& p) override;
+    void SetRotation(const QQuaternion& q) override;
 
-    void SetPosition(const QVector3D& p) override { transform.position = p; oldPosition = p; SynsCollisionVolumes(); }
-    void SetRotation(const QQuaternion& q) override { transform.rotation = q; SynsCollisionVolumes(); }
-
-    void SetColor(const QColor& c) { color = c; }
+    void SetColor(QColor c) { color = c; }
+    QColor GetColor() const { return color; }
     bool IsValid() const;
 
 private:

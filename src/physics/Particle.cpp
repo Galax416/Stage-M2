@@ -1,41 +1,23 @@
 #include "Particle.h"
 #include "Geometry3D.h"
 
-Particle::Particle(QVector3D pos, float r, float m, bool mov, QColor color)
+Particle::Particle(QVector3D pos, float r, float m, bool isStatic, QColor color)
+    : m_radius(r * 0.01f), m_flags(PARTICLE_FREE)
 {
     type = RIGIDBODY_TYPE_PARTICLE;
-    m_flags = PARTICLE_FREE;
-    transform.position = pos;
-    oldPosition = pos;
-    m_radius = r * 0.01f;
-    mass = m;
-    isMovable = mov;
-    m_color = color;
-    cor = 0.5f;
 
-    m_particleModel = std::make_unique<Sphere>(pos, m_radius, m_color);
+    m_particleModel = std::make_unique<Sphere>(pos, m_radius, color);
+    
+    SetPosition(pos);
+    SetMass(m);
+    isStatic ? SetStatic() : SetDynamic();
 
-    sphereCollider.position = transform.position;
-    sphereCollider.radius = m_radius;
+    SynsCollisionVolumes();
 }
 
 void Particle::Update(float deltaTime)
 {
-    if (!isMovable) return;
-
-    QVector3D velocity = GetVelocity();
-    oldPosition = transform.position;
-
-    float deltaSq = deltaTime * deltaTime;
-
-    // Verlet
-    transform.position += (velocity * friction + forces * deltaSq);
-
-    m_particleModel->transform.position = transform.position;
-    sphereCollider.position = transform.position;
-
-    forces = QVector3D(0.0f, 0.0f, 0.0f); // Reset forces after applying them
-
+    // Optional: XPBD doesn't use this unless needed
 }
 
 void Particle::Render(QOpenGLShaderProgram* shaderProgram)
@@ -45,17 +27,25 @@ void Particle::Render(QOpenGLShaderProgram* shaderProgram)
 
 void Particle::SetColor(QColor c)
 {
-    m_color = c;
     m_particleModel->SetColor(c);
+}
+
+QColor Particle::GetColor() const
+{
+    return m_particleModel->GetColor();
 }
 
 void Particle::SetPosition(const QVector3D& p) {
     transform.position = p;
     oldPosition = p;
     m_particleModel->transform.position = p;
+
+    SynsCollisionVolumes();
 }
 
 void Particle::SetRotation(const QQuaternion& q) {
     transform.rotation = q;
     m_particleModel->transform.rotation = q;
+
+    SynsCollisionVolumes();
 }

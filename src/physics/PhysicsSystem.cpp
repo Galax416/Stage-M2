@@ -49,6 +49,7 @@ void PhysicsSystem::Update(float deltaTime)
 
 void PhysicsSystem::Update(float deltaTime)
 {
+    // Thread-safe body/spring/constraint registration
     {
         QMutexLocker locker(&m_dataMutex); // Lock the mutex for thread safety
         for (auto& b : pendingBodies) bodies.push_back(b);
@@ -64,9 +65,9 @@ void PhysicsSystem::Update(float deltaTime)
         pendingTriangleColliders.clear();
     }
     
-
+    // Step 1: Predict positions
     QtConcurrent::blockingMap(bodies, [deltaTime](std::shared_ptr<Rigidbody>& body) {
-        body->ApplyForces();
+        
     });
 
     QtConcurrent::blockingMap(bodies, [deltaTime](std::shared_ptr<Rigidbody>& body) {
@@ -136,10 +137,10 @@ void PhysicsSystem::RotateRigidbodies(QVector3D rotation)
 
     for (size_t i = 0, size = bodies.size(); i < size; ++i) {
         QVector3D initialPosition = rigidbodyTransformations[i].position;
-        if (bodies[i]->type == RIGIDBODY_TYPE_PARTICLE) {
+        if (bodies[i]->GetType() == RIGIDBODY_TYPE_PARTICLE) {
             initialPosition = qRotation * initialPosition;
             bodies[i]->SetPosition(initialPosition);
-        } else if (bodies[i]->type == RIGIDBODY_TYPE_BOX) {
+        } else if (bodies[i]->GetType() == RIGIDBODY_TYPE_BOX) {
             QVector3D newPoisition = qRotation * initialPosition;
             QQuaternion newRotation = qRotation * rigidbodyTransformations[i].rotation;
 
