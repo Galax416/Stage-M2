@@ -39,7 +39,7 @@ void Rigidbody::SolveConstraints(const std::vector<std::shared_ptr<TriangleColli
         auto particle = dynamic_cast<Particle*>(this);
         if (!particle) continue; // Only particles can collide with triangles
         if (particle->HasFlag(PARTICLE_ATTACHED_TO_TRIANGLE)) continue; // Skip if attached to triangle
-        // if (tri->Contains(particle)) continue; // Skip if already inside triangle
+        if (tri->Contains(particle)) continue; // Skip if already inside triangle
 
         SolvePairCollision(particle, tri.get());
     }

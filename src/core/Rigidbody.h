@@ -58,18 +58,7 @@ public:
     virtual void SolveConstraints(const std::vector<std::shared_ptr<Rigidbody>>& constraints);
     virtual void SolveConstraints(const std::vector<std::shared_ptr<TriangleCollider>>& constraints);
 
-    virtual inline void SynsCollisionVolumes() 
-    { 
-        if (type == RIGIDBODY_TYPE_SPHERE) {
-            sphereCollider.position = transform.position;
-            sphereCollider.radius = transform.scale.x();
-        }
-        else if (type == RIGIDBODY_TYPE_BOX) {
-            boxCollider.position = transform.position;
-            boxCollider.size = transform.scale;
-            boxCollider.orientation = transform.GetRotationMatrix();
-        }
-    }
+    virtual inline void SynsCollisionVolumes() { }
 
     virtual inline void ApplyForce(float dt)
     {
@@ -79,27 +68,31 @@ public:
         transform.position += velocity * dt;
     }
 
-    virtual inline void ApplyPositionCorrection(const QVector3D& correction) { if (!isStatic) transform.position += correction; }
+    virtual inline void ApplyPositionCorrection(const QVector3D& correction) { if (IsDynamic()) { transform.position += correction; SynsCollisionVolumes(); } }
 
     // Utilities
     inline bool IsStatic() const { return isStatic; }
     inline bool IsDynamic() const { return !isStatic; }
     inline float GetMass() const { return mass; }
     inline float GetInvMass() const { return isStatic ? 0.0f : invMass; }
+    inline float GetFriction() const { return friction; }
+    inline QVector3D GetGravity() const { return gravity; }
     inline QVector3D GetPosition() const { return transform.position; }
     inline QVector3D GetVelocity() const { return velocity; }
+
 
     // State acces
     unsigned int GetID()    const { return id; }
     int GetType()           const { return type; }
 
     // Configuration
-    void SetMass(float m) { mass = std::max(1e-4f, m); invMass = 1.0f / m; }
-    void SetStatic() { isStatic = false; invMass = 0.0f; }
-    void SetDynamic() { isStatic = true; invMass = 1.0f / mass; }
+    void SetMass(float m) { mass = std::max(1e-6f, m); invMass = 1.0f / m; }
+    void SetStatic() { isStatic = true; }
+    void SetDynamic() { isStatic = false; }
     void SetFriction(float f) { friction = f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f; }
     void SetRestitution(float r) { restitution = r < 0.0f ? 0.0f : r > 1.0f ? 1.0f : r; }
     void SetGravity(const QVector3D& g) { gravity = g; }
+    void SetVelocity(const QVector3D& v) { velocity = v; }
 
     virtual inline void SetPosition(const QVector3D& p) {}
     virtual inline void SetRotation(const QQuaternion& q) {}

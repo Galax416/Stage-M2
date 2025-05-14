@@ -39,8 +39,10 @@ public:
     // void ResetModel();
     void LoadModel(const QString &path);
 
-    void Update(float deltaTime) override;
+    void Update(float dt) override;
     void Render(QOpenGLShaderProgram* shaderProgram) override;
+
+    void SynsCollisionVolumes() override;
 
     void SetPosition(const QVector3D& p) override;
     void SetRotation(const QQuaternion& q) override;

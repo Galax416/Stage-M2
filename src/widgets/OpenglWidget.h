@@ -89,7 +89,7 @@ public slots:
     // void Clear() { ClearScene(); /* InitScene(); */ }
     void Reset() { makeCurrent(); Stop(); ClearScene(); doneCurrent(); CurveToParticlesSprings(); VoxelToParticlesSprings(); InitScene(); }
     void Stop()  { m_isRunning = false ; emit buttonStateChanged(m_isRunning); }
-    void Play()  { m_isRunning = true  ; emit renderBVHChanged(false); emit buttonStateChanged(m_isRunning); }
+    void Play()  { m_isRunning = true  ; m_renderBVH = false; emit renderBVHChanged(m_renderBVH); emit buttonStateChanged(m_isRunning); }
     
 private:
     void InitShaders(QOpenGLShaderProgram *program, QString vertex_shader = "", QString geometry_shader = "", QString fragment_shader = "");
@@ -148,5 +148,8 @@ private:
     bool m_is2DMode   { false };
     bool m_isRunning  { false };
     bool m_isWireMode { false };
+
+    // BVH
+    bool m_renderBVH { false };
 
 };

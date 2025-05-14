@@ -56,7 +56,7 @@ void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std:
 
     for (const auto& spring : springs) {
         if (spring) {
-            kGroups[static_cast<int>(spring->GetK())].append(spring);
+            kGroups[spring->GetStiffness() * 1e6f].append(spring);
         }
     }
 
@@ -79,12 +79,12 @@ void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std:
         colorLabel->setPalette(palette);
 
         auto slider = new QSlider(Qt::Horizontal);
-        slider->setRange(1, 10000);
+        slider->setRange(1, 1000000);
         slider->setValue(static_cast<int>(initialK));
         slider->setSingleStep(1);
 
         auto spinBox = new QSpinBox;
-        spinBox->setRange(1, 10000);
+        spinBox->setRange(1,  1000000);
         spinBox->setValue(static_cast<int>(initialK));
         spinBox->setSingleStep(1);
 
@@ -98,7 +98,7 @@ void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std:
             
             // // Update the spring stiffness
             for (const auto& spring : springGroup) {
-                spring->SetConstants(value, spring->GetB());
+                spring->SetStiffness(static_cast<float>(value) / 1.0e6f);
                 spring->SetColor(newColor);
             }
         });
@@ -112,7 +112,7 @@ void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std:
             
             // // Update the spring stiffness
             for (const auto& spring : springGroup) {
-                spring->SetConstants(value, spring->GetB());
+                spring->SetStiffness(static_cast<float>(value) / 1.0e6f);
                 spring->SetColor(newColor);
             }
         });

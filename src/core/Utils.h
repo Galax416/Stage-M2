@@ -66,9 +66,9 @@ inline float GetStiffnessByQuadrant(QVector3D posA, QVector3D posB, const QVecto
     Quadrant quadA = GetQuadrant(posA, center);
     Quadrant quadB = GetQuadrant(posB, center);
 
-    int stiffness = 1.0f; // Default stiffness
-    if (quadA == Top || quadB == Top) stiffness = 650.0f;
-    else if (quadA == Bottom || quadB == Bottom) stiffness = 250.0f;
+    float stiffness = 1.0f; // Default stiffness
+    if (quadA == Top || quadB == Top) stiffness = 0.650f;//0.650f;
+    else if (quadA == Bottom || quadB == Bottom) stiffness = 0.250; //0.250f;
     return stiffness;
 }
 

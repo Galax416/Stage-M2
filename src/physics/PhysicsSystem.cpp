@@ -66,38 +66,52 @@ void PhysicsSystem::Update(float deltaTime)
     }
     
     // Step 1: Predict positions
-    QtConcurrent::blockingMap(bodies, [deltaTime](std::shared_ptr<Rigidbody>& body) {
-        
-    });
+    for (auto& body : bodies) {
+        if (body->IsStatic()) continue;
 
-    QtConcurrent::blockingMap(bodies, [deltaTime](std::shared_ptr<Rigidbody>& body) {
-        body->Update(deltaTime);
-    });
-    
-    const int verletSubsteps = 5;
-    float subDeltaTime = deltaTime / verletSubsteps;
-    QtConcurrent::blockingMap(springs, [verletSubsteps, subDeltaTime](std::shared_ptr<Spring>& spring) {
-        for (int step = 0; step < verletSubsteps; ++step) {
-            spring->ApplyForce(subDeltaTime);
-        }
-    });
-    
+        QVector3D velocity = body->GetVelocity();
+        velocity += body->GetGravity() * body->GetMass() * deltaTime;
+
+        QVector3D tempPos = body->GetPosition();
+        body->SetPosition(tempPos + (velocity * deltaTime));
+        body->oldPosition = tempPos;
+
+        body->SynsCollisionVolumes();
+
+    }
+
+    // Step 1.5: Reset lambdas
+    for (auto& spring : springs)
+        spring->ResetLambda();
+
+    // Build BVH for collision detection
     SetUpBVH();
 
-    // Solve constraints
-    const int constraintIterations = 8;
-    for (int iter = 0; iter < constraintIterations; ++iter) {
-        for (auto& constraint : constraints) {
+    // Step 2: Solve constraints
+    const int constraintIterations = 20;
+    for (int i = 0; i < constraintIterations; ++i) {
+        for (auto& spring : springs) spring->SolveConstraints(deltaTime);
+
+        for (auto& constaint : constraints) {
             std::vector<std::shared_ptr<Rigidbody>> nearbyRigdibodies;
             std::vector<std::shared_ptr<TriangleCollider>> nearbyTriangles;
 
-            QueryBVH<Rigidbody>(constraint->GetAABB(), bvhRigidbodies.get(), nearbyRigdibodies);
-            constraint->SolveConstraints(nearbyRigdibodies);
+            QueryBVH<Rigidbody>(constaint->GetAABB(), bvhRigidbodies.get(), nearbyRigdibodies);
+            constaint->SolveConstraints(nearbyRigdibodies);
 
-            QueryBVH<TriangleCollider>(constraint->GetAABB(), bvhTriangleColliders.get(), nearbyTriangles);
-            constraint->SolveConstraints(nearbyTriangles);
+            QueryBVH<TriangleCollider>(constaint->GetAABB(), bvhTriangleColliders.get(), nearbyTriangles);
+            constaint->SolveConstraints(nearbyTriangles);
         }
     }
+
+    // Step 3: Update velocities (from position change)
+    for (auto& body : bodies) {
+        if (body->IsStatic()) continue;
+
+        QVector3D velocity = (body->GetPosition() - body->oldPosition) / (deltaTime == 0.0f ? 1.0f : deltaTime);
+        body->SetVelocity(velocity * body->GetFriction());
+    }
+
 }
 
 void PhysicsSystem::Render(QOpenGLShaderProgram* shaderProgram)

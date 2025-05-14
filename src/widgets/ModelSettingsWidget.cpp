@@ -265,13 +265,6 @@ void ModelSettingsWidget::Update3DModelButton(bool clicked)
 
 void ModelSettingsWidget::Update3DModelParameters(VoxelGrid voxel)
 {
-    // m_parameters3DModelLayout->addWidget(new QLabel("Voxel Model", this));
-    // m_parameters3DModelLayout->addWidget(new QLabel(QString("Size: %1 x %2 x %3").arg(voxel.sizeX).arg(voxel.sizeY).arg(voxel.sizeZ), this));
-    // m_parameters3DModelLayout->addWidget(new QLabel(QString("Spacing: %1").arg(voxel.spacing), this));
-    // m_parameters3DModelLayout->addWidget(new QLabel(QString("Origin: (%1, %2, %3)").arg(voxel.origin.x()).arg(voxel.origin.y()).arg(voxel.origin.z()), this));
-
-    // m_parameters3DModelLayout->addWidget(new QLabel(QString("Number of types: %1").arg(voxel.nbTypes), this));
-
     auto layout = qobject_cast<QVBoxLayout*>(m_parameters3DModelGroupBox->layout());
     clearLayout(layout); // Clear previous layout items
 

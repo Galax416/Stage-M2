@@ -106,9 +106,8 @@ void ConvertModelToParticleSprings(Model* model,
 
                 springSet.insert(key);
 
-                // auto spring = std::make_shared<Spring>(stiffness);
-                // spring->SetParticles(particles[a], particles[b]);
-                // springs.push_back(spring);
+                auto spring = std::make_shared<Spring>(particles[a], particles[b], stiffness);
+                springs.push_back(spring);
 
                 model->customOBJ->springLinks.push_back(SpringLink{ a, b, stiffness });
             }
@@ -243,10 +242,8 @@ void ChargeModelParticleSprings(Model* model,
 
         int indexA = a;
         int indexB = b;
-
-        // auto spring = std::make_shared<Spring>(link.stiffness);
-        // spring->SetParticles(particles[indexA], particles[indexB]);
-        // springs.push_back(spring);
+        auto spring = std::make_shared<Spring>(particles[indexA], particles[indexB], link.stiffness);
+        springs.push_back(spring);
     }
 
     // Add triangle colliders for each face in the model

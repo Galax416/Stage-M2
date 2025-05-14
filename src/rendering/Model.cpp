@@ -29,6 +29,21 @@ void Model::Init()
     customOBJ = std::make_unique<CustomOBJLoader>();
 }
 
+
+void Model::SynsCollisionVolumes()
+{
+    if (type == RIGIDBODY_TYPE_SPHERE) {
+        sphereCollider.position = transform.position;
+        sphereCollider.radius = transform.scale.x();
+    }
+    else if (type == RIGIDBODY_TYPE_BOX) {
+        boxCollider.position = bounds.position + transform.position;
+        boxCollider.size = bounds.size * transform.scale;
+        boxCollider.orientation = transform.GetRotationMatrix();
+    }
+}
+
+
 void Model::SetUpColliders()
 {
     if (!mesh) return;
@@ -85,7 +100,7 @@ void Model::LoadModel(const QString& path)
     SetUpColliders();
 }
 
-void Model::Update(float deltaTime)
+void Model::Update(float dt)
 {
 
 }
@@ -103,7 +118,7 @@ void Model::Render(QOpenGLShaderProgram* shaderProgram)
     shaderProgram->release();
 
     // Debug collider
-    // Rigidbody::Render(shaderProgram);
+    Rigidbody::Render(shaderProgram);
 }
 
 void Model::BuildAABB()

@@ -1,7 +1,7 @@
 #include "Particle.h"
 #include "Geometry3D.h"
 
-Particle::Particle(QVector3D pos, float r, float m, bool isStatic, QColor color)
+Particle::Particle(QVector3D pos, float r, float m, bool isDynamic, QColor color)
     : m_radius(r * 0.01f), m_flags(PARTICLE_FREE)
 {
     type = RIGIDBODY_TYPE_PARTICLE;
@@ -10,12 +10,12 @@ Particle::Particle(QVector3D pos, float r, float m, bool isStatic, QColor color)
     
     SetPosition(pos);
     SetMass(m);
-    isStatic ? SetStatic() : SetDynamic();
+    isDynamic ? SetDynamic() : SetStatic();
 
     SynsCollisionVolumes();
 }
 
-void Particle::Update(float deltaTime)
+void Particle::Update(float dt)
 {
     // Optional: XPBD doesn't use this unless needed
 }
@@ -23,6 +23,12 @@ void Particle::Update(float deltaTime)
 void Particle::Render(QOpenGLShaderProgram* shaderProgram)
 {
     m_particleModel->Render(shaderProgram);
+}
+
+void Particle::SynsCollisionVolumes()
+{
+    sphereCollider.position = transform.position;
+    sphereCollider.radius = m_radius;
 }
 
 void Particle::SetColor(QColor c)

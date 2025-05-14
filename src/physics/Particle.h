@@ -28,10 +28,12 @@ private:
 
 public:
     // Particle();
-    Particle(QVector3D pos, float r, float m, bool isStatic = false, QColor color = Qt::white);
+    Particle(QVector3D pos, float r, float m, bool isDynamic = true, QColor color = Qt::white);
 
-    void Update(float deltaTime) override;
+    void Update(float dt) override;
     void Render(QOpenGLShaderProgram* shaderProgram) override;
+
+    void SynsCollisionVolumes() override;
 
     void SetPosition(const QVector3D& p) override;
     void SetRotation(const QQuaternion& q) override;
