@@ -53,7 +53,7 @@ void GlobalSettingsWidget::InitUI()
     auto frictionLayout = new QHBoxLayout(m_frictionGroupBox);
     m_frictionSlider = new QSlider(Qt::Horizontal, this);
     m_frictionSlider->setRange(0, 100);
-    m_frictionSlider->setValue(5);
+    m_frictionSlider->setValue(10);
     m_frictionSlider->setSingleStep(1);
     m_frictionSpinBox = new QSpinBox(this);
     m_frictionSpinBox->setRange(0, 100);

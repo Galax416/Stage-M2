@@ -401,7 +401,7 @@ void OpenGLWidget::CurveToParticlesSprings()
     float height = m_curveHeight;
     float layerStep = m_curveHeight / (numLayers - 1);
     float ringRadius = m_curveRingRadius;
-    float thickness = 0.05f; 
+    float thickness = 0.08f; 
 
     // Model curve
     std::vector<QVector3D> profilePoints = m_curve.Sample(m_numSamples);

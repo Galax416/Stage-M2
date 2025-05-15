@@ -122,7 +122,7 @@ private:
     std::shared_ptr<Model> m_model; // To load model from file
 
     // Global settings
-    float     m_globalFriction  { 0.95f };
+    float     m_globalFriction  { 0.90f };
     QColor    m_backgroundColor { 25, 25, 25, 255 };
     QVector3D m_globalRotation  { 0.0f, 0.0f, 0.0f };
 
@@ -134,7 +134,7 @@ private:
     std::vector<QVector3D> m_curvePoints; // Control points of the curve
     bool  m_isCurve         { false };
     int   m_numSamples      { 32 };
-    int   m_curveLayers     { 5 };
+    int   m_curveLayers     { 16 };
     float m_curveHeight     { 1.0f };
     float m_curveRingRadius { 0.1f };
     bool  m_haveThickness   { false };

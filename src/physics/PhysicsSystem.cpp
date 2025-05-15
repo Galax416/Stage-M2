@@ -84,7 +84,7 @@ void PhysicsSystem::Update(float deltaTime)
     SetUpBVH();
 
     // Solve constraints
-    const int constraintIterations = 8;
+    const int constraintIterations = 10;
     for (int iter = 0; iter < constraintIterations; ++iter) {
         for (auto& constraint : constraints) {
             std::vector<std::shared_ptr<Rigidbody>> nearbyRigdibodies;

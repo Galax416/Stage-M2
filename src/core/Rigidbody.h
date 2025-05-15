@@ -37,7 +37,7 @@ public:
     QVector3D torques     { 0.0f, 0.0f, 0.0f };
     QVector3D gravity     { 0.0f, -9.82f, 0.0f };
     float mass            { 1.0f }; // default mass
-    float cor             { 0.5f }; // Coefficient of restitution
+    float cor             { 0.05f }; // Coefficient of restitution
     float friction        { 0.99f }; // default friction
     bool isMovable        { true }; // is movable
 

@@ -65,17 +65,18 @@ void Camera::mousePressEvent(QMouseEvent* event)
 {   
     m_lastMousePosition = event->pos();
     if (event->button() & Qt::LeftButton) m_isLeftMouseButtonPressed = true;
+    if (event->button() & Qt::RightButton) m_isRightMouseButtonPressed = true;
 
 }
 
 void Camera::mouseReleaseEvent(QMouseEvent* event)
 {
     m_isLeftMouseButtonPressed = false;
+    m_isRightMouseButtonPressed = false;
 }
 
 void Camera::mouseMoveEvent(QMouseEvent* event)
 {
-    if (!m_isLeftMouseButtonPressed) return;
 
     QPoint delta = event->pos() - m_lastMousePosition;
     m_lastMousePosition = event->pos();
@@ -83,44 +84,58 @@ void Camera::mouseMoveEvent(QMouseEvent* event)
     float dx = delta.x() * m_rotationSpeed;
     float dy = delta.y() * m_rotationSpeed;
 
-    if ( m_is2DMode)
+    if (m_isLeftMouseButtonPressed)
     {
-        QVector3D right = QVector3D(1.0f, 0.0f, 0.0f);
-        QVector3D up    = QVector3D(0.0f, 1.0f, 0.0f);
-
-        QVector3D translation = -dx * right * m_zoomSpeed + dy * up * m_zoomSpeed;
-
-        m_transform.position += translation;
-        m_target += translation;
+        if ( m_is2DMode)
+        {
+            // TODO: Implement 2D camera rotation
+        }
+        else
+        {
+            QVector3D direction = m_transform.position - m_target;
+            float radius = direction.length();
+    
+            float theta = qAtan2(direction.z(), direction.x()); 
+            float phi = qAcos(direction.y() / radius);           
+    
+            theta += qDegreesToRadians(dx);
+            phi   -= qDegreesToRadians(dy);
+    
+            const float epsilon = 0.01f;
+            phi = qBound(epsilon, phi, float(M_PI) - epsilon);
+    
+            float x = radius * qSin(phi) * qCos(theta);
+            float y = radius * qCos(phi);
+            float z = radius * qSin(phi) * qSin(theta);
+    
+            m_transform.position = m_target + QVector3D(x, y, z);
+    
+            m_front = (m_target - m_transform.position).normalized();
+            
+        }
     }
-    else
+    else if (m_isRightMouseButtonPressed)
     {
-        QVector3D direction = m_transform.position - m_target;
-        float radius = direction.length();
+        if (m_is2DMode)
+        {
+            // Nothing to do
+        }
+        else 
+        {
+            // Right mouse button pressed, rotate the camera
+            QVector3D right = QVector3D::crossProduct(m_front, WORLD_UP).normalized();
+            QVector3D up    = QVector3D::crossProduct(right, m_front).normalized();
 
-        // Convertir la direction en angles sphériques
-        float theta = qAtan2(direction.z(), direction.x()); // Azimut (angle horizontal)
-        float phi = qAcos(direction.y() / radius);           // Inclinaison (angle vertical)
+            // Apply rotation
+            m_transform.position += -dx * right * m_moveSpeed;
+            m_transform.position += dy * up * m_moveSpeed;
 
-        // Appliquer les deltas souris aux angles
-        theta += qDegreesToRadians(dx);
-        phi   -= qDegreesToRadians(dy);
-
-        // Clamp pour éviter les problèmes au pôle
-        const float epsilon = 0.01f;
-        phi = qBound(epsilon, phi, float(M_PI) - epsilon);
-
-        // Recalculer la position
-        float x = radius * qSin(phi) * qCos(theta);
-        float y = radius * qCos(phi);
-        float z = radius * qSin(phi) * qSin(theta);
-
-        m_transform.position = m_target + QVector3D(x, y, z);
-
-        // Mettre à jour la direction de la caméra
-        m_front = (m_target - m_transform.position).normalized();
-        
+            // Update the target position
+            m_target += -dx * right * m_moveSpeed;
+            m_target += dy * up * m_moveSpeed;
+        }
     }
+
 
     ComputeView(m_viewMatrix, m_projectionMatrix);
     

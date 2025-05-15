@@ -75,7 +75,7 @@ void ModelSettingsWidget::InitUI()
         m_layerBreastModelSpinBox = new QSpinBox(this);
         m_layerBreastModelSpinBox->setStyleSheet("QSpinBox { font-size: 12px; }");
         m_layerBreastModelSpinBox->setRange(1, 100);
-        m_layerBreastModelSpinBox->setValue(5); // Default value
+        m_layerBreastModelSpinBox->setValue(16); // Default value
         m_layerBreastModelSpinBox->setSingleStep(1);
         m_layerBreastModelSpinBox->setSuffix(" layers");
         layerLayout->addWidget(m_layerBreastModelSpinBox);

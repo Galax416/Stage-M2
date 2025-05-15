@@ -14,7 +14,6 @@ public:
     Camera();
     Camera(const QVector3D& position, const QVector3D& target);
 
-
     // Setters
     void SetTarget(const QVector3D& target) { m_target = target; ComputeView(m_viewMatrix, m_projectionMatrix); }
     void SetFront(const QVector3D& front)   { m_front = front; ComputeView(m_viewMatrix, m_projectionMatrix); }
@@ -64,9 +63,11 @@ private:
     // Mouse
     QPoint m_lastMousePosition;
     bool m_isLeftMouseButtonPressed { false };
+    bool m_isRightMouseButtonPressed { false };
 
     // Speed and sensibility
-    float m_rotationSpeed { 0.2f };
+    float m_moveSpeed     { 0.05f };
+    float m_rotationSpeed { 0.1f };
     float m_zoomSpeed     { 0.05f };
     
     // Camera mode
