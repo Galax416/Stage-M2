@@ -15,6 +15,22 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, Mate
 
 }
 
+// Mesh::~Mesh()
+// {
+//     ReleaseGLResources();
+// }
+
+void Mesh::ReleaseGLResources() 
+{
+    if (QOpenGLContext::currentContext() == nullptr) {
+        qWarning() << "releaseGLResources() called without valid OpenGL context!";
+        return;
+    }
+    if (VAO && VAO->isCreated()) VAO->destroy();
+    if (VBO && VBO->isCreated()) VBO->destroy();
+    if (IBO && IBO->isCreated()) IBO->destroy();
+}
+
 void Mesh::SetUpMesh()
 {   
     VAO->bind();

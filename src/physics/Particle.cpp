@@ -9,10 +9,16 @@ Particle::Particle(QVector3D pos, float r, float m, bool isDynamic, QColor color
     m_particleModel = std::make_unique<Sphere>(pos, m_radius, color);
     
     SetPosition(pos);
+    transform.scale = QVector3D(m_radius, m_radius, m_radius);
     SetMass(m);
     isDynamic ? SetDynamic() : SetStatic();
 
     SynsCollisionVolumes();
+}
+
+void Particle::ReleaseGLResources()
+{
+    if (m_particleModel) m_particleModel->ReleaseGLResources();
 }
 
 void Particle::Update(float dt)

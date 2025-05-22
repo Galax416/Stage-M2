@@ -48,6 +48,7 @@ public:
     // Collision volumes
     OBB boxCollider;
     SphereCollider sphereCollider;
+    std::vector<std::shared_ptr<TriangleCollider>> triangleColliders;
     
     inline Rigidbody() { id = nextId++;}
     virtual inline ~Rigidbody() { }

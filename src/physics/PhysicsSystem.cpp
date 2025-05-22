@@ -69,11 +69,11 @@ void PhysicsSystem::Update(float deltaTime)
     for (auto& body : bodies) {
         if (body->IsStatic()) continue;
 
-        QVector3D velocity = body->GetVelocity();
-        velocity += body->GetGravity() * body->GetMass() * deltaTime;
+        // QVector3D velocity = body->GetVelocity();
+        // velocity += body->GetGravity() * body->GetMass() * deltaTime;
 
         QVector3D tempPos = body->GetPosition();
-        body->SetPosition(tempPos + (velocity * deltaTime));
+        body->SetPosition(tempPos + ((body->transform.position - body->oldPosition) * body->friction + deltaTime * deltaTime * body->GetGravity()) * body->GetMass());
         body->oldPosition = tempPos;
 
         body->SynsCollisionVolumes();

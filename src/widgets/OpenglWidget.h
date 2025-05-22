@@ -23,7 +23,7 @@
 #define SCREEN_WIDTH  1080
 #define SCREEN_HEIGHT 720
 
-#define DeltaTime  0.0016f
+#define DeltaTime  0.0050f
 
 // Foward declarations
 class Camera;
@@ -51,7 +51,7 @@ protected:
     void paintGL() override;
     void resizeGL(int width, int height) override;
 
-    // void closeEvent(QCloseEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
 
     void mousePressEvent(QMouseEvent *event)   override;
     void mouseReleaseEvent(QMouseEvent *event) override;
@@ -69,9 +69,10 @@ signals:
     void update3DModelParametersChanged(VoxelGrid voxel);
     void physcisStateChanged(bool isPaused);
     void deltaTimeChanged(float deltaTime);
+    void breastSlidersChanged();
 
 public slots:
-    void setGlobalDeltaTime(float value)        { m_deltaTime = value; emit deltaTimeChanged(value); }
+    void setGlobalDeltaTime(float value)        { Stop(); m_deltaTime = value; emit deltaTimeChanged(value); }
     void setGlobalFriction(float value)         { m_globalFriction = (1.0f - value); m_physicsSystem->ChangeFriction(m_globalFriction);}
     void setGlobalBackgroundColor(QColor color) { m_backgroundColor = color; Reset(); }
     void setGlobalRotation(QVector3D rotation)  { m_globalRotation = rotation; Reset(); }
@@ -83,8 +84,10 @@ public slots:
     void setSamplingModel(int value)     { m_numSamples  = value; Reset(); }
     void setLayerModel(int value)        { m_curveLayers = value; Reset(); }
     void setDeformation(int p1, int p2, float value);
-    void setHeight(float value);
-    void setRing(float radius);
+    void setCurveWidth(float value);
+    void setCurveHeight(float value);
+    void setCurveDepth(float value);
+    void setCurveRing(float radius);
 
     // void Clear() { ClearScene(); /* InitScene(); */ }
     void Reset() { makeCurrent(); Stop(); ClearScene(); doneCurrent(); CurveToParticlesSprings(); VoxelToParticlesSprings(); InitScene(); }
@@ -98,9 +101,12 @@ private:
     void ClearScene() { m_physicsSystem->ClearAll(); m_particles.clear(); m_springs.clear(); m_triangleColliders.clear(); }
     
     void InitCurves();
+    void UpdateCurveHeightWidth();
+    void ChangeControlPointPosistion(const QVector3D& direction);
     void CurveToParticlesSprings();
-    std::vector<std::shared_ptr<TriangleCollider>> m_fillTriangleColliders;
+    QVector3D GetPointOntoMesh(const QVector3D& point);
     void FillVolumeWithParticle();
+    std::vector<std::shared_ptr<TriangleCollider>> m_fillTriangleColliders;
 
     void InitVoxelModel();
     void VoxelToParticlesSprings();
@@ -130,14 +136,21 @@ private:
     bool m_crossSpringModel { true }; // Cross spring model
 
     // Custom Parametric Model
+    std::shared_ptr<Model> m_torsoModel;
+    std::unique_ptr<BVHNode<TriangleCollider>> m_bvhTorsoColliders;
     Curve m_curve; // Cubic closed curve
     std::vector<QVector3D> m_curvePoints; // Control points of the curve
+    std::vector<QVector3D> m_curvePointsSliders; 
+    std::vector<QVector3D> m_profilePoints; // Sampled points of the curve
+    QVector3D m_curveNormal { 0.0f, 0.0f, 1.0f };
     bool  m_isCurve         { false };
     int   m_numSamples      { 32 };
-    int   m_curveLayers     { 5 };
-    float m_curveHeight     { 1.0f };
+    int   m_curveLayers     { 12 };
+    float m_widthScale      { 0.94f };
+    float m_heightScale     { 1.14f };
+    float m_curveDepth      { 1.0f };
     float m_curveRingRadius { 0.1f };
-    bool  m_haveThickness   { false };
+    bool  m_haveThickness   { true };
 
     // Voxel model
     VoxelGrid m_voxel;
@@ -151,5 +164,8 @@ private:
 
     // BVH
     bool m_renderBVH { false };
+
+    // Debug
+    QVector3D breastDirection { 0.0f, 0.0f, 1.0f };
 
 };

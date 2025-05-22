@@ -63,10 +63,12 @@ private:
 
     // Mouse
     QPoint m_lastMousePosition;
-    bool m_isLeftMouseButtonPressed { false };
+    bool m_isLeftMouseButtonPressed  { false };
+    bool m_isRightMouseButtonPressed { false };
 
     // Speed and sensibility
-    float m_rotationSpeed { 0.2f };
+    float m_moveSpeed     { 0.05f };
+    float m_rotationSpeed { 0.1f };
     float m_zoomSpeed     { 0.05f };
     
     // Camera mode

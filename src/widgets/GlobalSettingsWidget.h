@@ -35,8 +35,9 @@ private:
 
     QGroupBox   *m_globalSettingsGroupBox;
 
-    QGroupBox *m_dtGroupBox;
-    QLineEdit *m_dtLineEdit;
+    QGroupBox   *m_dtGroupBox;
+    QLineEdit   *m_dtLineEdit;
+    QPushButton *m_dtButton;
 
     QGroupBox *m_frictionGroupBox;
     QSlider   *m_frictionSlider;

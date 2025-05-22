@@ -51,6 +51,11 @@ public slots:
     void SetPhysicsRunning(bool running) 
     { 
         m_running = running;
+        if (m_running) {
+            Start();
+        } else {
+            Stop();
+        }
     }
     
     void SetDeltaTime(float deltaTime) 

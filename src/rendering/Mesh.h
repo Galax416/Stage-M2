@@ -64,6 +64,8 @@ public:
 
     Mesh() {}
     Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, Material material);
+    // ~Mesh();
+    void ReleaseGLResources();
 
     void Render(QOpenGLShaderProgram* shaderProgram);
 

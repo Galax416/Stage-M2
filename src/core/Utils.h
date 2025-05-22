@@ -4,6 +4,8 @@
 #include <QLayout>
 #include <QColor>
 #include <QVector3D>
+#include <QVector2D>
+#include <QDebug>
 #include <QtMath>
 #include <cmath>
 #include <random>
@@ -56,19 +58,32 @@ inline void clearLayout(QLayout* layout)
 
 enum Quadrant { Top, Bottom };
 
-inline Quadrant GetQuadrant(const QVector3D& pos, const QVector3D& center, float epsilon = 0.02f) 
+inline Quadrant GetQuadrant(const QVector3D& pos, const QVector3D& center, float angleDegrees = 90.0f, float epsilon = 0.15f) 
 {
-    return (pos.y() > center.y() - epsilon) ? Top : Bottom;
+    QVector2D dirrection = QVector2D(pos) - QVector2D(center);
+    if (dirrection.lengthSquared() < epsilon * epsilon) return Top;
+    dirrection.normalize();
+
+    QVector2D up(0, 1);  
+
+    float dot = QVector2D::dotProduct(dirrection, up);
+    dot = qBound(-1.0f, dot, 1.0f);
+
+    float angle = std::acos(dot);
+
+    return (angle <= qDegreesToRadians(angleDegrees * 0.5f)) ? Top : Bottom;
 }
 
-inline float GetStiffnessByQuadrant(QVector3D posA, QVector3D posB, const QVector3D& center) 
+inline float GetStiffnessByQuadrant(QVector3D posA, QVector3D posB, const QVector3D& center, float angleDegrees = 220.0f) 
 {
-    Quadrant quadA = GetQuadrant(posA, center);
-    Quadrant quadB = GetQuadrant(posB, center);
+    Quadrant quadA = GetQuadrant(posA, center, angleDegrees);
+    Quadrant quadB = GetQuadrant(posB, center, angleDegrees);
 
-    float stiffness = 1.0f; // Default stiffness
-    if (quadA == Top || quadB == Top) stiffness = 0.650f;//0.650f;
-    else if (quadA == Bottom || quadB == Bottom) stiffness = 0.250; //0.250f;
+    float stiffness = 1000.0f; // Default stiffness
+    if (quadA == Top && quadB == Top) stiffness = 500.0f;
+    else if (quadA == Top && quadB == Bottom) stiffness = 400.0f;
+    else if (quadA == Bottom && quadB == Bottom) stiffness = 400.0f;
+    else if (quadA == Bottom && quadB == Top) stiffness = 400.0f;
     return stiffness;
 }
 

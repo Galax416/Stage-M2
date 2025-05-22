@@ -94,6 +94,8 @@ public:
     void RotateRigidbodies(QVector3D rotation);
     void SetUpBVH() { bvhRigidbodies = BuildBVH(constraints); bvhTriangleColliders = BuildBVH(triangleColliders); }
 
+    std::vector<std::shared_ptr<Rigidbody>> GetRigidBodies() { return bodies; }
+
 private: 
     bool m_renderBVH { false }; // Flag to render the BVH tree
     // std::vector<Transform> m_currentTransforms; // Render use

@@ -3,6 +3,7 @@
 #include "Utils.h"
 #include <QVector3D>
 #include <QMatrix3x3>
+#include <QMatrix4x4>
 
 #include <cmath>
 
@@ -42,6 +43,7 @@ struct OBB
 	inline OBB(const AABB& aabb, const QMatrix3x3& o) : position(aabb.position), size(aabb.size), orientation(o) { }
 
 	inline AABB toAABB() const; // Convert OBB to AABB
+	inline QVector3D ClosestPoint(const QVector3D& point) const; // Get closest point on OBB to a given point
 };
 
 // Convert AABB to OBB
@@ -79,6 +81,18 @@ inline AABB OBB::toAABB() const
     return AABB(position, halfExtents);
 }
 
+// Get closest point on OBB to a given point
+inline QVector3D OBB::ClosestPoint(const QVector3D& point) const
+{
+	QVector3D localPoint = QMatrix4x4(orientation.transposed()).map(point - position);
+
+	QVector3D clampedPoint = localPoint;
+	clampedPoint.setX(qBound(-size.x(), clampedPoint.x(), size.x()));
+	clampedPoint.setY(qBound(-size.y(), clampedPoint.y(), size.y()));
+	clampedPoint.setZ(qBound(-size.z(), clampedPoint.z(), size.z()));
+
+	return position + QMatrix4x4(orientation).map(clampedPoint);
+}
 
 // Functions to get min and max of AABB
 inline QVector3D GetMin(const AABB& aabb)
@@ -102,3 +116,4 @@ inline AABB FromMinMax(const QVector3D& min, const QVector3D& max)
 {
 	return AABB((min + max) * 0.5f, (max - min) * 0.5f);
 }
+

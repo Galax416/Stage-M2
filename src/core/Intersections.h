@@ -9,4 +9,5 @@
 // Forward declarations
 class TriangleCollider;
 
-bool RayIntersectsTriangle(const Ray& ray, const std::shared_ptr<TriangleCollider>& tri);
+RayCastResult RayIntersectsTriangle(const Ray& ray, const std::shared_ptr<TriangleCollider>& tri);
+// bool RayIntersectsTriangle(const Ray& ray, const std::shared_ptr<TriangleCollider>& tri);

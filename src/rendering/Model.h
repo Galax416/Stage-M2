@@ -35,6 +35,7 @@ public:
 
     Model();
     Model(const QString &path);
+    void ReleaseGLResources();
 
     // void ResetModel();
     void LoadModel(const QString &path);

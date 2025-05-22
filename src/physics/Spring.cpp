@@ -8,8 +8,7 @@ Spring::Spring(std::shared_ptr<Particle> a, std::shared_ptr<Particle> b, float k
 {
     if (!p1 && !p2) return;
     restingLength = (p2->GetPosition() - p1->GetPosition()).length();
-    stiffness = k <= 0.0f ? 0.000001f : (k >= 1.0f ? 0.999999f : k);
-    compliance = (1.0f - stiffness) / stiffness; // Prevent division by zero
+    SetStiffness(k);
 
     m_color = floatToQColor(stiffness); // Set color based on spring constant
 }
@@ -58,4 +57,15 @@ void Spring::SolveConstraints(float dt)
 
     if (p1->IsDynamic()) p1->ApplyPositionCorrection(-correction * w1);
     if (p2->IsDynamic()) p2->ApplyPositionCorrection( correction * w2);
+}
+
+void Spring::SetStiffness(float k)
+{
+    stiffness = k < 1.0f ? 1.0f : k; 
+    float t = (stiffness - 1.0f) / (1000.0f - 1.0f); // ∈ [0, 1]
+    compliance = std::exp(std::log(0.999999f) * (1.0f - t) + std::log(1e-6f) * t);
+    // float scale = std::pow(stiffness / 1000.0f, 6); 
+    // scale = std::clamp(scale, 1e-6f, 0.999999f); // Clamp to avoid extreme values
+    // qDebug() << "Compliance:" << 1.0f / stiffness << "scale:" << scale << "compliance scaled:" << 1.0f - scale;
+    // compliance = 1.0f / stiffness; 
 }

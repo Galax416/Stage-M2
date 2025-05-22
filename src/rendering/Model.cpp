@@ -1,6 +1,7 @@
 #include "Model.h"
 #include "Mesh.h"
 #include "CustomOBJLoader.h"
+#include "TriangleCollider.h"
 
 Model::Model()
 {
@@ -13,16 +14,15 @@ Model::Model(const QString& path)
     LoadModel(path);
 }
 
-// void Model::ResetModel()
-// {
-//     mesh = std::make_unique<Mesh>();
-//     customOBJ = std::make_unique<CustomOBJLoader>();
-// }
+void Model::ReleaseGLResources()
+{
+    if (mesh) mesh->ReleaseGLResources();
+}
 
 void Model::Init()
 {
     initializeOpenGLFunctions();
-    type = RIGIDBODY_TYPE_BOX;
+    type = RIGIDBODY_TYPE_TRIANGLE;
     bounds = AABB();
     oldPosition = transform.position;
     mesh = std::make_unique<Mesh>();
@@ -40,6 +40,16 @@ void Model::SynsCollisionVolumes()
         boxCollider.position = bounds.position + transform.position;
         boxCollider.size = bounds.size * transform.scale;
         boxCollider.orientation = transform.GetRotationMatrix();
+    } else if (type == RIGIDBODY_TYPE_TRIANGLE) {
+        for (size_t i = 0; i < mesh->indices.size(); i += 3) {
+            QVector3D a = mesh->vertices[mesh->indices[i]].position;
+            QVector3D b = mesh->vertices[mesh->indices[i + 1]].position;
+            QVector3D c = mesh->vertices[mesh->indices[i + 2]].position;
+
+            auto collider = std::make_shared<TriangleCollider>(a, b, c);
+    
+            triangleColliders.push_back(collider);
+        }
     }
 }
 
@@ -47,7 +57,9 @@ void Model::SynsCollisionVolumes()
 void Model::SetUpColliders()
 {
     if (!mesh) return;
+
     BuildAABB();
+
     SynsCollisionVolumes();
 }
 
@@ -118,7 +130,7 @@ void Model::Render(QOpenGLShaderProgram* shaderProgram)
     shaderProgram->release();
 
     // Debug collider
-    Rigidbody::Render(shaderProgram);
+    // Rigidbody::Render(shaderProgram);
 }
 
 void Model::BuildAABB()

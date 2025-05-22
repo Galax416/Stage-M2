@@ -42,6 +42,10 @@ void GlobalSettingsWidget::InitUI()
     m_dtLineEdit->setValidator(new QDoubleValidator(0.0, 1.0, 4, this));
     m_dtLineEdit->setText(QString::number(DeltaTime, 'f', 4));
     dtLayout->addWidget(m_dtLineEdit);
+    m_dtButton = new QPushButton("Set", this);
+    m_dtButton->setStyleSheet("QPushButton { font-size: 12px; }");
+    m_dtButton->setFixedSize(40, 20);
+    dtLayout->addWidget(m_dtButton);
     globalSettingsLayout->addWidget(m_dtGroupBox);
 
     // Friction slider and spin box
@@ -171,7 +175,18 @@ void GlobalSettingsWidget::InitConnections()
     });
 
     // Delta time
-    connect(m_dtLineEdit, &QLineEdit::editingFinished, this, [this]() {
+    // connect(m_dtLineEdit, &QLineEdit::editingFinished, this, [this]() {
+    //     bool ok;
+    //     float value = m_dtLineEdit->text().toFloat(&ok);
+    //     if (ok) {
+    //         value = qMax(0.0001f, qMin(value, 1.0f)); // Clamp value between 0.0001 and 1.0
+    //         m_dtLineEdit->setText(QString::number(value, 'f', 4));
+    //         emit DeltaTimeChanged(value);
+    //     } else {
+    //         m_dtLineEdit->setText(QString::number(value, 'f', 4));
+    //     }
+    // });
+    connect(m_dtButton, &QPushButton::clicked, this, [this]() {
         bool ok;
         float value = m_dtLineEdit->text().toFloat(&ok);
         if (ok) {
@@ -179,9 +194,10 @@ void GlobalSettingsWidget::InitConnections()
             m_dtLineEdit->setText(QString::number(value, 'f', 4));
             emit DeltaTimeChanged(value);
         } else {
-            m_dtLineEdit->setText("0.0001");
+            m_dtLineEdit->setText(QString::number(value, 'f', 4));
         }
     });
+    
 
     // Background color
     connect(m_backgroundColorButton, &QPushButton::clicked, this, [this]() {

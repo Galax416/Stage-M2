@@ -48,14 +48,18 @@ void Rigidbody::SolveConstraints(const std::vector<std::shared_ptr<TriangleColli
 AABB Rigidbody::GetAABB() const
 {
     if (type == RIGIDBODY_TYPE_PARTICLE) {
-        return AABB(transform.position, QVector3D(sphereCollider.radius, sphereCollider.radius, sphereCollider.radius));
+        return AABB(transform.position, transform.scale);
     }
     else if (type == RIGIDBODY_TYPE_SPHERE) {
         return AABB(sphereCollider.position, QVector3D(sphereCollider.radius, sphereCollider.radius, sphereCollider.radius));
     }
     else if (type == RIGIDBODY_TYPE_BOX) {
         return boxCollider.toAABB();
-    } else {
+    } 
+    else if (type == RIGIDBODY_TYPE_TRIANGLE) {
+        return boxCollider.toAABB();
+    } 
+    else {
         return AABB(transform.position, QVector3D(0, 0, 0)); // Default case
     } 
 }

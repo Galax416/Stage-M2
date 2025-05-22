@@ -11,9 +11,9 @@ private:
     std::shared_ptr<Particle> p2;
 
     float restingLength { 0.0f};
-    float stiffness { 0.0f }; // [0, 1], 1 = rigid
-    float compliance { 1.0f }; // = (1 - stiffness) / stiffness
-    float lambda { 0.0f }; 
+    float stiffness { 0.0f };
+    float compliance { 1.0f };
+    float lambda { 0.0f };
     
     QColor m_color;
 
@@ -33,8 +33,8 @@ public:
     float GetCompliance() { return compliance; }
     QColor GetColor() { return m_color; }
 
+    void SetStiffness(float k);
     void SetRestLength(float len) { restingLength = len; }
-    void SetStiffness(float k) { stiffness = k; std::clamp(stiffness, 1.0e-6f, 0.999999f); compliance = ((1.0f - stiffness) / stiffness); }
     void SetCompliance(float c) { compliance = c; }
     void SetColor(QColor c) { m_color = c; }
 
