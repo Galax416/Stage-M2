@@ -91,7 +91,7 @@ public:
     void ChangeGravity(const QVector3D& g);
     void ChangeFriction(float f);
 
-    void RotateRigidbodies(QVector3D rotation);
+    void RotateRigidbodies(QVector3D rotation, const QVector3D& pivot = QVector3D(0, 0, 0));
     void SetUpBVH() { bvhRigidbodies = BuildBVH(constraints); bvhTriangleColliders = BuildBVH(triangleColliders); }
 
     std::vector<std::shared_ptr<Rigidbody>> GetRigidBodies() { return bodies; }

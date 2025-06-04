@@ -69,12 +69,14 @@ void PhysicsSystem::Update(float deltaTime)
     for (auto& body : bodies) {
         if (body->IsStatic()) continue;
 
-        // QVector3D velocity = body->GetVelocity();
-        // velocity += body->GetGravity() * body->GetMass() * deltaTime;
-
         QVector3D tempPos = body->GetPosition();
-        body->SetPosition(tempPos + ((body->transform.position - body->oldPosition) * body->friction + deltaTime * deltaTime * body->GetGravity()) * body->GetMass());
+        QVector3D acceleration = body->GetGravity();
+        QVector3D velocity = (tempPos - body->oldPosition) * body->friction;
+        // QVector3D velocity = body->GetVelocity();
+
+        QVector3D predictedPos = tempPos + velocity + acceleration * deltaTime * deltaTime;
         body->oldPosition = tempPos;
+        body->SetPosition(predictedPos);
 
         body->SynsCollisionVolumes();
 
@@ -105,12 +107,12 @@ void PhysicsSystem::Update(float deltaTime)
     }
 
     // Step 3: Update velocities (from position change)
-    for (auto& body : bodies) {
-        if (body->IsStatic()) continue;
+    // for (auto& body : bodies) {
+    //     if (body->IsStatic()) continue;
 
-        QVector3D velocity = (body->GetPosition() - body->oldPosition) / (deltaTime == 0.0f ? 1.0f : deltaTime);
-        body->SetVelocity(velocity * body->GetFriction());
-    }
+    //     QVector3D velocity = (body->GetPosition() - body->oldPosition) /* / (deltaTime == 0.0f ? 1.0f : deltaTime) */;
+    //     body->SetVelocity(velocity * body->GetFriction());
+    // }
 
 }
 
@@ -144,25 +146,27 @@ void PhysicsSystem::ChangeFriction(float f)
     for (size_t i = 0, size = bodies.size(); i < size; ++i) bodies[i]->SetFriction(f);
 }
 
-void PhysicsSystem::RotateRigidbodies(QVector3D rotation)
+void PhysicsSystem::RotateRigidbodies(QVector3D rotation, const QVector3D& pivot)
 {
     QMutexLocker locker(&m_dataMutex); // Lock the mutex for thread safety
     QQuaternion qRotation = QQuaternion::fromEulerAngles(rotation);
 
     for (size_t i = 0, size = bodies.size(); i < size; ++i) {
         QVector3D initialPosition = rigidbodyTransformations[i].position;
+
+        QVector3D relativePos = initialPosition - pivot;
+        QVector3D rotatedPos = qRotation * relativePos + pivot;
+
         if (bodies[i]->GetType() == RIGIDBODY_TYPE_PARTICLE) {
-            initialPosition = qRotation * initialPosition;
-            bodies[i]->SetPosition(initialPosition);
-        } else if (bodies[i]->GetType() == RIGIDBODY_TYPE_BOX) {
-            QVector3D newPoisition = qRotation * initialPosition;
+            bodies[i]->SetPosition(rotatedPos);
+
+        } else if (bodies[i]->GetType() == RIGIDBODY_TYPE_BOX || bodies[i]->GetType() == RIGIDBODY_TYPE_TRIANGLE) {
             QQuaternion newRotation = qRotation * rigidbodyTransformations[i].rotation;
 
-            bodies[i]->SetPosition(newPoisition);
+            bodies[i]->SetPosition(rotatedPos);
             bodies[i]->SetRotation(newRotation);
 
-            auto model = static_cast<Model*>(bodies[i].get());
-            if (model) model->SynsCollisionVolumes();
+            bodies[i]->SynsCollisionVolumes();
         }
 
     }

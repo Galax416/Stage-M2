@@ -123,13 +123,13 @@ void ConvertModelToParticleSprings(Model* model,
         int i1 = face.vertexIndices[1];
         int i2 = face.vertexIndices[2];
 
-        auto p1 = particles[i0].get();
+        auto p1 = particles[i0];
         p1->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
         p1->AddFlag(ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE);
-        auto p2 = particles[i1].get();
+        auto p2 = particles[i1];
         p2->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
         p2->AddFlag(ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE);
-        auto p3 = particles[i2].get();
+        auto p3 = particles[i2];
         p3->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
         p3->AddFlag(ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE);
     
@@ -254,13 +254,13 @@ void ChargeModelParticleSprings(Model* model,
         int i1 = face.vertexIndices[1];
         int i2 = face.vertexIndices[2];
 
-        auto p1 = particles[i0].get();
+        auto p1 = particles[i0];
         p1->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
         p1->AddFlag(ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE);
-        auto p2 = particles[i1].get();
+        auto p2 = particles[i1];
         p2->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
         p2->AddFlag(ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE);
-        auto p3 = particles[i2].get();
+        auto p3 = particles[i2];
         p3->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
         p3->AddFlag(ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE);
     

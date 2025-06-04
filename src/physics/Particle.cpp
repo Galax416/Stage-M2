@@ -49,7 +49,7 @@ QColor Particle::GetColor() const
 
 void Particle::SetPosition(const QVector3D& p) {
     transform.position = p;
-    oldPosition = p;
+    // oldPosition = p;
     m_particleModel->transform.position = p;
 
     SynsCollisionVolumes();

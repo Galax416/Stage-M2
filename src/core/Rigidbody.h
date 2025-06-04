@@ -13,6 +13,7 @@
 #define RIGIDBODY_TYPE_PARTICLE	1
 #define RIGIDBODY_TYPE_SPHERE	2
 #define RIGIDBODY_TYPE_BOX		3
+#define RIGIDBODY_TYPE_TRIANGLE	4
 
 // Forward declaration
 class Particle;
@@ -42,7 +43,7 @@ public:
     float restitution     { 0.0f }; // default restitution
 
     // Other properties
-    QVector3D velocity { 0.0f, 0.0f, 0.0f };
+    // QVector3D velocity { 0.0f, 0.0f, 0.0f };
     QVector3D forces   { 0.0f, 0.0f, 0.0f };
 
     // Collision volumes
@@ -61,13 +62,13 @@ public:
 
     virtual inline void SynsCollisionVolumes() { }
 
-    virtual inline void ApplyForce(float dt)
-    {
-        if (isStatic) return;
-        forces += gravity * mass;
-        velocity += forces * invMass * dt;
-        transform.position += velocity * dt;
-    }
+    // virtual inline void ApplyForce(float dt)
+    // {
+    //     if (isStatic) return;
+    //     forces += gravity * mass;
+    //     velocity += forces * invMass * dt;
+    //     transform.position += velocity * dt;
+    // }
 
     virtual inline void ApplyPositionCorrection(const QVector3D& correction) { if (IsDynamic()) { transform.position += correction; SynsCollisionVolumes(); } }
 
@@ -79,7 +80,7 @@ public:
     inline float GetFriction() const { return friction; }
     inline QVector3D GetGravity() const { return gravity; }
     inline QVector3D GetPosition() const { return transform.position; }
-    inline QVector3D GetVelocity() const { return velocity; }
+    // inline QVector3D GetVelocity() const { return velocity; }
 
 
     // State acces
@@ -93,7 +94,7 @@ public:
     void SetFriction(float f) { friction = f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f; }
     void SetRestitution(float r) { restitution = r < 0.0f ? 0.0f : r > 1.0f ? 1.0f : r; }
     void SetGravity(const QVector3D& g) { gravity = g; }
-    void SetVelocity(const QVector3D& v) { velocity = v; }
+    // void SetVelocity(const QVector3D& v) { velocity = v; }
 
     virtual inline void SetPosition(const QVector3D& p) {}
     virtual inline void SetRotation(const QQuaternion& q) {}

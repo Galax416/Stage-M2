@@ -158,7 +158,7 @@ void Model::BuildAABB()
 
 void Model::SetPosition(const QVector3D& p) {
     transform.position = p;
-    oldPosition = p;
+    // oldPosition = p;
 
     SynsCollisionVolumes();
 }

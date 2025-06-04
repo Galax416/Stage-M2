@@ -9,13 +9,13 @@
 struct TriangleCollider
 {
 public:
-    Particle* p0;
-    Particle* p1;
-    Particle* p2;
+    std::shared_ptr<Particle> p0;
+    std::shared_ptr<Particle> p1;
+    std::shared_ptr<Particle> p2;
 
     QVector3D pos0, pos1, pos2;
 
-    TriangleCollider(Particle* a, Particle* b, Particle* c)
+    TriangleCollider(std::shared_ptr<Particle> a, std::shared_ptr<Particle> b, std::shared_ptr<Particle> c)
         : p0(a), p1(b), p2(c) {}
 
     TriangleCollider(const QVector3D& a, const QVector3D& b, const QVector3D& c)
@@ -41,7 +41,7 @@ public:
         {
             QVector3D min = p0->GetPosition();
             QVector3D max = min;
-            for (Particle* p : {p1, p2}) {
+            for (std::shared_ptr<Particle> p : {p1, p2}) {
                 const QVector3D& pos = p->GetPosition();
                 min.setX(std::min(min.x(), pos.x()));
                 min.setY(std::min(min.y(), pos.y()));
@@ -56,7 +56,19 @@ public:
     }
 
     bool Contains(const Particle* p) const {
-        return (p0 == p || p1 == p || p2 == p);
+        return (p0.get() == p || p1.get() == p || p2.get() == p);
+    }
+
+    QVector3D GetCenter() const {
+        if (p0 == nullptr || p1 == nullptr || p2 == nullptr) {
+            return (pos0 + pos1 + pos2) / 3.0f;
+        } else {
+            return (p0->GetPosition() + p1->GetPosition() + p2->GetPosition()) / 3.0f;
+        }
+    }
+
+    float DistanceTo(const QVector3D& point) const {
+        return (point - GetCenter()).length();  
     }
 
 };
