@@ -342,16 +342,6 @@ void OpenGLWidget::InitScene()
     // right->SetMovable(false);
     // m_physicsSystem->AddRigidbody(right);
     // m_physicsSystem->AddConstraint(right);
-
-    auto box1 = std::make_shared<Box>(QVector3D(0, 0, 0), QVector3D(1, 1, 1), QColor(100, 100, 100));
-    box1->SetStatic();
-    m_physicsSystem->AddRigidbody(box1);
-    m_physicsSystem->AddConstraint(box1);
-
-    auto box2 = std::make_shared<Box>(QVector3D(-1.5, 3, 0), QVector3D(1, 1, 1), QColor(100, 100, 100));
-    box2->SetDynamic();
-    m_physicsSystem->AddRigidbody(box2);
-    m_physicsSystem->AddConstraint(box2);
     
     if (m_isCurve)
     { 
