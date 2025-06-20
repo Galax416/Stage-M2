@@ -36,6 +36,9 @@ public:
     // Transform
     Transform transform;
     QVector3D oldPosition;
+    // QVector3D currentPosition;
+    // QVector3D previousPosition;
+    // QVector3D displayPosition; // for rendering purposes
 
     // Forces
     QVector3D gravity     { 0.0f, -9.82f, 0.0f };
@@ -62,15 +65,8 @@ public:
 
     virtual inline void SynsCollisionVolumes() { }
 
-    // virtual inline void ApplyForce(float dt)
-    // {
-    //     if (isStatic) return;
-    //     forces += gravity * mass;
-    //     velocity += forces * invMass * dt;
-    //     transform.position += velocity * dt;
-    // }
-
-    virtual inline void ApplyPositionCorrection(const QVector3D& correction) { if (IsDynamic()) { transform.position += correction; SynsCollisionVolumes(); } }
+    virtual void ApplyPositionCorrection(const QVector3D& correction);
+    virtual void ApplyRotationCorrection(const QVector3D& torque);
 
     // Utilities
     inline bool IsStatic() const { return isStatic; }
@@ -82,13 +78,12 @@ public:
     inline QVector3D GetPosition() const { return transform.position; }
     // inline QVector3D GetVelocity() const { return velocity; }
 
-
     // State acces
     unsigned int GetID()    const { return id; }
     int GetType()           const { return type; }
 
     // Configuration
-    void SetMass(float m) { mass = std::max(1e-6f, m); invMass = 1.0f / m; }
+    void SetMass(float m) { mass = m; m <= 0.0f ? invMass = 0.0f : invMass = 1.0f / m; }
     void SetStatic() { isStatic = true; }
     void SetDynamic() { isStatic = false; }
     void SetFriction(float f) { friction = f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f; }
@@ -100,16 +95,4 @@ public:
     virtual inline void SetRotation(const QQuaternion& q) {}
 
     virtual AABB GetAABB() const;
-
-
-    // inline float InvMass()  { return mass == 0 ? 0 : 1.0f / mass; }
-    // QMatrix4x4 InvTensor();
-
-    // bool IsMovable()        const { return isMovable; }
-
-    // void SetType(int t)                 { type = t; }
-    // void SetFriction(float f)           { friction = f < 0 ? 0 : f; }
-    // void SetMass(float m)               { mass = m < 0 ? 0 : m; }
-    // void SetCor(float c)                { cor = c < 0 ? 0 : c > 1 ? 1 : c; }
-    // void SetMovable(bool m)             { isMovable = m; }
 };

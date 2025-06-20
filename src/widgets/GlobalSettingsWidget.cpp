@@ -9,12 +9,6 @@ GlobalSettingsWidget::GlobalSettingsWidget(QWidget *parent) : QWidget(parent)
     InitConnections();
 }
 
-// GlobalSettingsWidget::~GlobalSettingsWidget()
-// {
-
-// }
-
-
 void GlobalSettingsWidget::InitUI()
 {
     // Set the layout for the widget
@@ -40,7 +34,7 @@ void GlobalSettingsWidget::InitUI()
     dtLayout->addWidget(dtLabel);
     m_dtLineEdit = new QLineEdit(this);
     m_dtLineEdit->setValidator(new QDoubleValidator(0.0, 1.0, 4, this));
-    m_dtLineEdit->setText(QString::number(DeltaTime, 'f', 4));
+    m_dtLineEdit->setText(QString::number(DELTATIME, 'f', 4));
     dtLayout->addWidget(m_dtLineEdit);
     m_dtButton = new QPushButton("Set", this);
     m_dtButton->setStyleSheet("QPushButton { font-size: 12px; }");
@@ -87,6 +81,7 @@ void GlobalSettingsWidget::InitUI()
     backgroundColorLayout->addWidget(m_backgroundColorButton);
     globalSettingsLayout->addWidget(m_backgroundColorGroupBox);
 
+    /*
     // Rotation slider and spin box
     m_rotationGroupBox = new QGroupBox("Rotation", this);
     m_rotationGroupBox->setMaximumHeight(180);
@@ -153,6 +148,7 @@ void GlobalSettingsWidget::InitUI()
     rotationLayout->addLayout(rotationZLayout);
 
     globalSettingsLayout->addWidget(m_rotationGroupBox);
+    */
 
     // Add void space to the bottom of the group box
     // globalSettingsLayout->addStretch(1);
@@ -210,6 +206,7 @@ void GlobalSettingsWidget::InitConnections()
         }
     });
 
+    /*
     // Rotation
     connect(m_rotationXSlider, &QSlider::valueChanged, this, [this](int value) {
         m_rotationXSpinBox->setValue(value);
@@ -237,5 +234,6 @@ void GlobalSettingsWidget::InitConnections()
         m_rotationZSlider->setValue(value);
         emit RotationChanged(QVector3D(m_rotationXSlider->value(), m_rotationYSlider->value(), value));
     });
+    */
 
 }

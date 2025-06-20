@@ -57,7 +57,7 @@ void Render(const Ray& ray)
 
 void Render(const AABB& aabb) 
 {
-    QVector3D center = aabb.position;
+    QVector3D center = aabb.center;
     QVector3D halfSize = aabb.size;
 
     // Vertex of the cube
@@ -98,7 +98,7 @@ void Render(const SphereCollider& sphere)
 {
     // Dessiner le cercle dans le plan XY
     glBegin(GL_LINE_LOOP);
-    glVertex3f(0, 0, 0); // position of circle
+    // glVertex3f(0, 0, 0); // position of circle
     for (int i = 0; i <= 360; i++) {
         float theta = i * M_PI / 180.0f;
         float x = cosf(theta);
@@ -109,7 +109,7 @@ void Render(const SphereCollider& sphere)
 
     // Dessiner le cercle dans le plan XZ
     glBegin(GL_LINE_LOOP);
-    glVertex3f(0, 0, 0); // position of circle
+    // glVertex3f(0, 0, 0); // position of circle
     for (int i = 0; i <= 360; i++) {
         float theta = i * M_PI / 180.0f;
         float x = cosf(theta);
@@ -119,3 +119,28 @@ void Render(const SphereCollider& sphere)
     glEnd();
 }
 
+void Render(const std::vector<std::shared_ptr<TriangleCollider>>& triangles)
+{
+    glBegin(GL_LINES);
+    for (const auto& tri : triangles) {
+        QVector3D a, b, c;
+        if (tri->p0 == nullptr || tri->p1 == nullptr || tri->p2 == nullptr) {
+            a = tri->pos0;
+            b = tri->pos1;
+            c = tri->pos2;
+        } else {
+            a = tri->p0->GetPosition();
+            b = tri->p1->GetPosition();
+            c = tri->p2->GetPosition();
+        }
+        glVertex3f(a.x(), a.y(), a.z());
+        glVertex3f(b.x(), b.y(), b.z());
+
+        glVertex3f(b.x(), b.y(), b.z());
+        glVertex3f(c.x(), c.y(), c.z());
+
+        glVertex3f(c.x(), c.y(), c.z());
+        glVertex3f(a.x(), a.y(), a.z());
+    }
+    glEnd();
+}

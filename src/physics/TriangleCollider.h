@@ -5,6 +5,7 @@
 #include "Particle.h"
 #include "GeometryPrimitives.h"
 #include "Intersections.h"
+#include "Mesh.h"
 
 struct TriangleCollider
 {
@@ -190,8 +191,6 @@ inline bool IsPointInsideMesh(const QVector3D& point, const std::vector<std::sha
     for (const auto& triangle : triangles) {
         RayCastResult result = RayIntersectsTriangle(ray, triangle);
         if (result.hit) ++count;
-        // if (RayIntersectsTriangle(ray, triangle)) ++count;
-
     }
 
     return count % 2 == 1; // Odd count means inside, even means outside

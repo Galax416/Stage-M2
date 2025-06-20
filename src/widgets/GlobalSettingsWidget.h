@@ -46,6 +46,7 @@ private:
     QGroupBox   *m_backgroundColorGroupBox;
     QPushButton *m_backgroundColorButton;
 
+    /*
     QGroupBox *m_rotationGroupBox;
     QSlider   *m_rotationXSlider;
     QSpinBox  *m_rotationXSpinBox;
@@ -53,6 +54,7 @@ private:
     QSpinBox  *m_rotationYSpinBox;
     QSlider   *m_rotationZSlider;
     QSpinBox  *m_rotationZSpinBox;
+    */
 
 
 };

@@ -74,16 +74,16 @@ inline Quadrant GetQuadrant(const QVector3D& pos, const QVector3D& center, float
     return (angle <= qDegreesToRadians(angleDegrees * 0.5f)) ? Top : Bottom;
 }
 
-inline float GetStiffnessByQuadrant(QVector3D posA, QVector3D posB, const QVector3D& center, float angleDegrees = 220.0f) 
+inline float GetStiffnessByQuadrant(QVector3D posA, QVector3D posB, const QVector3D& center, float angleDegrees = 100.0f) 
 {
     Quadrant quadA = GetQuadrant(posA, center, angleDegrees);
     Quadrant quadB = GetQuadrant(posB, center, angleDegrees);
 
     float stiffness = 1000.0f; // Default stiffness
-    if (quadA == Top && quadB == Top) stiffness = 500.0f;
-    else if (quadA == Top && quadB == Bottom) stiffness = 400.0f;
-    else if (quadA == Bottom && quadB == Bottom) stiffness = 400.0f;
-    else if (quadA == Bottom && quadB == Top) stiffness = 400.0f;
+    if (quadA == Top && quadB == Top) stiffness = 450.0f;
+    else if (quadA == Top && quadB == Bottom) stiffness = 380.0f;
+    else if (quadA == Bottom && quadB == Bottom) stiffness = 380.0f;
+    else if (quadA == Bottom && quadB == Top) stiffness = 380.0f;
     return stiffness;
 }
 

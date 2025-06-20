@@ -6,7 +6,7 @@
 #include <QMatrix4x4>
 
 #include <cmath>
-
+#include <cfloat>
 
 // Forward declaration
 struct AABB;
@@ -19,11 +19,11 @@ AABB FromMinMax(const QVector3D& min, const QVector3D& max);
 // Axis-Aligned Bounding Box
 struct AABB 
 {
-	QVector3D position;
+	QVector3D center;
 	QVector3D size; // HALF SIZE!
 
 	inline AABB() : size(1, 1, 1) { }
-	inline AABB(const QVector3D& p, const QVector3D& s) : position(p), size(s) { }
+	inline AABB(const QVector3D& p, const QVector3D& s) : center(p), size(s) { }
 
 	inline OBB toOBB() const; // Convert AABB to OBB
 	inline bool Intersects(const AABB& other) const;
@@ -33,21 +33,22 @@ struct AABB
 // Oriented Bounding Box
 struct OBB 
 {
-	QVector3D position;
-	QVector3D size;
+	QVector3D center;
+	QVector3D size; // HALF SIZE!
 	QMatrix3x3 orientation;
 
 	inline OBB() : size(1, 1, 1) { }
-	inline OBB(const QVector3D& p, const QVector3D& s) : position(p), size(s) { }
-	inline OBB(const QVector3D& p, const QVector3D& s, const QMatrix3x3& o) : position(p), size(s), orientation(o) { }
-	inline OBB(const AABB& aabb, const QMatrix3x3& o) : position(aabb.position), size(aabb.size), orientation(o) { }
+	inline OBB(const QVector3D& p, const QVector3D& s) : center(p), size(s) { }
+	inline OBB(const QVector3D& p, const QVector3D& s, const QMatrix3x3& o) : center(p), size(s), orientation(o) { }
+	inline OBB(const AABB& aabb, const QMatrix3x3& o) : center(aabb.center), size(aabb.size), orientation(o) { }
 
 	inline AABB toAABB() const; // Convert OBB to AABB
+	QVector3D GetAxis(int i) const { return QVector3D(orientation(0, i), orientation(1, i), orientation(2, i)); } // Get axis of OBB
 	inline QVector3D ClosestPoint(const QVector3D& point) const; // Get closest point on OBB to a given point
 };
 
 // Convert AABB to OBB
-inline OBB AABB::toOBB() const { return OBB(position, size); }
+inline OBB AABB::toOBB() const { return OBB(center, size); }
 
 // Check if AABB intersects with another AABB
 inline bool AABB::Intersects(const AABB& other) const 
@@ -78,35 +79,35 @@ inline AABB OBB::toAABB() const
         std::abs(absX.z()) + std::abs(absY.z()) + std::abs(absZ.z())
     );
 
-    return AABB(position, halfExtents);
+    return AABB(center, halfExtents);
 }
 
 // Get closest point on OBB to a given point
 inline QVector3D OBB::ClosestPoint(const QVector3D& point) const
 {
-	QVector3D localPoint = QMatrix4x4(orientation.transposed()).map(point - position);
+	QVector3D localPoint = QMatrix4x4(orientation.transposed()).map(point - center);
 
 	QVector3D clampedPoint = localPoint;
 	clampedPoint.setX(qBound(-size.x(), clampedPoint.x(), size.x()));
 	clampedPoint.setY(qBound(-size.y(), clampedPoint.y(), size.y()));
 	clampedPoint.setZ(qBound(-size.z(), clampedPoint.z(), size.z()));
 
-	return position + QMatrix4x4(orientation).map(clampedPoint);
+	return center + QMatrix4x4(orientation).map(clampedPoint);
 }
 
 // Functions to get min and max of AABB
 inline QVector3D GetMin(const AABB& aabb)
 {
-	QVector3D p1 = aabb.position + aabb.size;
-	QVector3D p2 = aabb.position - aabb.size;
+	QVector3D p1 = aabb.center + aabb.size;
+	QVector3D p2 = aabb.center - aabb.size;
 
 	return QVector3D(fminf(p1.x(), p2.x()), fminf(p1.y(), p2.y()), fminf(p1.z(), p2.z()));
 }
 
 inline QVector3D GetMax(const AABB& aabb)
 {
-	QVector3D p1 = aabb.position + aabb.size;
-	QVector3D p2 = aabb.position - aabb.size;
+	QVector3D p1 = aabb.center + aabb.size;
+	QVector3D p2 = aabb.center - aabb.size;
 
 	return QVector3D(fmaxf(p1.x(), p2.x()), fmaxf(p1.y(), p2.y()), fmaxf(p1.z(), p2.z()));
 }

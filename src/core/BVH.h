@@ -56,7 +56,7 @@ inline BVHSplit FindBestSplit(std::vector<std::shared_ptr<T>>& objects)
     for (int axis = 0; axis < 3; ++axis) {
         std::sort(objects.begin(), objects.end(), [axis](const auto& a, const auto& b) {
             if (!a || !b) return false;
-            return a->GetAABB().position[axis] < b->GetAABB().position[axis];
+            return a->GetAABB().center[axis] < b->GetAABB().center[axis];
         });
 
         size_t length = objects.size();
@@ -132,7 +132,7 @@ inline std::unique_ptr<BVHNode<T>> BuildBVH(std::vector<std::shared_ptr<T>>& obj
     // Sort by center along axis
     std::sort(objects.begin(), objects.end(), [axis = best.axis](const auto& a, const auto& b) {
         if (!a || !b) return false;
-        return a->GetAABB().position[axis] < b->GetAABB().position[axis];
+        return a->GetAABB().center[axis] < b->GetAABB().center[axis];
     });
 
     // Split objects

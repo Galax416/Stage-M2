@@ -9,6 +9,10 @@ Particle::Particle(QVector3D pos, float r, float m, bool isDynamic, QColor color
     m_particleModel = std::make_unique<Sphere>(pos, m_radius, color);
     
     SetPosition(pos);
+    // oldPosition = pos;
+    // currentPosition = pos;
+    // previousPosition = pos;
+    // displayPosition = pos;
     transform.scale = QVector3D(m_radius, m_radius, m_radius);
     SetMass(m);
     isDynamic ? SetDynamic() : SetStatic();
@@ -28,13 +32,15 @@ void Particle::Update(float dt)
 
 void Particle::Render(QOpenGLShaderProgram* shaderProgram)
 {
+    // m_particleModel->displayPosition = displayPosition;
     m_particleModel->Render(shaderProgram);
 }
 
 void Particle::SynsCollisionVolumes()
 {
-    sphereCollider.position = transform.position;
+    sphereCollider.center = transform.position;
     sphereCollider.radius = m_radius;
+    m_particleModel->SynsCollisionVolumes();
 }
 
 void Particle::SetColor(QColor c)
@@ -49,15 +55,15 @@ QColor Particle::GetColor() const
 
 void Particle::SetPosition(const QVector3D& p) {
     transform.position = p;
-    // oldPosition = p;
-    m_particleModel->transform.position = p;
+    oldPosition = p;
+    m_particleModel->SetPosition(p);
 
     SynsCollisionVolumes();
 }
 
 void Particle::SetRotation(const QQuaternion& q) {
-    transform.rotation = q;
-    m_particleModel->transform.rotation = q;
+    transform.SetRotation(q);
+    m_particleModel->transform.SetRotation(q);
 
     SynsCollisionVolumes();
 }

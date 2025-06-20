@@ -5,6 +5,7 @@
 #include <QtConcurrent> // For concurrent processing
 #include <QMutex>  
 #include <QMutexLocker> // For thread safety
+#include <QDebug>
 #include <vector>
 #include <memory>
 
@@ -41,12 +42,13 @@ protected:
 
 public slots:
     void renderBVH(bool render) { m_renderBVH = render; }
+    void renderCollider(bool render) { m_renderCollider = render; }
 
 public:
     PhysicsSystem();
 
     void Update(float deltaTime);
-    void Render(QOpenGLShaderProgram* shaderProgram);
+    void Render(QOpenGLShaderProgram* shaderProgram, float alpha = 1.0f);
 
     inline void AddRigidbody(std::shared_ptr<Rigidbody> body) {
         if (!body) {
@@ -91,12 +93,18 @@ public:
     void ChangeGravity(const QVector3D& g);
     void ChangeFriction(float f);
 
-    void RotateRigidbodies(QVector3D rotation, const QVector3D& pivot = QVector3D(0, 0, 0));
+    // void RotateRigidbodies(QVector3D rotation, const QVector3D& pivot = QVector3D(0, 0, 0));
     void SetUpBVH() { bvhRigidbodies = BuildBVH(constraints); bvhTriangleColliders = BuildBVH(triangleColliders); }
 
     std::vector<std::shared_ptr<Rigidbody>> GetRigidBodies() { return bodies; }
+    
+    // QElapsedTimer m_physicsTimer;
+    // qint64 m_lastStepTime = 0;
+    // float m_physicsDeltaTime = 0.016f;
+    // void StartTimer() { m_physicsTimer.start(); m_lastStepTime = m_physicsTimer.elapsed(); }
 
 private: 
+    bool m_renderCollider { false }; // Flag to render colliders
     bool m_renderBVH { false }; // Flag to render the BVH tree
     // std::vector<Transform> m_currentTransforms; // Render use
     // std::vector<Transform> m_nextTransforms; // Physics use
@@ -104,4 +112,6 @@ private:
     // QMutex m_constraintsMutex;
     // QMutex m_springsMutex;
     // QMutex m_trianglesMutex;
+
+
 };

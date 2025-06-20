@@ -5,9 +5,9 @@
 // Sphere Collider
 struct SphereCollider 
 {
-	QVector3D position;
+	QVector3D center;
 	float radius;
 
 	inline SphereCollider() : radius(1.0f) { }
-	inline SphereCollider(const QVector3D& p, float r) : position(p), radius(r) { }
+	inline SphereCollider(const QVector3D& p, float r) : center(p), radius(r) { }
 };

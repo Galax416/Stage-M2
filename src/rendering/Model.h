@@ -39,6 +39,7 @@ public:
 
     // void ResetModel();
     void LoadModel(const QString &path);
+    // std::shared_ptr<Model> ToTetra(float spacing = 0.1f);
 
     void Update(float dt) override;
     void Render(QOpenGLShaderProgram* shaderProgram) override;
@@ -52,8 +53,11 @@ public:
     QColor GetColor() const { return color; }
     bool IsValid() const;
 
+    void SetDisplayAABB(bool display) { displayAABB = display; }
+
 private:
     AABB bounds;
+    bool displayAABB { false };
 };
 
 

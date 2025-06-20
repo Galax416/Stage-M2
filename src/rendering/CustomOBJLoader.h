@@ -46,7 +46,7 @@ public:
 public:
     inline CustomOBJLoader() {}
 
-    inline void clear()
+    inline void Clear()
     {
         vertices.clear();
         normals.clear();

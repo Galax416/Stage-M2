@@ -4,6 +4,7 @@
 
 #include "BoundingBox.h"
 #include "SphereCollider.h"
+#include "TriangleCollider.h"
 #include "GeometryPrimitives.h"
 #include "BVH.h"
 #include <cmath>
@@ -13,8 +14,8 @@ void Render(const Ray& ray);
 
 void Render(const AABB& aabb);
 void Render(const OBB& obb);
-
 void Render(const SphereCollider& sphere);
+void Render(const std::vector<std::shared_ptr<TriangleCollider>>& triangles);
 
 template <typename T>
 void RenderBVH(QOpenGLShaderProgram* shader, BVHNode<T>* node, int depth = 0)

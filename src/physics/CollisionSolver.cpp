@@ -37,18 +37,26 @@ void SolvePairCollision(Rigidbody* a, Rigidbody* b)
         // SolveSphereSphereCollision(a->sphereCollider, b->sphereCollider, b);
     }
     else if (typeA == RIGIDBODY_TYPE_SPHERE && typeB == RIGIDBODY_TYPE_BOX) {
-        // SolveSphereOBBCollision(a->sphereCollider, b->boxCollider, b);
+        SolveSphereOBBCollision(a, b);
     }
     else if (typeA == RIGIDBODY_TYPE_BOX && typeB == RIGIDBODY_TYPE_BOX) {
-        // SolveOBBOBBCollision(a->boxCollider, b->boxCollider, b);
+        SolveOBBOBBCollision(a, b);
     }
 }
 
-void SolvePairCollision(Particle* a, TriangleCollider* b)
+void SolvePairCollision(Rigidbody* a, TriangleCollider* b)
 {
     if (!a || !b) return;
 
-    SolvePaticleTriangleCollision(*a, *b);
+    int typeA = a->GetType();
+
+    if (typeA == RIGIDBODY_TYPE_PARTICLE) {
+        auto* pa = static_cast<Particle*>(a);
+        // if (pa->HasFlag(PARTICLE_NO_COLLISION_WITH_US)) return; // Skip if no collision with us
+        // if (pa->HasFlag(PARTICLE_ATTACHED_TO_TRIANGLE)) return; // Skip if attached to triangle
+        SolvePaticleTriangleCollision(*pa, *b);
+    }
+
 }
 
 
@@ -74,6 +82,7 @@ void SolveParticleParticleCollision(Particle& p1, Particle& p2)
     if (p2.IsDynamic()) p2.ApplyPositionCorrection(-correction * w2);
 
 }
+
 void SolveParticleOBBCollision(Particle& p, Rigidbody* rb)
 {
     QVector3D pos = p.GetPosition();
@@ -122,4 +131,34 @@ void SolvePaticleTriangleCollision(Particle& p, TriangleCollider& tri)
             if (tri.p2->IsDynamic()) { tri.p2->ApplyPositionCorrection(-correction * w3); }
         }
     } 
+}
+
+void SolveSphereOBBCollision(Rigidbody* sphereRb, Rigidbody* obbRb)
+{
+    if (!sphereRb || !obbRb) return;
+
+    QVector3D sphereCenter = sphereRb->sphereCollider.center;
+    float sphereRadius = sphereRb->sphereCollider.radius;
+
+    QVector3D closestPoint = obbRb->boxCollider.ClosestPoint(sphereCenter);
+    QVector3D delta = sphereCenter - closestPoint;
+    float dist = delta.length();
+
+    if (dist < 1e-6f || dist >= sphereRadius) return;
+
+    float w1 = sphereRb->GetInvMass();
+    float w2 = obbRb->GetInvMass();
+    float totalInvMass = w1 + w2;
+    if (totalInvMass <= 0.0f) return;
+
+    float penetration = sphereRadius - dist;
+    QVector3D correction = delta.normalized() * (penetration / totalInvMass);
+
+    if (sphereRb->IsDynamic()) sphereRb->ApplyPositionCorrection(correction * w1);
+    if (obbRb->IsDynamic()) obbRb->ApplyPositionCorrection(-correction * w2);
+}
+
+void SolveOBBOBBCollision(Rigidbody* rb1, Rigidbody* rb2)
+{
+    
 }
