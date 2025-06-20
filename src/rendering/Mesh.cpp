@@ -1,4 +1,5 @@
 #include "Mesh.h"
+#include "TriangleCollider.h"
 
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, Material material) :
     vertices(vertices), indices(indices), material(material),
@@ -12,7 +13,27 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, Mate
 
 	UnifySharedVertices();
     SetUpMesh();
+    // SetUpTriangles();
 
+}
+
+void Mesh::Clear() 
+{
+    vertices.clear();
+    indices.clear();
+    // triangles.clear();
+    material = Material();
+}
+
+void Mesh::ReleaseGLResources() 
+{
+    if (QOpenGLContext::currentContext() == nullptr) {
+        qWarning() << "releaseGLResources() called without valid OpenGL context!";
+        return;
+    }
+    if (VAO && VAO->isCreated()) VAO->destroy();
+    if (VBO && VBO->isCreated()) VBO->destroy();
+    if (IBO && IBO->isCreated()) IBO->destroy();
 }
 
 void Mesh::SetUpMesh()
@@ -45,6 +66,21 @@ void Mesh::SetUpMesh()
     VAO->release();
     
 }
+
+// void Mesh::SetUpTriangles()
+// {
+//     triangles.clear();
+//     triangles.reserve(indices.size() / 3);
+
+//     for (size_t i = 0; i < indices.size(); i += 3) {
+//         Triangle triangle(
+//             vertices[indices[i]].position,
+//             vertices[indices[i + 1]].position,
+//             vertices[indices[i + 2]].position
+//         );
+//         triangles.push_back(triangle);
+//     }
+// }
 
 void Mesh::Render(QOpenGLShaderProgram* shaderProgram)
 {
@@ -126,3 +162,74 @@ void Mesh::UnifySharedVertices()
 	ComputeNormals();
 
 }
+
+// std::shared_ptr<Mesh> Mesh::ToTetra(float spacing)
+// {
+    // std::vector<Vertex> vertices = this->vertices;
+    // std::vector<unsigned int> indices = this->indices;
+
+    // if (vertices.empty()) return nullptr;
+
+    // // Bounding box
+    // QVector3D minV = vertices[0].position;
+    // QVector3D maxV = vertices[0].position;
+    // for (const auto& v : vertices) {
+    //     minV.setX(std::min(minV.x(), v.position.x()));
+    //     minV.setY(std::min(minV.y(), v.position.y()));
+    //     minV.setZ(std::min(minV.z(), v.position.z()));
+    //     maxV.setX(std::max(maxV.x(), v.position.x()));
+    //     maxV.setY(std::max(maxV.y(), v.position.y()));
+    //     maxV.setZ(std::max(maxV.z(), v.position.z()));
+    // }
+
+
+    // QHash<QVector3D, int> pointIndex;
+    // auto AddPoint = [&](const QVector3D& p) -> int {
+    //     if (pointIndex.count(p)) return pointIndex[p];
+    //     Vertex v;
+    //     v.position = p;
+    //     v.normal = QVector3D(0, 0, 1); // dummy
+    //     v.texCoords = QVector2D(0, 0);
+    //     v.tangent = QVector3D(1, 0, 0);
+    //     v.bitangent = QVector3D(0, 1, 0);
+    //     int idx = static_cast<int>(vertices.size());
+    //     vertices.push_back(v);
+    //     pointIndex[p] = idx;
+    //     return idx;
+    // };
+
+    // for (float x = minV.x(); x < maxV.x(); x += spacing) {
+    //     for (float y = minV.y(); y < maxV.y(); y += spacing) {
+    //         for (float z = minV.z(); z < maxV.z(); z += spacing){
+    //             QVector3D p0 = QVector3D(x, y, z);
+    //             QVector3D p1 = p0 + QVector3D(spacing, 0, 0);
+    //             QVector3D p2 = p0 + QVector3D(0, spacing, 0);
+    //             QVector3D p3 = p0 + QVector3D(spacing, spacing, 0);
+    //             QVector3D p4 = p0 + QVector3D(0, 0, spacing);
+    //             QVector3D p5 = p0 + QVector3D(spacing, 0, spacing);
+    //             QVector3D p6 = p0 + QVector3D(0, spacing, spacing);
+    //             QVector3D p7 = p0 + QVector3D(spacing, spacing, spacing);
+        
+    //             std::array<std::array<QVector3D, 4>, 5> tetraList = {{
+    //                 {p0, p1, p3, p6},
+    //                 {p0, p3, p2, p6},
+    //                 {p0, p5, p1, p6},
+    //                 {p0, p4, p5, p6},
+    //                 {p5, p7, p3, p6},
+    //             }};
+        
+    //             for (const auto& tet : tetraList) {
+    //                 QVector3D bary = (tet[0] + tet[1] + tet[2] + tet[3]) / 4.0f;
+    //                 if (!IsPointInsideMesh(bary, triangles)) continue;
+        
+    //                 indices.push_back(AddPoint(tet[0]));
+    //                 indices.push_back(AddPoint(tet[1]));
+    //                 indices.push_back(AddPoint(tet[2]));
+    //                 indices.push_back(AddPoint(tet[3]));
+    //             }
+    //         }
+    //     }
+    // }
+
+    // return std::make_shared<Mesh>(vertices, indices, material);
+// }

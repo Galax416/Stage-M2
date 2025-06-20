@@ -25,8 +25,13 @@ MainWindow::MainWindow(QWidget* parent)
     QMenu* fileMenu = m_menuBar->addMenu("File");
     QAction* loadAction = fileMenu->addAction("Load");
     QAction* saveAction = fileMenu->addAction("Save");
-    m_menuBar->addMenu("2D");
-    m_menuBar->addMenu("3D");
+    // QMenu* menu2D = m_menuBar->addMenu("2D");
+    // QMenu* menu3D = m_menuBar->addMenu("3D");
+    m_menuBar->addSeparator();
+    QMenu* view = m_menuBar->addMenu("View");
+    QAction* vue1 = view->addAction("View 1");
+    QAction* vue2 = view->addAction("View 2");
+    QAction* vue3 = view->addAction("View 3");
     setMenuBar(m_menuBar);
 
     // Set splitter
@@ -107,6 +112,16 @@ MainWindow::MainWindow(QWidget* parent)
             m_openGLWidget->SaveOBJ(fileName);
         }
     });
+    connect(vue1, &QAction::triggered, this, [this]() {
+        m_openGLWidget->SetViewMode(ViewMode::View1);
+    });
+    connect(vue2, &QAction::triggered, this, [this]() {
+        m_openGLWidget->SetViewMode(ViewMode::View2);
+    });
+    connect(vue3, &QAction::triggered, this, [this]() {
+        m_openGLWidget->SetViewMode(ViewMode::View3);
+    });
+    
 
     // Status bar
     connect(m_openGLWidget, &OpenGLWidget::statusBarMessageChanged, this, &MainWindow::updateStatusBarMessage);
@@ -115,17 +130,19 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_globalSettingsWidget, &GlobalSettingsWidget::DeltaTimeChanged,       m_openGLWidget, &OpenGLWidget::setGlobalDeltaTime);
     connect(m_globalSettingsWidget, &GlobalSettingsWidget::FrictionChanged,        m_openGLWidget, &OpenGLWidget::setGlobalFriction);
     connect(m_globalSettingsWidget, &GlobalSettingsWidget::BackgroundColorChanged, m_openGLWidget, &OpenGLWidget::setGlobalBackgroundColor);
-    connect(m_globalSettingsWidget, &GlobalSettingsWidget::RotationChanged,        m_openGLWidget, &OpenGLWidget::setGlobalRotation);
 
     // Model settings
     connect(m_modelSettingsWidget, &ModelSettingsWidget::CrossSpringModelChanged,        m_openGLWidget, &OpenGLWidget::setCrossSpringModel);
     connect(m_modelSettingsWidget, &ModelSettingsWidget::CreateBreastModelButtonClicked, m_openGLWidget, &OpenGLWidget::setCurves);
+    connect(m_openGLWidget,        &OpenGLWidget::breastSlidersChanged,                  m_modelSettingsWidget, &ModelSettingsWidget::ResetSliders);    
     connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelThicknessChanged,    m_openGLWidget, &OpenGLWidget::setThickness);
     connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelSamplingChanged,     m_openGLWidget, &OpenGLWidget::setSamplingModel);
     connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelLayerChanged,        m_openGLWidget, &OpenGLWidget::setLayerModel);
     connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelCurveChanged,        m_openGLWidget, &OpenGLWidget::setDeformation);
-    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelRingChanged,         m_openGLWidget, &OpenGLWidget::setRing);
-    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelHeightChanged,       m_openGLWidget, &OpenGLWidget::setHeight);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelWidthChanged,        m_openGLWidget, &OpenGLWidget::setCurveWidth);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelHeightChanged,       m_openGLWidget, &OpenGLWidget::setCurveHeight);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelDepthChanged,        m_openGLWidget, &OpenGLWidget::setCurveDepth);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelRingChanged,         m_openGLWidget, &OpenGLWidget::setCurveRing);
     connect(m_modelSettingsWidget, &ModelSettingsWidget::Create3DModelButtonClicked,     m_openGLWidget, &OpenGLWidget::setVoxelModel);
 
     // Model settings (3D)

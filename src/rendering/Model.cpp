@@ -1,6 +1,7 @@
 #include "Model.h"
 #include "Mesh.h"
 #include "CustomOBJLoader.h"
+#include "TriangleCollider.h"
 
 Model::Model()
 {
@@ -13,39 +14,59 @@ Model::Model(const QString& path)
     LoadModel(path);
 }
 
-// void Model::ResetModel()
-// {
-//     mesh = std::make_unique<Mesh>();
-//     customOBJ = std::make_unique<CustomOBJLoader>();
-// }
+void Model::ReleaseGLResources()
+{
+    if (mesh) mesh->ReleaseGLResources();
+}
 
 void Model::Init()
 {
     initializeOpenGLFunctions();
-    type = RIGIDBODY_TYPE_BOX;
+    type = RIGIDBODY_TYPE_TRIANGLE;
     bounds = AABB();
     oldPosition = transform.position;
+    // currentPosition = transform.position;
+    // previousPosition = transform.position;
+    // displayPosition = transform.position;
     mesh = std::make_unique<Mesh>();
     customOBJ = std::make_unique<CustomOBJLoader>();
 }
 
+
 void Model::SynsCollisionVolumes()
 {
+    triangleColliders.clear();
+
     if (type == RIGIDBODY_TYPE_SPHERE) {
-        sphereCollider.position = transform.position;
+        sphereCollider.center = transform.position;
         sphereCollider.radius = transform.scale.x();
     }
     else if (type == RIGIDBODY_TYPE_BOX) {
-        boxCollider.position = bounds.position + transform.position;
+        boxCollider.center = bounds.center + transform.position;
         boxCollider.size = bounds.size * transform.scale;
         boxCollider.orientation = transform.GetRotationMatrix();
+    } else if (type == RIGIDBODY_TYPE_TRIANGLE) {
+        if (!mesh) return;
+        if (mesh->vertices.empty()) return;
+        for (size_t i = 0; i < mesh->indices.size(); i += 3) {
+            QVector3D a = mesh->vertices[mesh->indices[i]].position;
+            QVector3D b = mesh->vertices[mesh->indices[i + 1]].position;
+            QVector3D c = mesh->vertices[mesh->indices[i + 2]].position;
+
+            auto collider = std::make_shared<TriangleCollider>(a, b, c);
+    
+            triangleColliders.push_back(collider);
+        }
     }
 }
+
 
 void Model::SetUpColliders()
 {
     if (!mesh) return;
+
     BuildAABB();
+
     SynsCollisionVolumes();
 }
 
@@ -53,7 +74,7 @@ void Model::LoadModel(const QString& path)
 {
 
     // ResetModel();
-    customOBJ->clear();
+    customOBJ->Clear();
 
     bool ok = customOBJ->LoadOBJ(path.toStdString().c_str());
     if (!ok) {
@@ -98,58 +119,29 @@ void Model::LoadModel(const QString& path)
     SetUpColliders();
 }
 
-void Model::Update(float deltaTime)
+// std::shared_ptr<Model> Model::ToTetra(float spacing)
+// {
+//     std::shared_ptr<Model> tetraModel = std::make_shared<Model>();
+//     qDebug() << "Converting model to tetrahedral mesh with spacing:" << spacing;
+//     tetraModel->mesh = mesh->ToTetra(spacing);
+//     tetraModel->SetUpColliders();
+//     tetraModel->transform = transform; // Copy the transform
+//     tetraModel->color = color; // Copy the color
+//     return tetraModel;
+// }
+
+void Model::Update(float dt)
 {
-    if (!isMovable) return;
-
-    QVector3D velocity = GetVelocity();
-    oldPosition = transform.position;
-    float deltaSq = deltaTime * deltaTime;
-    
-    if (fabsf(velocity.x()) < 0.001f) {
-        velocity.setX(0.0f);
-    }
-    if (fabsf(velocity.y()) < 0.001f) {
-        velocity.setY(0.0f);
-    }
-    if (fabsf(velocity.z()) < 0.001f) {
-        velocity.setZ(0.0f);
-    }
-
-    // if (type == RIGIDBODY_TYPE_BOX) {
-    //     QVector3D angAccel = torques * InvTensor();
-    //     angVel += angAccel * deltaTime;
-    //     angVel *= friction; // à voir !
-
-    //     if (fabsf(angVel.x()) < 0.001f) {
-    //         angVel.setX(0.0f);
-    //     }
-    //     if (fabsf(angVel.y()) < 0.001f) {
-    //         angVel.setY(0.0f);
-    //     }
-    //     if (fabsf(angVel.z()) < 0.001f) {
-    //         angVel.setZ(0.0f);
-    //     }
-    // }
-
-    transform.position += (velocity * friction + forces * deltaSq);
-
-    // if (type == RIGIDBODY_TYPE_BOX) {
-    //     orientation += angVel * deltaTime;
-    //     transform.SetRotationEuler(orientation); // à voir !
-    //     boxCollider.orientation = transform.GetRotationMatrix();
-    // }
-
-    SynsCollisionVolumes();
-
-    forces = QVector3D(0.0f, 0.0f, 0.0f); // Reset forces after applying them
-
+    // Optional
 }
 
 void Model::Render(QOpenGLShaderProgram* shaderProgram)
 {
     shaderProgram->bind();
-    
+
+    // Transform t = transform; // Copy the transform for rendering
+    // t.position = displayPosition; // Use display position for rendering
+
     shaderProgram->setUniformValue("material.albedo", QVector3D(color.redF(), color.greenF(), color.blueF()));
     shaderProgram->setUniformValue("transparency", static_cast<GLfloat>(color.alphaF()));
     shaderProgram->setUniformValue("model", transform.GetModelMatrix());
@@ -157,9 +149,6 @@ void Model::Render(QOpenGLShaderProgram* shaderProgram)
     if (mesh) mesh->Render(shaderProgram);
     
     shaderProgram->release();
-
-    // Debug collider
-    // Rigidbody::Render(shaderProgram);
 }
 
 void Model::BuildAABB()
@@ -181,8 +170,19 @@ void Model::BuildAABB()
         maxBounds.setZ(qMax(maxBounds.z(), vertex.position.z()));
     }
 
-    bounds.position = (minBounds + maxBounds) * 0.5f;
+    bounds.center = (minBounds + maxBounds) * 0.5f;
     bounds.size = (maxBounds - minBounds) * 0.5f;
+}
+
+void Model::SetPosition(const QVector3D& p) {
+    transform.position = p;
+    oldPosition = p;
+    SynsCollisionVolumes();
+}
+
+void Model::SetRotation(const QQuaternion& q) {
+    transform.SetRotation(q);
+    SynsCollisionVolumes();
 }
 
 bool Model::IsValid() const

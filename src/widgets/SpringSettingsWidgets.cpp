@@ -56,7 +56,7 @@ void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std:
 
     for (const auto& spring : springs) {
         if (spring) {
-            kGroups[static_cast<int>(spring->GetK())].append(spring);
+            kGroups[spring->GetStiffness()].append(spring);
         }
     }
 
@@ -71,53 +71,55 @@ void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std:
         
         auto rowLayout = new QHBoxLayout();
 
-        auto colorLabel = new QLabel;
-        colorLabel->setFixedSize(20, 20);
-        QPalette palette = colorLabel->palette();
-        palette.setColor(QPalette::Window, floatToQColor(initialK));
-        colorLabel->setAutoFillBackground(true);
-        colorLabel->setPalette(palette);
+        auto colorButton  = new QPushButton();
+        colorButton->setFixedSize(20, 20);
+        colorButton->setFlat(true);
+        colorButton->setAutoFillBackground(true);
+
+        QColor initialColor = floatToQColor(initialK);
+        QString style = QString("background-color: %1; border: 1px solid black;").arg(initialColor.name());
+        colorButton->setStyleSheet(style);
 
         auto slider = new QSlider(Qt::Horizontal);
-        slider->setRange(1, 10000);
+        slider->setRange(1, 1000);
         slider->setValue(static_cast<int>(initialK));
         slider->setSingleStep(1);
 
         auto spinBox = new QSpinBox;
-        spinBox->setRange(1, 10000);
+        spinBox->setRange(1,  1000);
         spinBox->setValue(static_cast<int>(initialK));
         spinBox->setSingleStep(1);
 
-        connect(slider, &QSlider::valueChanged, this, [=](int value) {
-            spinBox->setValue(value);
-            QColor newColor = floatToQColor(value);
+        connect(colorButton, &QPushButton::clicked, this, [=]() {
+            QColor color = QColorDialog::getColor(initialColor, this);
+            if (color.isValid()) {
+                QString newStyle = QString("background-color: %1; border: 1px solid black;").arg(color.name());
+                colorButton->setStyleSheet(newStyle);
+                
+                // Update the spring color
+                for (const auto& spring : springGroup) {
+                    spring->SetColor(color);
+                }
+            }
+        });
 
-            QPalette updatedPalette = palette;
-            updatedPalette.setColor(QPalette::Window, newColor);
-            colorLabel->setPalette(updatedPalette);
-            
-            // // Update the spring stiffness
+        connect(slider, &QSlider::valueChanged, this, [=](int value) {
+            spinBox->setValue(value);  
+            // Update the spring stiffness
             for (const auto& spring : springGroup) {
-                spring->SetConstants(value, spring->GetB());
-                spring->SetColor(newColor);
+                spring->SetStiffness(static_cast<float>(value));
             }
         });
         connect(spinBox, QOverload<int>::of(&QSpinBox::valueChanged), [=](int value) {
             slider->setValue(value);
-            QColor newColor = floatToQColor(value);
-
-            QPalette updatedPalette = palette;
-            updatedPalette.setColor(QPalette::Window, newColor);
-            colorLabel->setPalette(updatedPalette);
             
-            // // Update the spring stiffness
+            // Update the spring stiffness
             for (const auto& spring : springGroup) {
-                spring->SetConstants(value, spring->GetB());
-                spring->SetColor(newColor);
+                spring->SetStiffness(static_cast<float>(value));
             }
         });
 
-        rowLayout->addWidget(colorLabel);
+        rowLayout->addWidget(colorButton);
         rowLayout->addWidget(slider);
         rowLayout->addWidget(spinBox);
 

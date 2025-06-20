@@ -15,22 +15,26 @@ enum ParticleFlags
     PARTICLE_NO_COLLISION_WITH_US = 1 << 1
 };
 
-class Model; // Forward declaration of Model class
+// Forward declaration
+class Model; 
+
 
 class Particle : public Rigidbody
 {
 private:
-    float  m_radius;
-    QColor m_color;
-    std::shared_ptr<Model> m_particleModel;
-    ParticleFlags m_flags;
+    float m_radius { 0.1f }; // default radius
+    std::shared_ptr<Model> m_particleModel; // Model for rendering
+    ParticleFlags m_flags { PARTICLE_FREE }; // Flags for particle state
 
 public:
     // Particle();
-    Particle(QVector3D pos, float r, float m, bool mov = true, QColor color = Qt::white);
+    Particle(QVector3D pos, float r, float m, bool isDynamic = true, QColor color = Qt::white);
+    void ReleaseGLResources();
 
-    void Update(float deltaTime) override;
+    void Update(float dt) override;
     void Render(QOpenGLShaderProgram* shaderProgram) override;
+
+    void SynsCollisionVolumes() override;
 
     void SetPosition(const QVector3D& p) override;
     void SetRotation(const QQuaternion& q) override;
@@ -39,12 +43,11 @@ public:
     float GetRadius() const { return m_radius; }
 
     void SetColor(QColor c);
-    QColor GetColor() const { return m_color; }
+    QColor GetColor() const;
 
     void SetFlags(ParticleFlags flags) { m_flags = flags; }
-    ParticleFlags GetFlags() { return m_flags; }
     void AddFlag(ParticleFlags flag) { m_flags = static_cast<ParticleFlags>(m_flags | flag); }
     void RemoveFlag(ParticleFlags flag) { m_flags = static_cast<ParticleFlags>(m_flags & ~flag); }
-    bool HasFlag(ParticleFlags flag) const { return m_flags & flag; }
+    bool HasFlag(ParticleFlags flag) const { return (m_flags & flag) != 0; }
 
 };

@@ -28,6 +28,7 @@ public:
 public slots:
     void Start() 
     {
+        // m_physicsSystem->StartTimer();
         m_timer->start(m_deltaTime * 1000); // Convert seconds to milliseconds
     }
 
@@ -42,7 +43,6 @@ public slots:
         if (!m_running) return;
 
         if (m_physicsSystem) {
-            // QMutexLocker locker(&mutex);
             m_physicsSystem->Update(m_deltaTime);
             emit Updated();
         }
@@ -51,6 +51,11 @@ public slots:
     void SetPhysicsRunning(bool running) 
     { 
         m_running = running;
+        if (m_running) {
+            Start();
+        } else {
+            Stop();
+        }
     }
     
     void SetDeltaTime(float deltaTime) 
@@ -60,23 +65,13 @@ public slots:
         Start(); // Restart the timer with the new delta time
     } 
 
-    // void Shutdown() { 
-    //     Stop();
-    //     if (m_timer) {
-    //         m_timer->deleteLater(); // Delete the timer when shutting down
-    //         m_timer = nullptr;
-    //     }
-    //     this->deleteLater(); // Delete the worker when shutting down
-    // }
-    
-
 signals:
     void Updated();
 
 private :
     std::shared_ptr<PhysicsSystem> m_physicsSystem { nullptr };
     QTimer *m_timer;
-    float m_deltaTime { DeltaTime };
+    float m_deltaTime { DELTATIME };
     bool m_running  { false }; // Default to false, so the physics system is not running until explicitly started
 
 };

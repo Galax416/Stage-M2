@@ -182,6 +182,9 @@ Plane::Plane(const QVector3D& p, const QVector3D& n, QColor c) : Model()
 }
 void Plane::SetUpPlane(const QVector3D& n)
 {
+    // Change type to box
+    type = RIGIDBODY_TYPE_BOX;
+
     // Normalize the normal vector
     normal = n.normalized();
     // Set the distance from the plane to the origin

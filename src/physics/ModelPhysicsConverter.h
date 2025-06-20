@@ -9,21 +9,22 @@
 
 void RemoveDuplicateVerticesAndFaces(CustomOBJLoader* obj);
 
-void ConvertModelToParticleSprings(Model* model,
+void ConvertModelToParticleSprings(std::shared_ptr<Model> &model,
     std::vector<std::shared_ptr<Particle>> &particles,
     std::vector<std::shared_ptr<Spring>> &springs,
     std::vector<std::shared_ptr<TriangleCollider>> &triangleColliders,
     bool edgeOnly = false
 );
 
-/*void ConvertParticleSpringsToModel(Model* model, 
-    std::vector<std::shared_ptr<Particle>> &particles, 
-    std::vector<std::shared_ptr<Spring>> &springs
-);*/
-
-void ChargeModelParticleSprings(Model* model, 
+void ChargeModelParticleSprings(std::shared_ptr<Model> &model, 
     std::vector<std::shared_ptr<Particle>> &particles, 
     std::vector<std::shared_ptr<Spring>> &springs,
     std::vector<std::shared_ptr<TriangleCollider>> &triangleColliders,
     bool edgeOnly = false
+);
+
+void ConvertParticleSpringsToModel(std::shared_ptr<Model> &model, 
+    std::vector<std::shared_ptr<Particle>> &particles, 
+    std::vector<std::shared_ptr<Spring>> &springs,
+    std::vector<std::shared_ptr<TriangleCollider>> &triangleColliders
 );

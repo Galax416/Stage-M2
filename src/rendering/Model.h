@@ -35,23 +35,29 @@ public:
 
     Model();
     Model(const QString &path);
+    void ReleaseGLResources();
 
     // void ResetModel();
     void LoadModel(const QString &path);
+    // std::shared_ptr<Model> ToTetra(float spacing = 0.1f);
 
-    void Update(float deltaTime) override;
+    void Update(float dt) override;
     void Render(QOpenGLShaderProgram* shaderProgram) override;
 
-    void SynsCollisionVolumes();
+    void SynsCollisionVolumes() override;
 
-    void SetPosition(const QVector3D& p) override { transform.position = p; oldPosition = p; SynsCollisionVolumes(); }
-    void SetRotation(const QQuaternion& q) override { transform.rotation = q; SynsCollisionVolumes(); }
+    void SetPosition(const QVector3D& p) override;
+    void SetRotation(const QQuaternion& q) override;
 
-    void SetColor(const QColor& c) { color = c; }
+    void SetColor(QColor c) { color = c; }
+    QColor GetColor() const { return color; }
     bool IsValid() const;
+
+    void SetDisplayAABB(bool display) { displayAABB = display; }
 
 private:
     AABB bounds;
+    bool displayAABB { false };
 };
 
 

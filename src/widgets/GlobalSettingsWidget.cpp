@@ -9,12 +9,6 @@ GlobalSettingsWidget::GlobalSettingsWidget(QWidget *parent) : QWidget(parent)
     InitConnections();
 }
 
-// GlobalSettingsWidget::~GlobalSettingsWidget()
-// {
-
-// }
-
-
 void GlobalSettingsWidget::InitUI()
 {
     // Set the layout for the widget
@@ -40,8 +34,12 @@ void GlobalSettingsWidget::InitUI()
     dtLayout->addWidget(dtLabel);
     m_dtLineEdit = new QLineEdit(this);
     m_dtLineEdit->setValidator(new QDoubleValidator(0.0, 1.0, 4, this));
-    m_dtLineEdit->setText(QString::number(DeltaTime, 'f', 4));
+    m_dtLineEdit->setText(QString::number(DELTATIME, 'f', 4));
     dtLayout->addWidget(m_dtLineEdit);
+    m_dtButton = new QPushButton("Set", this);
+    m_dtButton->setStyleSheet("QPushButton { font-size: 12px; }");
+    m_dtButton->setFixedSize(40, 20);
+    dtLayout->addWidget(m_dtButton);
     globalSettingsLayout->addWidget(m_dtGroupBox);
 
     // Friction slider and spin box
@@ -83,6 +81,7 @@ void GlobalSettingsWidget::InitUI()
     backgroundColorLayout->addWidget(m_backgroundColorButton);
     globalSettingsLayout->addWidget(m_backgroundColorGroupBox);
 
+    /*
     // Rotation slider and spin box
     m_rotationGroupBox = new QGroupBox("Rotation", this);
     m_rotationGroupBox->setMaximumHeight(180);
@@ -149,6 +148,7 @@ void GlobalSettingsWidget::InitUI()
     rotationLayout->addLayout(rotationZLayout);
 
     globalSettingsLayout->addWidget(m_rotationGroupBox);
+    */
 
     // Add void space to the bottom of the group box
     // globalSettingsLayout->addStretch(1);
@@ -171,7 +171,18 @@ void GlobalSettingsWidget::InitConnections()
     });
 
     // Delta time
-    connect(m_dtLineEdit, &QLineEdit::editingFinished, this, [this]() {
+    // connect(m_dtLineEdit, &QLineEdit::editingFinished, this, [this]() {
+    //     bool ok;
+    //     float value = m_dtLineEdit->text().toFloat(&ok);
+    //     if (ok) {
+    //         value = qMax(0.0001f, qMin(value, 1.0f)); // Clamp value between 0.0001 and 1.0
+    //         m_dtLineEdit->setText(QString::number(value, 'f', 4));
+    //         emit DeltaTimeChanged(value);
+    //     } else {
+    //         m_dtLineEdit->setText(QString::number(value, 'f', 4));
+    //     }
+    // });
+    connect(m_dtButton, &QPushButton::clicked, this, [this]() {
         bool ok;
         float value = m_dtLineEdit->text().toFloat(&ok);
         if (ok) {
@@ -179,9 +190,10 @@ void GlobalSettingsWidget::InitConnections()
             m_dtLineEdit->setText(QString::number(value, 'f', 4));
             emit DeltaTimeChanged(value);
         } else {
-            m_dtLineEdit->setText("0.0001");
+            m_dtLineEdit->setText(QString::number(value, 'f', 4));
         }
     });
+    
 
     // Background color
     connect(m_backgroundColorButton, &QPushButton::clicked, this, [this]() {
@@ -194,6 +206,7 @@ void GlobalSettingsWidget::InitConnections()
         }
     });
 
+    /*
     // Rotation
     connect(m_rotationXSlider, &QSlider::valueChanged, this, [this](int value) {
         m_rotationXSpinBox->setValue(value);
@@ -221,5 +234,6 @@ void GlobalSettingsWidget::InitConnections()
         m_rotationZSlider->setValue(value);
         emit RotationChanged(QVector3D(m_rotationXSlider->value(), m_rotationYSlider->value(), value));
     });
+    */
 
 }

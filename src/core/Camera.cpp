@@ -17,16 +17,21 @@ Camera::Camera(const QVector3D& position, const QVector3D& target)
 
 void Camera::Initialize()
 {
+    m_trackball = Trackball( 1.0f / m_rotationSpeed );
     ComputeView(m_viewMatrix, m_projectionMatrix);
 }
 
-void Camera::ComputeView(QMatrix4x4& view, QMatrix4x4& projection, QVector3D up)
+void Camera::SetScreenSize(const int width, const int height) 
 {
-    if (m_is2DMode) {
-        view.setToIdentity();
-        projection.setToIdentity();
-        return;
-    }
+    m_width = width; 
+    m_height = height; 
+    m_aspect = static_cast<float>(width) / static_cast<float>(height);
+    ComputeView(m_viewMatrix, m_projectionMatrix);
+}
+
+void Camera::ComputeView(QMatrix4x4& view, QMatrix4x4& projection)
+{
+    m_distance = (m_transform.position - m_target).length();
 
     projection.setToIdentity();
     if (m_isOrthographic) {
@@ -37,108 +42,95 @@ void Camera::ComputeView(QMatrix4x4& view, QMatrix4x4& projection, QVector3D up)
         projection.perspective(m_fov, m_aspect, m_near, m_far);
     }
 
+    QVector3D offset = m_orbitRotation.rotatedVector(QVector3D(0, 0, m_distance));
+    QVector3D eye = m_target + offset;
+    QVector3D up = m_orbitRotation.rotatedVector(WORLD_UP); // Up tourné avec l’orbite
+
     view.setToIdentity();
-    view.lookAt(m_transform.position, m_target, up);
+    view.lookAt(eye, m_target, up);
 
-    m_front = (m_target - m_transform.position).normalized();
-    m_distance = (m_transform.position - m_target).length();
-
-    UpdateCameraRotation();
+    // UpdateCameraRotation();
+    UpdateCameraTransform();
 }
 
-void Camera::UpdateCameraRotation()
+void Camera::UpdateCameraTransform()
 {
-    QVector3D right = QVector3D::crossProduct(m_front, WORLD_UP).normalized();
-    QVector3D up    = QVector3D::crossProduct(right, m_front).normalized();
+    // Update the camera transform based on the current position, target, and rotation
+    m_transform.position = m_target + m_orbitRotation.rotatedVector(QVector3D(0, 0, m_distance));
+    m_transform.rotation = m_orbitRotation;
+    m_transform.rotationEuler = m_orbitRotation.toEulerAngles();
+}
 
-    QMatrix4x4 rotationMatrix;
-    rotationMatrix.setColumn(0, QVector4D(right, 0.0f));
-    rotationMatrix.setColumn(1, QVector4D(up, 0.0f));
-    rotationMatrix.setColumn(2, QVector4D(-m_front, 0.0f));
-    rotationMatrix.setColumn(3, QVector4D(0, 0, 0, 1));
+void Camera::SetPositionAndTarget(const QVector3D& position, const QVector3D& target)
+{
+    m_transform.position = position;
+    m_target = target;
 
-    m_transform.rotation = QQuaternion::fromRotationMatrix(rotationMatrix.toGenericMatrix<3,3>());
-    m_transform.rotationEuler = m_transform.rotation.toEulerAngles();
+    m_distance = (m_transform.position - m_target).length();
+    QVector3D front = (m_transform.position - m_target).normalized();
+
+    QVector3D defaultForward = QVector3D(0, 0, -1); // Default forward vector
+    QQuaternion rotationToFront;
+    if (QVector3D::dotProduct(front, defaultForward) < -0.999f) rotationToFront = QQuaternion::fromAxisAndAngle(QVector3D(0, 1, 0), 180.0f);
+    else rotationToFront = QQuaternion::rotationTo(defaultForward, front);
+    
+    // Ajuster la rotation orbitale (m_orbitRotation)
+    m_orbitRotation = rotationToFront;
+
+    // Mettre à jour la matrice de vue et projection
+    ComputeView(m_viewMatrix, m_projectionMatrix);
 }
 
 void Camera::mousePressEvent(QMouseEvent* event)
 {   
     m_lastMousePosition = event->pos();
-    if (event->button() & Qt::LeftButton) m_isLeftMouseButtonPressed = true;
-    if (event->button() & Qt::RightButton) m_isRightMouseButtonPressed = true;
 
+    if (event->button() & Qt::LeftButton)  
+    {
+        m_isLeftMouseButtonPressed  = true;
+        m_trackball.StartRotation(event->pos(), m_width, m_height);
+    }
+    if (event->button() & Qt::RightButton) m_isRightMouseButtonPressed = true;
 }
 
 void Camera::mouseReleaseEvent(QMouseEvent* event)
 {
-    m_isLeftMouseButtonPressed = false;
-    m_isRightMouseButtonPressed = false;
+    if (event->button() & Qt::LeftButton)  
+    {
+        m_isLeftMouseButtonPressed  = false;
+        // m_trackball.Reset();
+    }
+    if (event->button() & Qt::RightButton) m_isRightMouseButtonPressed = false;
 }
 
 void Camera::mouseMoveEvent(QMouseEvent* event)
 {
-
-    QPoint delta = event->pos() - m_lastMousePosition;
-    m_lastMousePosition = event->pos();
-
-    float dx = delta.x() * m_rotationSpeed;
-    float dy = delta.y() * m_rotationSpeed;
-
     if (m_isLeftMouseButtonPressed)
     {
-        if ( m_is2DMode)
-        {
-            // TODO: Implement 2D camera rotation
-        }
-        else
-        {
-            QVector3D direction = m_transform.position - m_target;
-            float radius = direction.length();
-    
-            float theta = qAtan2(direction.z(), direction.x()); 
-            float phi = qAcos(direction.y() / radius);           
-    
-            theta += qDegreesToRadians(dx);
-            phi   -= qDegreesToRadians(dy);
-    
-            const float epsilon = 0.01f;
-            phi = qBound(epsilon, phi, float(M_PI) - epsilon);
-    
-            float x = radius * qSin(phi) * qCos(theta);
-            float y = radius * qCos(phi);
-            float z = radius * qSin(phi) * qSin(theta);
-    
-            m_transform.position = m_target + QVector3D(x, y, z);
-    
-            m_front = (m_target - m_transform.position).normalized();
-            
-        }
+        // Left mouse button pressed, rotate the camera (Trackball)
+        QQuaternion delta = m_trackball.UpdateRotation(event->pos(), m_width, m_height, GetCameraBasis());
+        m_orbitRotation = delta * m_orbitRotation;
+        m_orbitRotation.normalize();
+
     }
     else if (m_isRightMouseButtonPressed)
     {
-        if (m_is2DMode)
-        {
-            // Nothing to do
-        }
-        else 
-        {
-            // Right mouse button pressed, rotate the camera
-            QVector3D right = QVector3D::crossProduct(m_front, WORLD_UP).normalized();
-            QVector3D up    = QVector3D::crossProduct(right, m_front).normalized();
+        // Right mouse button pressed, move the camera (Pan)
+        QPoint delta = event->pos() - m_lastMousePosition;
 
-            // Apply rotation
-            m_transform.position += -dx * right * m_moveSpeed;
-            m_transform.position += dy * up * m_moveSpeed;
+        QMatrix3x3 basis = GetCameraBasis();
+        QVector3D right(basis(0,0), basis(1,0), basis(2,0));
+        QVector3D up(basis(0,1), basis(1,1), basis(2,1));
 
-            // Update the target position
-            m_target += -dx * right * m_moveSpeed;
-            m_target += dy * up * m_moveSpeed;
-        }
+        m_target += (-right * delta.x() + up * delta.y()) * m_moveSpeed;
+
     }
 
-
+    // Update the view matrix
     ComputeView(m_viewMatrix, m_projectionMatrix);
-    
+
+    // Update the last mouse position
+    m_lastMousePosition = event->pos();
 }
 
 void Camera::wheelEvent(QWheelEvent* event)
@@ -156,5 +148,19 @@ void Camera::wheelEvent(QWheelEvent* event)
     if (m_distance > maxDistance) m_distance = maxDistance;
     
     ComputeView(m_viewMatrix, m_projectionMatrix);
+}
 
+QMatrix3x3 Camera::GetCameraBasis() const
+{
+    QMatrix3x3 basis;
+    QVector3D right = m_orbitRotation.rotatedVector(QVector3D(1, 0, 0));   // right
+    QVector3D up = m_orbitRotation.rotatedVector(WORLD_UP);                // up
+    QVector3D front = m_orbitRotation.rotatedVector(QVector3D(0, 0, 1));   // front
+
+    for (int i = 0; i < 3; ++i) {
+        basis(i, 0) = right[i];
+        basis(i, 1) = up[i];
+        basis(i, 2) = front[i];
+    }
+    return basis;
 }

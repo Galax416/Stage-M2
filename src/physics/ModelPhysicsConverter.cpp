@@ -54,7 +54,7 @@ void RemoveDuplicateVerticesAndFace(CustomOBJLoader* obj)
 
 }
 
-void ConvertModelToParticleSprings(Model* model,
+void ConvertModelToParticleSprings(std::shared_ptr<Model> &model,
     std::vector<std::shared_ptr<Particle>> &particles,
     std::vector<std::shared_ptr<Spring>> &springs,
     std::vector<std::shared_ptr<TriangleCollider>> &triangleColliders,
@@ -106,8 +106,7 @@ void ConvertModelToParticleSprings(Model* model,
 
                 springSet.insert(key);
 
-                auto spring = std::make_shared<Spring>(stiffness);
-                spring->SetParticles(particles[a], particles[b]);
+                auto spring = std::make_shared<Spring>(particles[a], particles[b], stiffness);
                 springs.push_back(spring);
 
                 model->customOBJ->springLinks.push_back(SpringLink{ a, b, stiffness });
@@ -124,13 +123,13 @@ void ConvertModelToParticleSprings(Model* model,
         int i1 = face.vertexIndices[1];
         int i2 = face.vertexIndices[2];
 
-        auto p1 = particles[i0].get();
+        auto p1 = particles[i0];
         p1->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
         p1->AddFlag(ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE);
-        auto p2 = particles[i1].get();
+        auto p2 = particles[i1];
         p2->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
         p2->AddFlag(ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE);
-        auto p3 = particles[i2].get();
+        auto p3 = particles[i2];
         p3->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
         p3->AddFlag(ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE);
     
@@ -191,7 +190,7 @@ void ConvertModelToParticleSprings(Model* model,
 
 }*/
 
-void ChargeModelParticleSprings(Model* model, 
+void ChargeModelParticleSprings(std::shared_ptr<Model> &model, 
     std::vector<std::shared_ptr<Particle>> &particles, 
     std::vector<std::shared_ptr<Spring>> &springs,
     std::vector<std::shared_ptr<TriangleCollider>> &triangleColliders,
@@ -243,9 +242,7 @@ void ChargeModelParticleSprings(Model* model,
 
         int indexA = a;
         int indexB = b;
-
-        auto spring = std::make_shared<Spring>(link.stiffness);
-        spring->SetParticles(particles[indexA], particles[indexB]);
+        auto spring = std::make_shared<Spring>(particles[indexA], particles[indexB], link.stiffness);
         springs.push_back(spring);
     }
 
@@ -257,13 +254,13 @@ void ChargeModelParticleSprings(Model* model,
         int i1 = face.vertexIndices[1];
         int i2 = face.vertexIndices[2];
 
-        auto p1 = particles[i0].get();
+        auto p1 = particles[i0];
         p1->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
         p1->AddFlag(ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE);
-        auto p2 = particles[i1].get();
+        auto p2 = particles[i1];
         p2->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
         p2->AddFlag(ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE);
-        auto p3 = particles[i2].get();
+        auto p3 = particles[i2];
         p3->AddFlag(ParticleFlags::PARTICLE_NO_COLLISION_WITH_US);
         p3->AddFlag(ParticleFlags::PARTICLE_ATTACHED_TO_TRIANGLE);
     
@@ -271,4 +268,100 @@ void ChargeModelParticleSprings(Model* model,
     
         triangleColliders.push_back(collider);
     }
+}
+
+void ConvertParticleSpringsToModel(std::shared_ptr<Model> &model, 
+    std::vector<std::shared_ptr<Particle>> &particles, 
+    std::vector<std::shared_ptr<Spring>> &springs,
+    std::vector<std::shared_ptr<TriangleCollider>> &triangleColliders)
+{
+    // Convert the particles and springs back into a model
+    if (!model) return;
+
+    model->customOBJ->Clear(); // Clear the customOBJ data
+
+    // Resize the customOBJ vectors to match the number of particles
+    model->customOBJ->vertices.resize(particles.size());
+    model->customOBJ->normals.resize(particles.size());
+    model->customOBJ->nodes.resize(particles.size());
+    model->customOBJ->springLinks.resize(springs.size());
+
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+    Material material; // Default material for the mesh
+
+    // Create a mapping from particles to their indices
+    std::unordered_map<std::shared_ptr<Particle>, int> particleIndexMap;
+    for (size_t i = 0, size = particles.size(); i < size; ++i) {
+        particleIndexMap[particles[i]] = static_cast<int>(i);
+    }
+
+    // Convert particles to vertices / nodes
+    for (size_t i = 0, size = particles.size(); i < size; ++i) {
+        auto& particle = particles[i];
+        model->customOBJ->vertices[i] = particle->transform.position;
+        model->customOBJ->nodes[i].vertexIndex = i;
+        model->customOBJ->nodes[i].radius = particle->GetRadius() * 100.0f;
+        model->customOBJ->nodes[i].mass = particle->GetMass();
+        model->customOBJ->nodes[i].movable = particle->IsDynamic();
+
+        // Create a vertex for the mesh
+        Vertex vertex;
+        vertex.position = particle->transform.position;
+        vertex.normal = QVector3D(0.0f, 0.0f, 0.0f); // Default normal
+        vertex.texCoords = QVector2D(0.0f, 0.0f); // Default texture coordinates
+        vertices.push_back(vertex);
+    }
+
+    // Convert springs spring links
+    for (size_t i = 0, size = springs.size(); i < size; ++i) {
+        auto& spring = springs[i];
+        auto p1 = spring->GetP1();
+        auto p2 = spring->GetP2();
+
+        auto it1 = particleIndexMap.find(p1);
+        auto it2 = particleIndexMap.find(p2);
+
+        if (it1 == particleIndexMap.end() || it2 == particleIndexMap.end()) {
+            qWarning("Spring refers to unknown particles, skipping.");
+            continue;
+        }
+
+        size_t index1 = it1->second;
+        size_t index2 = it2->second;
+
+        model->customOBJ->springLinks[i].nodeA = index1;
+        model->customOBJ->springLinks[i].nodeB = index2;
+        model->customOBJ->springLinks[i].stiffness = spring->GetStiffness();
+    }
+
+    // Convert triangle colliders to mesh indices
+    for (const auto& collider : triangleColliders) {
+        if (collider->p0 == nullptr || collider->p1 == nullptr || collider->p2 == nullptr) {
+            qWarning("TriangleCollider has null particles, skipping.");
+            continue;
+        }
+
+        int index1 = particleIndexMap[collider->p0];
+        int index2 = particleIndexMap[collider->p1];
+        int index3 = particleIndexMap[collider->p2];
+
+        // Add indices for the triangle
+        indices.push_back(index1);
+        indices.push_back(index2);
+        indices.push_back(index3);
+
+        // Creat face
+        Face face;
+        face.vertexIndices = { index1, index2, index3 };
+        model->customOBJ->faces.push_back(face);
+    }
+
+    model->mesh = std::make_shared<Mesh>(vertices, indices, material);
+    for (size_t i = 0, size = model->mesh->vertices.size(); i < size; ++i) {
+        model->customOBJ->normals[i] = model->mesh->vertices[i].normal;
+    }
+
+    model->triangleColliders = triangleColliders;
+    
 }

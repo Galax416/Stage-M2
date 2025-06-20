@@ -2,6 +2,8 @@
 
 #include <QWidget>
 #include <QLabel>
+#include <QPushButton>
+#include <QColorDialog>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGroupBox>

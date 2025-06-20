@@ -20,6 +20,7 @@ SOURCES += \
     ./libs/stb_image.cpp \
     ./src/core/Intersections.cpp \
     ./src/core/Rigidbody.cpp \
+    ./src/core/Trackball.cpp \
     ./src/core/Camera.cpp \
     ./src/rendering/Render.cpp \
     ./src/rendering/Mesh.cpp \
@@ -47,6 +48,7 @@ HEADERS += \
     ./src/core/Intersections.h \
     ./src/core/Rigidbody.h \
     ./src/core/BVH.h \
+    ./src/core/Trackball.h \
     ./src/core/Camera.h \
     ./src/rendering/Render.h \
     ./src/rendering/CustomOBJLoader.h \

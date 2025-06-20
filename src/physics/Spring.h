@@ -4,47 +4,39 @@
 
 #include "Particle.h"
 
-// Hooke's law
-// k - spring "stiffness" constant [0 to +inf] rigid when k is high
-// x - displacement of spring from equalibrium
-// b - constant (coefficient) dampening
-// v - realtive velocity of points of spring
-
 class Spring
 {
 private:
     std::shared_ptr<Particle> p1;
     std::shared_ptr<Particle> p2;
 
-    float k; // [0 to x] higher = stiff sprint, lower = loose spring
-    float b; // [0 to 1] higher = more dampening, lower = less dampening
-    float restingLength;
-
+    float restingLength { 0.0f};
+    float stiffness { 0.0f };
+    float compliance { 1.0f };
+    float lambda { 0.0f };
+    
     QColor m_color;
-    bool m_rigidity { false };
-    // bool m_usePBDCorrection { false };
 
 public:
-    Spring(float _k);
-    Spring(float _k, float _b, float len);
-    void SetParticles(std::shared_ptr<Particle> _p1, std::shared_ptr<Particle> _p2);
-    std::shared_ptr<Particle> GetP1();
-    std::shared_ptr<Particle> GetP2();
-
-    void SetConstants(float _k, float _b);
-    float GetK();
-    float GetB();
-    float GetRestLength() { return restingLength; }
-
+    Spring(std::shared_ptr<Particle> a, std::shared_ptr<Particle> b, float k = 1.0f);
+    
     void Render(QOpenGLShaderProgram* shaderProgram);
-    void ApplyForce(float deltaTime);
+    void SolveConstraints(float dt);
 
-    void SetColor(QColor c) { m_color = c; }
+    void ResetLambda() { lambda = 0.0f; }
+
+    std::shared_ptr<Particle> GetP1() { return p1; }
+    std::shared_ptr<Particle> GetP2() { return p2; }
+
+    float GetRestLength() { return restingLength; }
+    float GetStiffness() { return stiffness; }
+    float GetCompliance() { return compliance; }
     QColor GetColor() { return m_color; }
 
-    void SetRigidity(bool r) { m_rigidity = r; }
-    bool IsRigid() const { return m_rigidity; }
-    // void EnablePBD(bool enable) { m_usePBDCorrection = enable; }
-    // bool IsPBDEnabled() const { return m_usePBDCorrection; }
+    void SetStiffness(float k);
+    void SetRestLength(float len) { restingLength = len; }
+    void SetCompliance(float c) { compliance = c; }
+    void SetColor(QColor c) { m_color = c; }
+
     
 };

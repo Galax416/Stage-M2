@@ -8,47 +8,9 @@ PhysicsSystem::PhysicsSystem()
     ClearAll();
 }
 
-/*
 void PhysicsSystem::Update(float deltaTime)
 {
-    // Apply forces on the object
-    for (size_t i = 0, size = bodies.size(); i < size; ++i) {
-        bodies[i]->ApplyForces();
-        bodies[i]->Update(deltaTime);
-    }
-
-    // Apply spring forces
-    for (size_t i = 0, size = springs.size(); i < size; ++i) {
-        for (int step = 0, substeps = 5; step < substeps; ++step) {
-            springs[i]->ApplyForce(deltaTime / substeps);
-        }
-        // springs[i]->ApplyForce(deltaTime);
-    }
-
-    // Update BVH for collision detection
-    bvhRigidbodies = BuildBVH(constraints);
-    bvhTriangleColliders = BuildBVH(triangleColliders);
-
-    // Solve constraints
-    const int constraintIterations = 4;
-    for (int iter = 0; iter < constraintIterations; ++iter) {
-        for (auto& constraint : constraints) {
-            std::vector<std::shared_ptr<Rigidbody>> nearbyRigdibodies;
-            std::vector<std::shared_ptr<TriangleCollider>> nearbyTriangles;
-
-            QueryBVH<Rigidbody>(constraint->GetAABB(), bvhRigidbodies.get(), nearbyRigdibodies);
-            constraint->SolveConstraints(nearbyRigdibodies);
-
-            QueryBVH<TriangleCollider>(constraint->GetAABB(), bvhTriangleColliders.get(), nearbyTriangles);
-            constraint->SolveConstraints(nearbyTriangles);
-        }
-        
-    }
-}
-*/
-
-void PhysicsSystem::Update(float deltaTime)
-{
+    // Thread-safe body/spring/constraint registration
     {
         QMutexLocker locker(&m_dataMutex); // Lock the mutex for thread safety
         for (auto& b : pendingBodies) bodies.push_back(b);
@@ -64,46 +26,61 @@ void PhysicsSystem::Update(float deltaTime)
         pendingTriangleColliders.clear();
     }
     
+    // Step 1: Predict positions
+    for (auto& body : bodies) {
+        if (body->IsStatic()) continue;
 
-    QtConcurrent::blockingMap(bodies, [deltaTime](std::shared_ptr<Rigidbody>& body) {
-        body->ApplyForces();
-    });
+        QVector3D tempPos = body->GetPosition();
+        QVector3D acceleration = body->GetGravity() * body->GetMass();
+        QVector3D velocity = (tempPos - body->oldPosition) * body->friction;
 
-    QtConcurrent::blockingMap(bodies, [deltaTime](std::shared_ptr<Rigidbody>& body) {
-        body->Update(deltaTime);
-    });
-    
-    const int verletSubsteps = 5;
-    float subDeltaTime = deltaTime / verletSubsteps;
-    QtConcurrent::blockingMap(springs, [verletSubsteps, subDeltaTime](std::shared_ptr<Spring>& spring) {
-        for (int step = 0; step < verletSubsteps; ++step) {
-            spring->ApplyForce(subDeltaTime);
-        }
-    });
-    
+        QVector3D predictedPos = tempPos + velocity + acceleration * deltaTime * deltaTime;
+        body->SetPosition(predictedPos);
+        body->oldPosition = tempPos;
+
+        body->SynsCollisionVolumes();
+
+    }
+
+    // Step 1.5: Reset lambdas
+    for (auto& spring : springs) spring->ResetLambda();
+
+    // Build BVH for collision detection
     SetUpBVH();
 
-    // Solve constraints
-    const int constraintIterations = 10;
-    for (int iter = 0; iter < constraintIterations; ++iter) {
-        for (auto& constraint : constraints) {
+    // Step 2: Solve constraints
+    const int constraintIterations = 30;
+    for (int i = 0; i < constraintIterations; ++i) {
+        for (auto& spring : springs) spring->SolveConstraints(deltaTime);
+
+        for (auto& constaint : constraints) {
             std::vector<std::shared_ptr<Rigidbody>> nearbyRigdibodies;
             std::vector<std::shared_ptr<TriangleCollider>> nearbyTriangles;
 
-            QueryBVH<Rigidbody>(constraint->GetAABB(), bvhRigidbodies.get(), nearbyRigdibodies);
-            constraint->SolveConstraints(nearbyRigdibodies);
-
-            QueryBVH<TriangleCollider>(constraint->GetAABB(), bvhTriangleColliders.get(), nearbyTriangles);
-            constraint->SolveConstraints(nearbyTriangles);
+            QueryBVH<TriangleCollider>(constaint->GetAABB(), bvhTriangleColliders.get(), nearbyTriangles);
+            constaint->SolveConstraints(nearbyTriangles);
+            
+            QueryBVH<Rigidbody>(constaint->GetAABB(), bvhRigidbodies.get(), nearbyRigdibodies);
+            constaint->SolveConstraints(nearbyRigdibodies);
         }
     }
+
+    // for (auto& body : bodies) body->currentPosition = body->GetPosition();
+
+    // m_lastStepTime = m_physicsTimer.elapsed();
 }
 
-void PhysicsSystem::Render(QOpenGLShaderProgram* shaderProgram)
+void PhysicsSystem::Render(QOpenGLShaderProgram* shaderProgram, float alpha)
 {
     // Render rigidbodies
     for (size_t i = 0, size = bodies.size(); i < size; ++i) {
+        // qDebug() << "Position of body" << i << ":" << bodies[i]->GetPosition() << "Old Position:" << bodies[i]->oldPosition;
+        // bodies[i]->displayPosition = (1.0f - alpha) * bodies[i]->previousPosition  + alpha * bodies[i]->currentPosition;
+        // qDebug() << "Display Position of body" << i << ":" << bodies[i]->displayPosition;
         bodies[i]->Render(shaderProgram);
+
+        if (m_renderCollider) bodies[i]->Rigidbody::Render(shaderProgram); // Render the rigidbody collider
+        
     }
     
     // Render springs
@@ -129,27 +106,25 @@ void PhysicsSystem::ChangeFriction(float f)
     for (size_t i = 0, size = bodies.size(); i < size; ++i) bodies[i]->SetFriction(f);
 }
 
-void PhysicsSystem::RotateRigidbodies(QVector3D rotation)
-{
-    QMutexLocker locker(&m_dataMutex); // Lock the mutex for thread safety
-    QQuaternion qRotation = QQuaternion::fromEulerAngles(rotation);
+// void PhysicsSystem::RotateRigidbodies(QVector3D rotation, const QVector3D& pivot)
+// {
+//     QMutexLocker locker(&m_dataMutex); // Lock the mutex for thread safety
+//     QQuaternion qRotation = QQuaternion::fromEulerAngles(rotation);
 
-    for (size_t i = 0, size = bodies.size(); i < size; ++i) {
-        QVector3D initialPosition = rigidbodyTransformations[i].position;
-        if (bodies[i]->type == RIGIDBODY_TYPE_PARTICLE) {
-            initialPosition = qRotation * initialPosition;
-            bodies[i]->SetPosition(initialPosition);
-        } else if (bodies[i]->type == RIGIDBODY_TYPE_BOX) {
-            QVector3D newPoisition = qRotation * initialPosition;
-            QQuaternion newRotation = qRotation * rigidbodyTransformations[i].rotation;
+//     for (size_t i = 0, size = bodies.size(); i < size; ++i) {
+//         QVector3D initialPosition = rigidbodyTransformations[i].position;
+//         // QQuaternion initialRotation = rigidbodyTransformations[i].rotation;
 
-            bodies[i]->SetPosition(newPoisition);
-            bodies[i]->SetRotation(newRotation);
+//         QVector3D relativePos = initialPosition - pivot;
+//         QVector3D rotatedPos = qRotation * relativePos + pivot;
+        
+//         bodies[i]->SetPosition(rotatedPos);
+//         bodies[i]->oldPosition = rotatedPos;
+        
+//         QQuaternion newRotation = qRotation;
+//         bodies[i]->SetRotation(newRotation);
 
-            auto model = static_cast<Model*>(bodies[i].get());
-            if (model) model->SynsCollisionVolumes();
-        }
-
-    }
+//         bodies[i]->SynsCollisionVolumes();
+//     }
     
-}
+// }

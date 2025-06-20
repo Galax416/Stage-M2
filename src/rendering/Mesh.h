@@ -60,25 +60,24 @@ class Mesh : protected QOpenGLFunctions
 public:
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
+    // std::vector<Triangle> triangles;
     Material material;
 
     Mesh() {}
     Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, Material material);
+    void ReleaseGLResources();
 
     void Render(QOpenGLShaderProgram* shaderProgram);
 
-    void clear() 
-    {
-        vertices.clear();
-        indices.clear();
-        material = Material();
-    }
+    void Clear();
+    // std::shared_ptr<Mesh> ToTetra(float spacing = 0.1f);
     
 private:
     std::unique_ptr<QOpenGLVertexArrayObject> VAO;
     std::unique_ptr<QOpenGLBuffer> VBO, IBO;
 
     void SetUpMesh();
+    // void SetUpTriangles();
     void ComputeNormals();
     void UnifySharedVertices();
 };

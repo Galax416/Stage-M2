@@ -35,8 +35,11 @@ signals:
     void DeformModelCurveChanged(int p1, int p2, float value);
     void DeformModelRingChanged(float radius);
     void DeformModelHeightChanged(float height);
+    void DeformModelWidthChanged(float width);
+    void DeformModelDepthChanged(float depth);
 
 public slots:
+    void ResetSliders();
     void UpdateBreastModelButton(bool clicked);
     void Update3DModelButton(bool clicked);
     void Update3DModelParameters(VoxelGrid voxel);
@@ -63,8 +66,9 @@ private:
     QSpinBox  *m_layerBreastModelSpinBox;
 
     // Sliders for model deformation
-    QSlider *m_s1, *m_s2, *m_s3, *m_s4, *m_s5; 
-    QSlider *m_sH, *m_sRing;
+    QSlider *m_sWidth, *m_sHeight, *m_sDepth;
+    QSlider *m_s1, *m_s2, *m_s3, *m_s4; 
+    QSlider *m_sRing;
 
 
     // 3D Model (voxel)

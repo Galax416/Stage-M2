@@ -19,7 +19,7 @@ public:
     {
         position      = QVector3D(0.0f, 0.0f, 0.0f);
         rotationEuler = QVector3D(0.0f, 0.0f, 0.0f);
-        rotation      = QQuaternion::fromEulerAngles(rotationEuler);
+        rotation      = QQuaternion();
         scale         = QVector3D(1.0f, 1.0f, 1.0f);
     }
 

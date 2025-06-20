@@ -50,90 +50,121 @@ void ModelSettingsWidget::InitUI()
 
         auto deformModelLayout = new QVBoxLayout(m_deformBreastModelGroupBox);
 
-        m_thicknessCheckBox = new QCheckBox("Thickness", this);
-        m_thicknessCheckBox->setStyleSheet("QCheckBox { font-size: 12px; }");
-        m_thicknessCheckBox->setChecked(false);
-        deformModelLayout->addWidget(m_thicknessCheckBox);
+        { // Thickness
+            m_thicknessCheckBox = new QCheckBox("Thickness", this);
+            m_thicknessCheckBox->setStyleSheet("QCheckBox { font-size: 12px; }");
+            m_thicknessCheckBox->setChecked(true);
+            deformModelLayout->addWidget(m_thicknessCheckBox);
+        }
+        
+        { // Sampling
+            auto samplingLayout = new QHBoxLayout();
+            auto samplingLabel = new QLabel("Sampling:", this);
+            samplingLabel->setStyleSheet("QLabel { font-size: 12px; }");
+            samplingLayout->addWidget(samplingLabel);
+            m_samplingBreastModelSpinBox = new QSpinBox(this);
+            m_samplingBreastModelSpinBox->setStyleSheet("QSpinBox { font-size: 12px; }");
+            m_samplingBreastModelSpinBox->setRange(1, 100);
+            m_samplingBreastModelSpinBox->setValue(32); // Default value
+            m_samplingBreastModelSpinBox->setSingleStep(1);
+            m_samplingBreastModelSpinBox->setSuffix(" samples");
+            samplingLayout->addWidget(m_samplingBreastModelSpinBox);
+            deformModelLayout->addLayout(samplingLayout);
+        }
 
-        auto samplingLayout = new QHBoxLayout();
-        auto samplingLabel = new QLabel("Sampling:", this);
-        samplingLabel->setStyleSheet("QLabel { font-size: 12px; }");
-        samplingLayout->addWidget(samplingLabel);
-        m_samplingBreastModelSpinBox = new QSpinBox(this);
-        m_samplingBreastModelSpinBox->setStyleSheet("QSpinBox { font-size: 12px; }");
-        m_samplingBreastModelSpinBox->setRange(1, 100);
-        m_samplingBreastModelSpinBox->setValue(32); // Default value
-        m_samplingBreastModelSpinBox->setSingleStep(1);
-        m_samplingBreastModelSpinBox->setSuffix(" samples");
-        samplingLayout->addWidget(m_samplingBreastModelSpinBox);
-        deformModelLayout->addLayout(samplingLayout);
+        { // Layer
+            auto layerLayout = new QHBoxLayout();
+            auto layerLabel = new QLabel("Layer:", this);
+            layerLabel->setStyleSheet("QLabel { font-size: 12px; }");
+            layerLayout->addWidget(layerLabel);
+            m_layerBreastModelSpinBox = new QSpinBox(this);
+            m_layerBreastModelSpinBox->setStyleSheet("QSpinBox { font-size: 12px; }");
+            m_layerBreastModelSpinBox->setRange(1, 100);
+            m_layerBreastModelSpinBox->setValue(12); // Default value
+            m_layerBreastModelSpinBox->setSingleStep(1);
+            m_layerBreastModelSpinBox->setSuffix(" layers");
+            layerLayout->addWidget(m_layerBreastModelSpinBox);
+            deformModelLayout->addLayout(layerLayout);
+        }
 
-        auto layerLayout = new QHBoxLayout();
-        auto layerLabel = new QLabel("Layer:", this);
-        layerLabel->setStyleSheet("QLabel { font-size: 12px; }");
-        layerLayout->addWidget(layerLabel);
-        m_layerBreastModelSpinBox = new QSpinBox(this);
-        m_layerBreastModelSpinBox->setStyleSheet("QSpinBox { font-size: 12px; }");
-        m_layerBreastModelSpinBox->setRange(1, 100);
-        m_layerBreastModelSpinBox->setValue(16); // Default value
-        m_layerBreastModelSpinBox->setSingleStep(1);
-        m_layerBreastModelSpinBox->setSuffix(" layers");
-        layerLayout->addWidget(m_layerBreastModelSpinBox);
-        deformModelLayout->addLayout(layerLayout);
+        { // Width
+            QLabel *heightLabel = new QLabel("Width:", this);
+            heightLabel->setStyleSheet("QLabel { font-size: 12px; }");
+            deformModelLayout->addWidget(heightLabel);
+            
+            m_sWidth = new QSlider(Qt::Horizontal, this);
+            m_sWidth->setRange(0, 100);
+            m_sWidth->setValue(47); // Default value
+            m_sWidth->setSingleStep(1);
+            deformModelLayout->addWidget(m_sWidth);
+        }
 
-        auto deformLabel = new QLabel("Form:", this);
-        deformLabel->setStyleSheet("QLabel { font-size: 12px; }");
-        deformModelLayout->addWidget(deformLabel);
+        { // Height
+            QLabel *heightLabel = new QLabel("Height:", this);
+            heightLabel->setStyleSheet("QLabel { font-size: 12px; }");
+            deformModelLayout->addWidget(heightLabel);
+    
+            m_sHeight = new QSlider(Qt::Horizontal, this);
+            m_sHeight->setRange(0, 100);
+            m_sHeight->setValue(57); // Default value
+            m_sHeight->setSingleStep(1);
+            deformModelLayout->addWidget(m_sHeight);
+        }
+        
+        { // Depth
+            QLabel *heightLabel = new QLabel("Depth:", this);
+            heightLabel->setStyleSheet("QLabel { font-size: 12px; }");
+            deformModelLayout->addWidget(heightLabel);
+    
+            m_sDepth = new QSlider(Qt::Horizontal, this);
+            m_sDepth->setRange(0, 100);
+            m_sDepth->setValue(50); // Default value
+            m_sDepth->setSingleStep(1);
+            deformModelLayout->addWidget(m_sDepth);
+        }
 
-        m_s1 = new QSlider(Qt::Horizontal, this);
-        m_s1->setRange(0, 100);
-        m_s1->setValue(50); // Default value
-        m_s1->setSingleStep(1);
-        deformModelLayout->addWidget(m_s1);
+        { // Slider form
+            auto deformLabel = new QLabel("Form:", this);
+            deformLabel->setStyleSheet("QLabel { font-size: 12px; }");
+            deformModelLayout->addWidget(deformLabel);
+    
+            m_s1 = new QSlider(Qt::Horizontal, this);
+            m_s1->setRange(0, 100);
+            m_s1->setValue(50); // Default value
+            m_s1->setSingleStep(1);
+            deformModelLayout->addWidget(m_s1);
+    
+            m_s2 = new QSlider(Qt::Horizontal, this);
+            m_s2->setRange(0, 100);
+            m_s2->setValue(50); // Default value
+            m_s2->setSingleStep(1);
+            deformModelLayout->addWidget(m_s2);
+    
+            m_s3 = new QSlider(Qt::Horizontal, this);
+            m_s3->setRange(0, 100);
+            m_s3->setValue(50); // Default value
+            m_s3->setSingleStep(1);
+            deformModelLayout->addWidget(m_s3);
+    
+            m_s4 = new QSlider(Qt::Horizontal, this);
+            m_s4->setRange(0, 100);
+            m_s4->setValue(50); // Default value
+            m_s4->setSingleStep(1);
+            deformModelLayout->addWidget(m_s4);
+    
+        }
 
-        m_s2 = new QSlider(Qt::Horizontal, this);
-        m_s2->setRange(0, 100);
-        m_s2->setValue(50); // Default value
-        m_s2->setSingleStep(1);
-        deformModelLayout->addWidget(m_s2);
-
-        m_s3 = new QSlider(Qt::Horizontal, this);
-        m_s3->setRange(0, 100);
-        m_s3->setValue(50); // Default value
-        m_s3->setSingleStep(1);
-        deformModelLayout->addWidget(m_s3);
-
-        m_s4 = new QSlider(Qt::Horizontal, this);
-        m_s4->setRange(0, 100);
-        m_s4->setValue(50); // Default value
-        m_s4->setSingleStep(1);
-        deformModelLayout->addWidget(m_s4);
-
-        m_s5 = new QSlider(Qt::Horizontal, this);
-        m_s5->setRange(0, 100);
-        m_s5->setValue(50); // Default value
-        m_s5->setSingleStep(1);
-        deformModelLayout->addWidget(m_s5);
-
-        QLabel *heightLabel = new QLabel("Height:", this);
-        heightLabel->setStyleSheet("QLabel { font-size: 12px; }");
-        deformModelLayout->addWidget(heightLabel);
-
-        m_sH = new QSlider(Qt::Horizontal, this);
-        m_sH->setRange(0, 100);
-        m_sH->setValue(50); // Default value
-        m_sH->setSingleStep(1);
-        deformModelLayout->addWidget(m_sH);
-
-        QLabel *ringLabel = new QLabel("Areola:", this);
-        ringLabel->setStyleSheet("QLabel { font-size: 12px; }");
-        deformModelLayout->addWidget(ringLabel);
-
-        m_sRing = new QSlider(Qt::Horizontal, this);
-        m_sRing->setRange(0, 100);
-        m_sRing->setValue(50); // Default value
-        m_sRing->setSingleStep(1);
-        deformModelLayout->addWidget(m_sRing);
+        { // Ring
+            QLabel *ringLabel = new QLabel("Areola:", this);
+            ringLabel->setStyleSheet("QLabel { font-size: 12px; }");
+            deformModelLayout->addWidget(ringLabel);
+    
+            m_sRing = new QSlider(Qt::Horizontal, this);
+            m_sRing->setRange(0, 100);
+            m_sRing->setValue(50); // Default value
+            m_sRing->setSingleStep(1);
+            deformModelLayout->addWidget(m_sRing);
+        }
         
         m_modelSettingsLayout->addWidget(m_deformBreastModelGroupBox);  
     }  
@@ -183,14 +214,8 @@ void ModelSettingsWidget::InitConnections()
     connect(m_createBreastModelButton, &QPushButton::clicked, this, [=]() {
         m_createBreastModelButtonClicked = !m_createBreastModelButtonClicked;
 
-        m_thicknessCheckBox->setChecked(false);
-        m_s1->setValue(50); // Reset to default value
-        m_s2->setValue(50); // Reset to default value
-        m_s3->setValue(50); // Reset to default value
-        m_s4->setValue(50); // Reset to default value
-        m_s5->setValue(50); // Reset to default value
-        m_sH->setValue(50); // Reset to default value
-        m_sRing->setValue(50); // Reset to default value
+        m_thicknessCheckBox->setChecked(true);
+        ResetSliders();
 
         emit Update3DModelButtonChanged(false); // Hide 3D model parameters
         emit UpdateBreastModelButtonChanged(m_createBreastModelButtonClicked);
@@ -209,6 +234,18 @@ void ModelSettingsWidget::InitConnections()
         emit DeformModelLayerChanged(value);
     });
 
+    connect(m_sWidth, &QSlider::valueChanged, this, [=](int value) {
+        emit DeformModelWidthChanged((value * 0.02f) - 1.0f);
+    });
+
+    connect(m_sHeight, &QSlider::valueChanged, this, [=](int value) {
+        emit DeformModelHeightChanged((value * 0.02f) - 1.0f);
+    });
+
+    connect(m_sDepth, &QSlider::valueChanged, this, [=](int value) {
+        emit DeformModelDepthChanged((value * 0.02f) - 1.0f);
+    });
+
     connect(m_s1, &QSlider::valueChanged, this, [=](int value) {
         emit DeformModelCurveChanged(2, 10, (value * 0.02f) - 1.0f);
     });
@@ -225,14 +262,6 @@ void ModelSettingsWidget::InitConnections()
         emit DeformModelCurveChanged(5, 7, (value * 0.02f) - 1.0f);
     });
 
-    connect(m_s5, &QSlider::valueChanged, this, [=](int value) {
-        emit DeformModelCurveChanged(1, 6, (value * 0.02f) - 1.0f);
-    });
-
-    connect(m_sH, &QSlider::valueChanged, this, [=](int value) {
-        emit DeformModelHeightChanged((value * 0.02f) - 1.0f);
-    });
-
     connect(m_sRing, &QSlider::valueChanged, this, [=](int value) {
         emit DeformModelRingChanged((value * 0.02f) - 1.0f);
     });
@@ -246,6 +275,19 @@ void ModelSettingsWidget::InitConnections()
     });
 
 }
+
+void ModelSettingsWidget::ResetSliders()
+{
+    m_sWidth->setValue(47); // Reset to default value
+    m_sHeight->setValue(57); // Reset to default value
+    m_sDepth->setValue(50); // Reset to default value
+    m_s1->setValue(50); // Reset to default value
+    m_s2->setValue(50); // Reset to default value
+    m_s3->setValue(50); // Reset to default value
+    m_s4->setValue(50); // Reset to default value
+    m_sRing->setValue(50); // Reset to default value
+}
+
 
 void ModelSettingsWidget::UpdateBreastModelButton(bool clicked)
 {
@@ -265,13 +307,6 @@ void ModelSettingsWidget::Update3DModelButton(bool clicked)
 
 void ModelSettingsWidget::Update3DModelParameters(VoxelGrid voxel)
 {
-    // m_parameters3DModelLayout->addWidget(new QLabel("Voxel Model", this));
-    // m_parameters3DModelLayout->addWidget(new QLabel(QString("Size: %1 x %2 x %3").arg(voxel.sizeX).arg(voxel.sizeY).arg(voxel.sizeZ), this));
-    // m_parameters3DModelLayout->addWidget(new QLabel(QString("Spacing: %1").arg(voxel.spacing), this));
-    // m_parameters3DModelLayout->addWidget(new QLabel(QString("Origin: (%1, %2, %3)").arg(voxel.origin.x()).arg(voxel.origin.y()).arg(voxel.origin.z()), this));
-
-    // m_parameters3DModelLayout->addWidget(new QLabel(QString("Number of types: %1").arg(voxel.nbTypes), this));
-
     auto layout = qobject_cast<QVBoxLayout*>(m_parameters3DModelGroupBox->layout());
     clearLayout(layout); // Clear previous layout items
 

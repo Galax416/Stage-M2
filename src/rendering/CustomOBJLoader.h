@@ -46,7 +46,7 @@ public:
 public:
     inline CustomOBJLoader() {}
 
-    inline void clear()
+    inline void Clear()
     {
         vertices.clear();
         normals.clear();
@@ -160,11 +160,16 @@ public:
                     if (vtIndices.size() >= i + 2) {
                         tri.texCoordIndices = { vtIndices[0], vtIndices[i], vtIndices[i + 1] };
                     }
-                    if (vnIndices.size() >= i + 2) {
-                        tri.normalIndices = { vnIndices[0], vnIndices[i], vnIndices[i + 1] };
-                    }
                     faces.push_back(tri);
                 }
+            }
+
+            else if (prefix == "l") {
+                int p1, p2;
+                ss >> p1 >> p2;
+                Face line;
+                line.vertexIndices = { p1 - 1, p2 - 1 };
+                originalFaces.push_back(line);
             }
 
             // Metadata (ex: node 0 r1 r2 or spring 0 1 k1)

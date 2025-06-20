@@ -35,8 +35,9 @@ private:
 
     QGroupBox   *m_globalSettingsGroupBox;
 
-    QGroupBox *m_dtGroupBox;
-    QLineEdit *m_dtLineEdit;
+    QGroupBox   *m_dtGroupBox;
+    QLineEdit   *m_dtLineEdit;
+    QPushButton *m_dtButton;
 
     QGroupBox *m_frictionGroupBox;
     QSlider   *m_frictionSlider;
@@ -45,6 +46,7 @@ private:
     QGroupBox   *m_backgroundColorGroupBox;
     QPushButton *m_backgroundColorButton;
 
+    /*
     QGroupBox *m_rotationGroupBox;
     QSlider   *m_rotationXSlider;
     QSpinBox  *m_rotationXSpinBox;
@@ -52,6 +54,7 @@ private:
     QSpinBox  *m_rotationYSpinBox;
     QSlider   *m_rotationZSlider;
     QSpinBox  *m_rotationZSpinBox;
+    */
 
 
 };
