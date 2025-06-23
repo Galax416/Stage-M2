@@ -3,11 +3,6 @@
 #include "Render.h"
 #include "Model.h"
 
-PhysicsSystem::PhysicsSystem()
-{
-    ClearAll();
-}
-
 void PhysicsSystem::Update(float deltaTime)
 {
     // Thread-safe body/spring/constraint registration
@@ -96,35 +91,12 @@ void PhysicsSystem::Render(QOpenGLShaderProgram* shaderProgram, float alpha)
 
 void PhysicsSystem::ChangeGravity(const QVector3D& g)
 {
-    QMutexLocker locker(&m_dataMutex); // Lock the mutex for thread safety
+    // QMutexLocker locker(&m_dataMutex); // Lock the mutex for thread safety
     for (size_t i = 0, size = bodies.size(); i < size; ++i) bodies[i]->SetGravity(g);
 }
 
 void PhysicsSystem::ChangeFriction(float f)
 {
-    QMutexLocker locker(&m_dataMutex); // Lock the mutex for thread safety
+    // QMutexLocker locker(&m_dataMutex); // Lock the mutex for thread safety
     for (size_t i = 0, size = bodies.size(); i < size; ++i) bodies[i]->SetFriction(f);
 }
-
-// void PhysicsSystem::RotateRigidbodies(QVector3D rotation, const QVector3D& pivot)
-// {
-//     QMutexLocker locker(&m_dataMutex); // Lock the mutex for thread safety
-//     QQuaternion qRotation = QQuaternion::fromEulerAngles(rotation);
-
-//     for (size_t i = 0, size = bodies.size(); i < size; ++i) {
-//         QVector3D initialPosition = rigidbodyTransformations[i].position;
-//         // QQuaternion initialRotation = rigidbodyTransformations[i].rotation;
-
-//         QVector3D relativePos = initialPosition - pivot;
-//         QVector3D rotatedPos = qRotation * relativePos + pivot;
-        
-//         bodies[i]->SetPosition(rotatedPos);
-//         bodies[i]->oldPosition = rotatedPos;
-        
-//         QQuaternion newRotation = qRotation;
-//         bodies[i]->SetRotation(newRotation);
-
-//         bodies[i]->SynsCollisionVolumes();
-//     }
-    
-// }

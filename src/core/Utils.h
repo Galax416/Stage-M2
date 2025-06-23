@@ -10,6 +10,11 @@
 #include <cmath>
 #include <random>
 
+inline QVector3D Lerp(const QVector3D& a, const QVector3D& b, float t) 
+{
+    return (1.0f - t) * a + t * b;
+}
+
 inline QColor floatToQColor(float value) 
 {
     unsigned int seed = static_cast<unsigned int>(value); // Generate a seed based on the float value
@@ -81,9 +86,9 @@ inline float GetStiffnessByQuadrant(QVector3D posA, QVector3D posB, const QVecto
 
     float stiffness = 1000.0f; // Default stiffness
     if (quadA == Top && quadB == Top) stiffness = 450.0f;
-    else if (quadA == Top && quadB == Bottom) stiffness = 380.0f;
-    else if (quadA == Bottom && quadB == Bottom) stiffness = 380.0f;
-    else if (quadA == Bottom && quadB == Top) stiffness = 380.0f;
+    else if (quadA == Top && quadB == Bottom) stiffness = 500.0f;
+    else if (quadA == Bottom && quadB == Bottom) stiffness = 500.0f;
+    else if (quadA == Bottom && quadB == Top) stiffness = 500.0f;
     return stiffness;
 }
 

@@ -132,7 +132,7 @@ void OpenGLWidget::initializeGL()
     InitCurves();
     InitVoxelModel();
 
-    InitScene();
+    // InitScene();
 }
 
 void OpenGLWidget::paintGL()
@@ -171,9 +171,6 @@ void OpenGLWidget::paintGL()
 
     m_program->release();
     
-    // if (IsRunning()) m_physicsSystem->Update(m_deltaTime); 
-    // if (m_bvhTorsoColliders) RenderBVH(m_program.get(), m_bvhTorsoColliders.get());
-
     update();
 }
 
@@ -188,8 +185,8 @@ void OpenGLWidget::mousePressEvent(QMouseEvent *event)
 void OpenGLWidget::mouseReleaseEvent(QMouseEvent *event)
 {
     // Camera rotation
+    m_physicsSystem->ChangeGravity(m_camera->GetDownVector() * GRAVITY.length());
     if (m_isRunningTemp) {
-        m_physicsSystem->ChangeGravity(m_camera->GetDownVector() * GRAVITY.length());
         Play();
     }
     m_camera->mouseReleaseEvent(event);
@@ -209,7 +206,7 @@ void OpenGLWidget::wheelEvent(QWheelEvent *event)
 
 void OpenGLWidget::keyPressEvent(QKeyEvent *event)
 {
-    qDebug() << event->key();
+    // qDebug() << event->key();
     switch (event->key())
     {
     case Qt::Key_Space:
@@ -304,6 +301,17 @@ void OpenGLWidget::keyReleaseEvent(QKeyEvent *event)
     
 }
 
+void OpenGLWidget::Reset() 
+{
+    Stop();
+    ClearScene();
+    CurveToParticlesSprings();
+    VoxelToParticlesSprings();
+
+    InitScene();
+}
+
+
 void OpenGLWidget::InitScene()
 {
     // Initialize the scene here
@@ -342,6 +350,16 @@ void OpenGLWidget::InitScene()
     // right->SetMovable(false);
     // m_physicsSystem->AddRigidbody(right);
     // m_physicsSystem->AddConstraint(right);
+
+    auto box1 = std::make_shared<Box>(QVector3D(0, 0, 0), QVector3D(5, 1, 5), QColor(100, 100, 100));
+    box1->SetStatic();
+    m_physicsSystem->AddRigidbody(box1);
+    m_physicsSystem->AddConstraint(box1);
+
+    auto box2 = std::make_shared<Box>(QVector3D(-1.5, 4, 0), QVector3D(1, 1, 1), QColor(100, 20, 100));
+    box2->SetDynamic();
+    m_physicsSystem->AddRigidbody(box2);
+    m_physicsSystem->AddConstraint(box2);
     
     if (m_isCurve)
     { 
@@ -402,24 +420,24 @@ void OpenGLWidget::InitScene()
         
     }
 
-    qDebug() << "Particles: " << m_particles.size() << " Springs: " << m_springs.size() << " Triangle colliders: " << m_triangleColliders.size();
+    // qDebug() << "Particles: " << m_particles.size() << " Springs: " << m_springs.size() << " Triangle colliders: " << m_triangleColliders.size();
     
     // Add particles and springs to the physics system
     for (auto& p : m_particles) { m_physicsSystem->AddRigidbody(p); m_physicsSystem->AddConstraint(p); }
     for (auto& s : m_springs) m_physicsSystem->AddSpring(s);
     for (auto& t : m_triangleColliders) m_physicsSystem->AddTriangleCollider(t);
 
-    m_physicsSystem->Update(0.0f); // Initialize the physics system
+    m_physicsSystem->Update(0.0f); 
 
-    m_physicsSystem->ChangeGravity(m_camera->GetDownVector() * GRAVITY.length());
     m_physicsSystem->ChangeFriction(m_globalFriction);
-
+    m_physicsSystem->ChangeGravity(m_camera->GetDownVector() * GRAVITY.length());
+    
     m_physicsSystem->SetUpBVH();
-
+    
     emit updateSpringsStiffnessControlsChanged(m_springs);
     
-    doneCurrent();
     update();
+    doneCurrent();
     
 }
 
@@ -846,14 +864,27 @@ void OpenGLWidget::CurveToParticlesSprings()
 
     doneCurrent();
 }
-
-void OpenGLWidget::FillVolumeWithParticle()
-{
-
-}
 */
 
+QVector3D OpenGLWidget::EvaluateCurveSurface(float u, float v) {
+    size_t numPoints = m_profilePoints.size();
+    float angleIndex = u * numPoints;
+    int i0 = int(std::floor(angleIndex)) % numPoints;
+    int i1 = (i0 + 1) % numPoints;
+    float localT = angleIndex - float(i0);
 
+    QVector3D p0 = Lerp(m_profilePoints[i0], m_profilePoints[i1], localT);
+    QVector3D p1 = Lerp(m_ringPoints[i0], m_ringPoints[i1], localT);
+
+    float tCurve = std::pow(v, 3.0f);
+    QVector3D pos = Lerp(p0, p1, tCurve);
+
+    float totalDepth = m_curveDepth;
+    float zOffset = v * totalDepth;
+    pos.setZ(pos.z() + zOffset);
+
+    return pos;
+}
 
 void OpenGLWidget::CurveToParticlesSprings()
 {
@@ -926,7 +957,7 @@ void OpenGLWidget::CurveToParticlesSprings()
     QVector3D yAxis = QVector3D::crossProduct(zAxis, xAxis).normalized();
 
     // Ring curve
-    std::vector<QVector3D> ringPoints;
+    m_ringPoints.clear();
     for (size_t i = 0; i < numPoints; ++i)
     {
         float angle = static_cast<float>(i) / static_cast<float>(numPoints) * 2.0f * M_PI - M_PI_4;
@@ -935,7 +966,258 @@ void OpenGLWidget::CurveToParticlesSprings()
         float sinAngle = std::sin(angle);
         QVector3D p = cosAngle * xAxis * ringRadius + sinAngle * yAxis * ringRadius;
 
-        ringPoints.push_back(centerRing + p * 1.5f);
+        m_ringPoints.push_back(centerRing + p * 1.5f);
+    }
+
+    // Add a closed triangle 
+    std::vector<std::shared_ptr<TriangleCollider>> closingTriangles;
+
+    for (size_t i = 0; i < numPoints; ++i) {
+        const QVector3D& a = m_profilePoints[i];
+        const QVector3D& b = m_profilePoints[(i + 1) % numPoints]; // wrap around
+
+        // Triangle (a, b, center)
+        auto tri = std::make_shared<TriangleCollider>(a, b, centerCurve);
+        closingTriangles.push_back(tri);
+    }
+
+    m_fillTriangleColliders.insert(m_fillTriangleColliders.end(), closingTriangles.begin(), closingTriangles.end());
+
+
+    int numU = 32; 
+    int numV = 12;
+
+    std::vector<std::vector<std::shared_ptr<Particle>>> grid;
+    std::vector<std::vector<std::shared_ptr<Particle>>> thickGrid;
+
+    for (int j = 0; j <= numV; ++j) {
+        float v = float(j) / float(numV);
+        std::vector<std::shared_ptr<Particle>> row;
+        std::vector<std::shared_ptr<Particle>> thickRow;
+        float offset = (j % 2 == 0) ? 0.0f : (0.5f / numU); // horizontal offset for triangle staggering
+
+        for (int i = 0; i <= numU; ++i) {
+            float u = (float(i) / float(numU) + offset);
+            u = std::fmod(u, 1.0f); // wrap around
+
+            QVector3D pos = EvaluateCurveSurface(u, v);
+
+            auto p = std::make_shared<Particle>(pos, 1, mass, j == 0 ? false : true);
+            p->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
+            m_particles.push_back(p);
+            row.push_back(p);
+
+            QVector3D normal = (pos - QVector3D(centerRing.x(), centerRing.y(), centerRing.z() * 0.5f)).normalized();
+            QVector3D thickPos = pos + normal * thickness;
+            auto thickP = std::make_shared<Particle>(thickPos, 1, mass, j == 0 ? false : true);
+            thickP->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
+            m_particles.push_back(thickP);
+            thickRow.push_back(thickP);
+
+            // Connect the thick particle to the original one
+            m_springs.push_back(std::make_shared<Spring>(p, thickP, GetStiffnessByQuadrant(p->GetPosition(), thickP->GetPosition(), centerCurve))); // spring between original and thick particle
+        }
+
+        grid.push_back(row);
+        thickGrid.push_back(thickRow);
+    }
+
+    // Create triangles and springs between neighbors
+    for (int j = 0; j < numV; ++j) {
+        int cols = static_cast<int>(grid[j].size());
+        for (int i = 0; i < cols - 1; ++i) {
+            auto& p00 = grid[j][i];
+            auto& p01 = grid[j][i + 1];
+            auto& p10 = grid[j + 1][i];
+            auto& p11 = grid[j + 1][i + 1];
+
+            auto& q00 = thickGrid[j][i];
+            auto& q01 = thickGrid[j][i + 1];
+            auto& q10 = thickGrid[j + 1][i];
+            auto& q11 = thickGrid[j + 1][i + 1];
+
+            if (j % 2 == 0) {
+                // even row: lower-left triangle
+                auto tri1 = std::make_shared<TriangleCollider>(p00, p10, p01);
+                auto tri2 = std::make_shared<TriangleCollider>(p01, p10, p11);
+                m_fillTriangleColliders.push_back(tri1);
+                m_fillTriangleColliders.push_back(tri2);
+
+                m_triangleColliders.push_back(tri1);
+                m_triangleColliders.push_back(tri2);
+                m_triangleColliders.push_back(std::make_shared<TriangleCollider>(q00, q10, q01));
+                m_triangleColliders.push_back(std::make_shared<TriangleCollider>(q01, q10, q11));
+            } else {
+                // odd row: flip diagonals
+                auto tri1 = std::make_shared<TriangleCollider>(p00, p10, p11);
+                auto tri2 = std::make_shared<TriangleCollider>(p00, p11, p01);
+                m_fillTriangleColliders.push_back(tri1);
+                m_fillTriangleColliders.push_back(tri2);
+
+                m_triangleColliders.push_back(tri1);
+                m_triangleColliders.push_back(tri2);
+                m_triangleColliders.push_back(std::make_shared<TriangleCollider>(q00, q10, q11));
+                m_triangleColliders.push_back(std::make_shared<TriangleCollider>(q00, q11, q01));
+            }
+
+            // Springs
+            m_springs.push_back(std::make_shared<Spring>(p00, p01, GetStiffnessByQuadrant(p00->GetPosition(), p01->GetPosition(), centerCurve)));
+            m_springs.push_back(std::make_shared<Spring>(p00, p10, GetStiffnessByQuadrant(p00->GetPosition(), p10->GetPosition(), centerCurve)));
+            m_springs.push_back(std::make_shared<Spring>(p01, p11, GetStiffnessByQuadrant(p01->GetPosition(), p11->GetPosition(), centerCurve)));
+            m_springs.push_back(std::make_shared<Spring>(p10, p11, GetStiffnessByQuadrant(p10->GetPosition(), p11->GetPosition(), centerCurve)));
+            m_springs.push_back(std::make_shared<Spring>(p01, p10, GetStiffnessByQuadrant(p01->GetPosition(), p10->GetPosition(), centerCurve))); // diagonal spring
+
+            m_springs.push_back(std::make_shared<Spring>(q00, q01, GetStiffnessByQuadrant(q00->GetPosition(), q01->GetPosition(), centerCurve)));
+            m_springs.push_back(std::make_shared<Spring>(q00, q10, GetStiffnessByQuadrant(q00->GetPosition(), q10->GetPosition(), centerCurve)));
+            m_springs.push_back(std::make_shared<Spring>(q01, q11, GetStiffnessByQuadrant(q01->GetPosition(), q11->GetPosition(), centerCurve)));
+            m_springs.push_back(std::make_shared<Spring>(q10, q11, GetStiffnessByQuadrant(q10->GetPosition(), q11->GetPosition(), centerCurve)));
+            m_springs.push_back(std::make_shared<Spring>(q01, q10, GetStiffnessByQuadrant(q01->GetPosition(), q10->GetPosition(), centerCurve)));
+
+            // Cross-layer springs
+            m_springs.push_back(std::make_shared<Spring>(p00, q11, GetStiffnessByQuadrant(p00->GetPosition(), q11->GetPosition(), centerCurve)));
+            m_springs.push_back(std::make_shared<Spring>(p01, q10, GetStiffnessByQuadrant(p01->GetPosition(), q10->GetPosition(), centerCurve)));
+        }
+    }
+
+    for (int j = 0; j <= numV; ++j) {
+        auto& first = grid[j][0];
+        auto& last  = grid[j][numU];
+        m_springs.push_back(std::make_shared<Spring>(first, last, 1000.0f));
+    } 
+
+    const auto& ring = grid.back();
+    const auto& thickRing = thickGrid.back();
+
+    QVector3D centerPos(0, 0, 0);
+    for (auto& p : ring) centerPos += p->GetPosition();
+    centerPos /= float(ring.size());
+
+    auto centerParticle = std::make_shared<Particle>(centerPos, 1, 1.0f);
+    centerParticle->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
+    m_particles.push_back(centerParticle);
+     
+    auto centerThickParticle = std::make_shared<Particle>(centerPos + m_curveNormal * thickness, 1, 1.0f);
+    centerThickParticle->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
+    m_particles.push_back(centerThickParticle);
+
+    for (auto& p : ring) {
+        p->AddFlag(PARTICLE_NO_COLLISION_WITH_US);
+        m_springs.push_back(std::make_shared<Spring>(p, centerParticle, 1000.0f));
+    }
+
+    for (auto& p : thickRing) {
+        p->AddFlag(PARTICLE_NO_COLLISION_WITH_US);
+        m_springs.push_back(std::make_shared<Spring>(p, centerThickParticle, 1000.0f));
+    }
+
+    for (size_t i = 0; i < ring.size(); ++i)
+    for (size_t j = 0; j < ring.size(); ++j)
+        if (i != j)
+            m_springs.push_back(std::make_shared<Spring>(ring[i], ring[j], 1000.0f));
+
+    for (size_t i = 0; i < ring.size(); ++i) {
+        size_t next = (i + 1) % ring.size();
+        m_fillTriangleColliders.push_back(std::make_shared<TriangleCollider>(ring[i], ring[next], centerParticle));
+        m_triangleColliders.push_back(std::make_shared<TriangleCollider>(ring[i], ring[next], centerParticle));
+    }
+
+    for (size_t i = 0; i < thickRing.size(); ++i)
+    for (size_t j = 0; j < thickRing.size(); ++j)
+        if (i != j)
+            m_springs.push_back(std::make_shared<Spring>(thickRing[i], thickRing[j], 1000.0f));
+
+    for (size_t i = 0; i < thickRing.size(); ++i) {
+        size_t next = (i + 1) % thickRing.size();
+        m_triangleColliders.push_back(std::make_shared<TriangleCollider>(thickRing[i], thickRing[next], centerThickParticle));
+    }
+
+    doneCurrent();
+
+    FillVolumeWithParticle();
+}
+
+/*
+void OpenGLWidget::CurveToParticlesSprings()
+{
+    if (!m_isCurve || !m_torsoModel) return;
+
+    makeCurrent();
+    // Clear previous model
+    m_particles.clear();
+    m_springs.clear();
+    m_triangleColliders.clear();
+    m_fillTriangleColliders.clear();
+
+    // Parameters
+    float mass = 1.0f;
+    int numLayers = m_curveLayers + 2;
+    float height = m_curveDepth;
+    float layerStep = m_curveDepth / (numLayers - 1);
+    float ringRadius = m_curveRingRadius;
+    float thickness = 0.05f; 
+
+    // Model curve
+    m_profilePoints = m_curve.Sample(m_numSamples);
+
+    // Remove the last points to avoid duplicates
+    m_profilePoints.pop_back();
+
+    size_t numPoints = m_profilePoints.size();
+    if (numPoints < 3) return; // Not enough profilePoints to create a curve
+
+    // Place sample points in the torso model
+    for (size_t i = 0; i < numPoints; ++i) 
+    {
+        QVector3D p = GetPointOntoMesh(m_profilePoints[i]);
+        m_profilePoints[i] = p;
+    }
+
+    // Compute the center of the curve
+    QVector3D centerCurve(0, 0, 0);
+    QVector3D centerRing(0, 0, 0);
+    for (const auto& pt : m_profilePoints) centerCurve += pt;
+    centerCurve /= static_cast<float>(numPoints);
+    
+    centerRing = centerCurve;
+
+    // Compute the normal of the curve
+    for (size_t i = 0; i < numPoints; ++i)
+    {
+        auto& p1 = m_profilePoints[i];
+        auto& p2 = m_profilePoints[(i + 1) % numPoints];
+        auto& p3 = m_profilePoints[(i + 2) % numPoints];
+
+        QVector3D v1 = p2 - p1;
+        QVector3D v2 = p3 - p2;
+
+        m_curveNormal += QVector3D::crossProduct(v1, v2).normalized();
+    }
+    m_curveNormal.normalize();
+
+    // Add offset to the center
+    centerRing.setY(centerRing.y() - 0.2f);
+    // Set the center to he height
+    // centerRing += m_curveNormal * height;
+    
+    QVector3D zAxis = m_curveNormal;
+    QVector3D xAxis;
+
+    if (std::abs(zAxis.y()) < 0.99f) xAxis = QVector3D::crossProduct(zAxis, QVector3D(0, 1, 0)).normalized();
+    else xAxis = QVector3D::crossProduct(zAxis, QVector3D(1, 0, 0)).normalized();
+
+    QVector3D yAxis = QVector3D::crossProduct(zAxis, xAxis).normalized();
+
+    // Ring curve
+    m_ringPoints.clear();
+    for (size_t i = 0; i < numPoints; ++i)
+    {
+        float angle = static_cast<float>(i) / static_cast<float>(numPoints) * 2.0f * M_PI - M_PI_4;
+
+        float cosAngle = std::cos(angle);
+        float sinAngle = std::sin(angle);
+        QVector3D p = cosAngle * xAxis * ringRadius + sinAngle * yAxis * ringRadius;
+
+        m_ringPoints.push_back(centerRing + p * 1.5f);
     }
 
     // Add a closed triangle 
@@ -969,7 +1251,7 @@ void OpenGLWidget::CurveToParticlesSprings()
         float z = layer * layerStep;
 
         for (size_t i = 0; i < numPoints; ++i) {
-            QVector3D pos = (1.0f - tCurve) * m_profilePoints[i] + tCurve * ringPoints[i];
+            QVector3D pos = (1.0f - tCurve) * m_profilePoints[i] + tCurve * m_ringPoints[i];
             // QVector3D pos = (1.0f - tCurve) * ringPoints[i] + tCurve * m_profilePoints[i];
             // pos.setZ(m_profilePoints[i].z() + z); 
 
@@ -1265,7 +1547,9 @@ void OpenGLWidget::CurveToParticlesSprings()
     doneCurrent();
 
     FillVolumeWithParticle();
+
 }
+*/
 
 void OpenGLWidget::FillVolumeWithParticle()
 {
@@ -1336,21 +1620,21 @@ void OpenGLWidget::FillVolumeWithParticle()
                 auto p = temp[getIndex(i, j, k)];
                 if (!p) continue;
                 
-                // // X+1
-                // if (i + 1 < countX) {
-                //     auto neighbor = temp[getIndex(i + 1, j, k)];
-                //     if (neighbor) m_springs.push_back(std::make_shared<Spring>(p, neighbor, 200));
-                // }
-                // // Y+1
-                // if (j + 1 < countY) {
-                //     auto neighbor = temp[getIndex(i, j + 1, k)];
-                //     if (neighbor) m_springs.push_back(std::make_shared<Spring>(p, neighbor, 200));
-                // }
-                // // Z+1
-                // if (k + 1 < countZ) {
-                //     auto neighbor = temp[getIndex(i, j, k + 1)];
-                //     if (neighbor) m_springs.push_back(std::make_shared<Spring>(p, neighbor, 200));
-                // }
+                // X+1
+                if (i + 1 < countX) {
+                    auto neighbor = temp[getIndex(i + 1, j, k)];
+                    if (neighbor) m_springs.push_back(std::make_shared<Spring>(p, neighbor, 200));
+                }
+                // Y+1
+                if (j + 1 < countY) {
+                    auto neighbor = temp[getIndex(i, j + 1, k)];
+                    if (neighbor) m_springs.push_back(std::make_shared<Spring>(p, neighbor, 200));
+                }
+                // Z+1
+                if (k + 1 < countZ) {
+                    auto neighbor = temp[getIndex(i, j, k + 1)];
+                    if (neighbor) m_springs.push_back(std::make_shared<Spring>(p, neighbor, 200));
+                }
 
                 particlesToAdd.push_back(p);
                 m_particles.push_back(p);
@@ -1385,7 +1669,6 @@ void OpenGLWidget::FillVolumeWithParticle()
 
     doneCurrent();
 }
-
 
 void OpenGLWidget::setDeformation(int p1, int p2, float value)
 {
@@ -1487,6 +1770,7 @@ void OpenGLWidget::VoxelToParticlesSprings()
     // for (auto& t : m_voxel.triangleColliders) m_physicsSystem->AddTriangleCollider(t);
 
     doneCurrent();
+
 }
 
 void OpenGLWidget::SetViewMode(ViewMode mode)

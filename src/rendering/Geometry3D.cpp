@@ -165,20 +165,17 @@ std::shared_ptr<Mesh> Sphere::GetSharedSphereMesh()
 Plane::Plane() : Model()
 {
     SetUpPlane();
-    SetUpColliders();
 }
 Plane::Plane(const QVector3D& p, const QVector3D& n) : Model()
 {
     SetPosition(p);
     SetUpPlane(n);
-    SetUpColliders();
 }
 Plane::Plane(const QVector3D& p, const QVector3D& n, QColor c) : Model()
 {
     SetPosition(p);
     color = c;
     SetUpPlane(n);
-    SetUpColliders();
 }
 void Plane::SetUpPlane(const QVector3D& n)
 {
@@ -202,24 +199,20 @@ void Plane::SetUpPlane(const QVector3D& n)
 // BOX
 Box::Box() : Model()
 {
-    size = QVector3D(1.0f, 1.0f, 1.0f);
     SetUpBox();
-    SetUpColliders();
 }
 Box::Box(const QVector3D& p, const QVector3D& s) : Model()
 {
-    size = s;
+    transform.scale = s;
     SetPosition(p);
     SetUpBox();
-    SetUpColliders();
 }
 Box::Box(const QVector3D& p, const QVector3D& s, QColor c) : Model()
 {
-    size = s;
+    transform.scale = s;
     SetPosition(p);
     color = c;
     SetUpBox();
-    SetUpColliders();
 }
 void Box::SetUpBox()
 {
@@ -227,9 +220,6 @@ void Box::SetUpBox()
     type = RIGIDBODY_TYPE_BOX;
 
     mesh = GetSharedBoxMesh();
-
-    // Set the scale of the transform
-    transform.scale = size;
 
     SetUpColliders();
 }
@@ -239,7 +229,6 @@ Sphere::Sphere() : Model()
 {
     radius = 1.0f;
     SetUpSphere();
-    SetUpColliders();
 }
 Sphere::Sphere(const QVector3D& p, float r) : Model()
 {
@@ -247,7 +236,6 @@ Sphere::Sphere(const QVector3D& p, float r) : Model()
     transform.scale = QVector3D(r, r, r);
     SetPosition(p);
     SetUpSphere();
-    SetUpColliders();
 }
 Sphere::Sphere(const QVector3D& p, float r, QColor c) : Model()
 {
@@ -256,7 +244,6 @@ Sphere::Sphere(const QVector3D& p, float r, QColor c) : Model()
     SetPosition(p);
     color = c;
     SetUpSphere();
-    SetUpColliders();
 }
 void Sphere::SetUpSphere()
 {   

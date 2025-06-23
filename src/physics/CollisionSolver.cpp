@@ -149,7 +149,7 @@ void SolveSphereOBBCollision(Rigidbody* sphereRb, Rigidbody* obbRb)
     float w1 = sphereRb->GetInvMass();
     float w2 = obbRb->GetInvMass();
     float totalInvMass = w1 + w2;
-    if (totalInvMass <= 0.0f) return;
+    if (totalInvMass <= 0.0f) return; // Ignore static objects
 
     float penetration = sphereRadius - dist;
     QVector3D correction = delta.normalized() * (penetration / totalInvMass);
@@ -160,5 +160,19 @@ void SolveSphereOBBCollision(Rigidbody* sphereRb, Rigidbody* obbRb)
 
 void SolveOBBOBBCollision(Rigidbody* rb1, Rigidbody* rb2)
 {
+    if (!rb1 || !rb2) return;
+
+    QVector3D mtv; // Minimum Translation Vector
+    if (!TestOBBOBBCollision(rb1->boxCollider, rb2->boxCollider, mtv)) return; // No collision
     
+    qDebug() << "OBB Collision Detected! MTV:" << mtv;
+    float w1 = rb1->GetInvMass();
+    float w2 = rb2->GetInvMass();
+    float totalInvMass = w1 + w2;
+    if (totalInvMass <= 0.0f) return; // Ignore static objects
+
+    // QVector3D correction = QVector3D(0, 0.1, 0);// mtv / totalInvMass;
+
+    // if (rb1->IsDynamic()) rb1->ApplyPositionCorrection(correction * w1);
+    // if (rb2->IsDynamic()) rb2->ApplyPositionCorrection(-correction * w2);
 }

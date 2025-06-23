@@ -26,15 +26,12 @@ protected:
     std::vector<std::shared_ptr<Spring>> springs;
     std::vector<std::shared_ptr<Rigidbody>> constraints;
     std::vector<std::shared_ptr<TriangleCollider>> triangleColliders;
-    std::vector<Transform> rigidbodyTransformations;
 
     // Buffer
     std::vector<std::shared_ptr<Rigidbody>> pendingBodies;
     std::vector<std::shared_ptr<Spring>> pendingSprings;
     std::vector<std::shared_ptr<Rigidbody>> pendingConstraints;
     std::vector<std::shared_ptr<TriangleCollider>> pendingTriangleColliders;
-    // std::vector<Transform> pendingRigidbodyTransformations;
-
 
     // Bounding Volume Hierarchy for collision detection
     std::unique_ptr<BVHNode<Rigidbody>> bvhRigidbodies;
@@ -45,7 +42,7 @@ public slots:
     void renderCollider(bool render) { m_renderCollider = render; }
 
 public:
-    PhysicsSystem();
+    PhysicsSystem() {}
 
     void Update(float deltaTime);
     void Render(QOpenGLShaderProgram* shaderProgram, float alpha = 1.0f);
@@ -57,7 +54,6 @@ public:
         }
         QMutexLocker locker(&m_dataMutex); // Lock the mutex for thread safety
         pendingBodies.push_back(body);
-        rigidbodyTransformations.push_back(body->transform);
     }
     inline void AddConstraint(std::shared_ptr<Rigidbody> constraint) {
         if (!constraint) {
@@ -85,7 +81,7 @@ public:
     }
 
     inline void ClearAll() { QMutexLocker locker(&m_dataMutex); ClearRigidbodys(); ClearSprings(); ClearConstraints(); ClearBVH(); }
-    inline void ClearRigidbodys() { bodies.clear(); pendingBodies.clear(); rigidbodyTransformations.clear(); }
+    inline void ClearRigidbodys() { bodies.clear(); pendingBodies.clear(); }
     inline void ClearSprings() { springs.clear(); pendingSprings.clear(); }
     inline void ClearConstraints() { constraints.clear(); pendingConstraints.clear(); triangleColliders.clear(); pendingTriangleColliders.clear(); }
     inline void ClearBVH() { bvhRigidbodies.reset(); bvhRigidbodies = nullptr; bvhTriangleColliders.reset(); bvhTriangleColliders = nullptr; }
@@ -93,7 +89,6 @@ public:
     void ChangeGravity(const QVector3D& g);
     void ChangeFriction(float f);
 
-    // void RotateRigidbodies(QVector3D rotation, const QVector3D& pivot = QVector3D(0, 0, 0));
     void SetUpBVH() { bvhRigidbodies = BuildBVH(constraints); bvhTriangleColliders = BuildBVH(triangleColliders); }
 
     std::vector<std::shared_ptr<Rigidbody>> GetRigidBodies() { return bodies; }
@@ -106,12 +101,8 @@ public:
 private: 
     bool m_renderCollider { false }; // Flag to render colliders
     bool m_renderBVH { false }; // Flag to render the BVH tree
-    // std::vector<Transform> m_currentTransforms; // Render use
-    // std::vector<Transform> m_nextTransforms; // Physics use
     QMutex m_dataMutex; 
-    // QMutex m_constraintsMutex;
-    // QMutex m_springsMutex;
-    // QMutex m_trianglesMutex;
+
 
 
 };

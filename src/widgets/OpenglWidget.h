@@ -98,7 +98,7 @@ public slots:
     void setCurveRing(float radius);
 
     // void Reset() { qDebug() << "-------------------"; makeCurrent(); Stop(); qDebug() << "Stop OK!"; ClearScene(); qDebug() << "Clear OK!"; doneCurrent(); CurveToParticlesSprings(); qDebug() << "CurveToParticle OK!"; VoxelToParticlesSprings(); qDebug() << "VoxelToParticle OK!"; InitScene(); qDebug() << "InitScene OK!"; }
-    void Reset() { makeCurrent(); Stop(); ClearScene(); doneCurrent(); CurveToParticlesSprings(); VoxelToParticlesSprings(); InitScene(); }
+    void Reset(); //{ makeCurrent(); Stop(); ClearScene(); doneCurrent(); CurveToParticlesSprings(); VoxelToParticlesSprings(); InitScene(); }
     void Stop()  { m_isRunning = false; emit buttonStateChanged(m_isRunning); }
     void Play()  { m_isRunning = true; m_renderBVH = false; emit renderBVHChanged(m_renderBVH); emit buttonStateChanged(m_isRunning); }
     
@@ -112,6 +112,7 @@ private:
     void UpdateCurveHeightWidth();
     void ChangeControlPointPosistion(const QVector3D& direction);
     void CurveToParticlesSprings();
+    QVector3D EvaluateCurveSurface(float u, float v);
     QVector3D GetPointOntoMesh(const QVector3D& point);
     void FillVolumeWithParticle();
     std::vector<std::shared_ptr<TriangleCollider>> m_fillTriangleColliders;
@@ -150,6 +151,7 @@ private:
     std::vector<QVector3D> m_curvePoints; // Control points of the curve
     std::vector<QVector3D> m_curvePointsSliders; 
     std::vector<QVector3D> m_profilePoints; // Sampled points of the curve
+    std::vector<QVector3D> m_ringPoints; // Sampled points of the ring
     QVector3D m_curveNormal { 0.0f, 0.0f, 1.0f };
     bool  m_isCurve         { false };
     int   m_numSamples      { 32 };

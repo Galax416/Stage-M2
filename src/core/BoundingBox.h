@@ -118,3 +118,68 @@ inline AABB FromMinMax(const QVector3D& min, const QVector3D& max)
 	return AABB((min + max) * 0.5f, (max - min) * 0.5f);
 }
 
+// SAT (Separating Axis Theorem) for OBB collision detection
+// Returns true if there is a collision and sets outMTV to the minimum translation vector
+inline bool TestOBBOBBCollision(const OBB& a, const OBB& b, QVector3D& outMTV)
+{
+    const float EPSILON = 1e-6f;
+    float minOverlap = FLT_MAX;
+    QVector3D smallestAxis;
+
+    QVector3D axes[15];
+    int axisCount = 0;
+
+    // Axes from A (local X, Y, Z transformés)
+    for (int i = 0; i < 3; ++i)
+        axes[axisCount++] = a.GetAxis(i).normalized();
+
+    // Axes from B
+    for (int i = 0; i < 3; ++i)
+        axes[axisCount++] = b.GetAxis(i).normalized();
+
+    // Cross products of all axes
+    for (int i = 0; i < 3; ++i) {
+        QVector3D aAxis = a.GetAxis(i);
+        for (int j = 0; j < 3; ++j) {
+            QVector3D bAxis = b.GetAxis(j);
+            QVector3D axis = QVector3D::crossProduct(aAxis, bAxis);
+            if (axis.lengthSquared() > EPSILON) {
+                axes[axisCount++] = axis.normalized();
+            }
+        }
+    }
+
+    QVector3D delta = b.center - a.center;
+
+    for (int i = 0; i < axisCount; ++i) {
+        QVector3D axis = axes[i];
+        if (axis.lengthSquared() < EPSILON) continue;
+
+        // Projection of box A onto axis
+        float projA = 0.0f;
+        for (int j = 0; j < 3; ++j) projA += a.size[j] * fabs(QVector3D::dotProduct(axis, a.GetAxis(j)));
+
+        // Projection of box B onto axis
+        float projB = 0.0f;
+        for (int j = 0; j < 3; ++j) projB += b.size[j] * fabs(QVector3D::dotProduct(axis, b.GetAxis(j)));
+
+        float distance = fabs(QVector3D::dotProduct(delta, axis));
+        float overlap = projA + projB - distance;
+
+        if (overlap < 0.0f) return false; // Separating axis found -> no collision
+
+        // Store the axis with the least overlap
+        if (overlap < minOverlap) {
+            minOverlap = overlap;
+            smallestAxis = axis;
+
+            // Ensure MTV points from A to B
+            if (QVector3D::dotProduct(smallestAxis, delta) < 0.0f) smallestAxis = -smallestAxis;
+        }
+    }
+
+    // Final MTV
+    outMTV = smallestAxis * minOverlap;
+    return true;
+}
+

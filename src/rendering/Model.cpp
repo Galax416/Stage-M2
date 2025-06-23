@@ -37,15 +37,19 @@ void Model::SynsCollisionVolumes()
 {
     triangleColliders.clear();
 
-    if (type == RIGIDBODY_TYPE_SPHERE) {
+    if (type == RIGIDBODY_TYPE_SPHERE) 
+    {
         sphereCollider.center = transform.position;
         sphereCollider.radius = transform.scale.x();
     }
-    else if (type == RIGIDBODY_TYPE_BOX) {
+    else if (type == RIGIDBODY_TYPE_BOX) 
+    {
         boxCollider.center = bounds.center + transform.position;
         boxCollider.size = bounds.size * transform.scale;
         boxCollider.orientation = transform.GetRotationMatrix();
-    } else if (type == RIGIDBODY_TYPE_TRIANGLE) {
+    } 
+    else if (type == RIGIDBODY_TYPE_TRIANGLE) 
+    {
         if (!mesh) return;
         if (mesh->vertices.empty()) return;
         for (size_t i = 0; i < mesh->indices.size(); i += 3) {

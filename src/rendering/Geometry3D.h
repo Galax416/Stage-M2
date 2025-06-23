@@ -31,14 +31,9 @@ public:
     Box(const QVector3D& p, const QVector3D& s);
     Box(const QVector3D& p, const QVector3D& s, QColor c);
 
-    QVector3D GetSize() const { return size; }
-    void SetSize(const QVector3D& s) { size = s; }
-
 private:
     void SetUpBox();
     static std::shared_ptr<Mesh> GetSharedBoxMesh();
-
-    QVector3D size;
 };
 
 class Sphere : public Model
