@@ -8,5 +8,6 @@
 /App*
 /main*
 /step*
-/resources/models
+/resources/models/*
+!/resources/models/torso.obj
 /src/shaders

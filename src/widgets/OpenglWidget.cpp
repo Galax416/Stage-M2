@@ -465,7 +465,7 @@ void OpenGLWidget::InitCurves()
 {
     // Model
     makeCurrent();
-    m_torsoModel = std::make_shared<Model>("./resources/models/torse.obj");
+    m_torsoModel = std::make_shared<Model>("./resources/models/torso.obj");
     m_torsoModel->SetStatic();
     // m_torsoModel->transform.scale = QVector3D(5.0f, 5.0f, 5.0f);
     m_torsoModel->SetColor(QColor(100, 100, 100));
