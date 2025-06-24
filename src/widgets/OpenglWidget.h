@@ -24,6 +24,8 @@
 #define DELTATIME  0.0160f
 #define GRAVITY    QVector3D(0.0f, -9.81f, 0.0f)
 
+#define Verbose false // Set to true to enable verbose output
+
 // Foward declarations
 class Camera;
 class PhysicsWorker;
@@ -83,14 +85,14 @@ signals:
 public slots:
     void setGlobalDeltaTime(float value)        { Stop(); m_deltaTime = value; emit deltaTimeChanged(value); }
     void setGlobalFriction(float value)         { m_globalFriction = (1.0f - value); m_physicsSystem->ChangeFriction(m_globalFriction);}
-    void setGlobalBackgroundColor(QColor color) { m_backgroundColor = color; qDebug() << "setGlobalBackgroundColor"; Reset(); }
+    void setGlobalBackgroundColor(QColor color) { m_backgroundColor = color; if (Verbose) qDebug() << "setGlobalBackgroundColor"; Reset(); }
 
-    void setCrossSpringModel(bool value) { m_crossSpringModel = value; qDebug() << "setCrossSpringModel"; Reset(); }
-    void setCurves(bool create)          { m_isCurve = create; qDebug() << "setCurves"; Reset(); }
-    void setVoxelModel(bool create)      { m_isVoxelModel = create; qDebug() << "setVoxelModel"; Reset(); }
-    void setThickness(bool value)        { m_haveThickness = value; qDebug() << "setThickness"; Reset(); }
-    void setSamplingModel(int value)     { m_numSamples  = value; qDebug() << "setSamplingModel"; Reset(); }
-    void setLayerModel(int value)        { m_curveLayers = value; qDebug() << "setLayerModel"; Reset(); }
+    void setCrossSpringModel(bool value) { m_crossSpringModel = value; if (Verbose) qDebug() << "setCrossSpringModel"; Reset(); }
+    void setCurves(bool create)          { m_isCurve = create; if (Verbose) qDebug() << "setCurves"; Reset(); }
+    void setVoxelModel(bool create)      { m_isVoxelModel = create; if (Verbose) qDebug() << "setVoxelModel"; Reset(); }
+    void setThickness(bool value)        { m_haveThickness = value; if (Verbose) qDebug() << "setThickness"; Reset(); }
+    void setSamplingModel(int value)     { m_numSamples  = value; if (Verbose) qDebug() << "setSamplingModel"; Reset(); }
+    void setLayerModel(int value)        { m_curveLayers = value; if (Verbose) qDebug() << "setLayerModel"; Reset(); }
     void setDeformation(int p1, int p2, float value);
     void setCurveWidth(float value);
     void setCurveHeight(float value);

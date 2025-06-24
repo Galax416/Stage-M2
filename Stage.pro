@@ -32,7 +32,7 @@ SOURCES += \
     ./src/physics/Spring.cpp \
     ./src/physics/CollisionSolver.cpp \
     ./src/physics/PhysicsSystem.cpp \
-    ./src/physics/ModelPhysicsConverter.cpp \
+    ./src/utils/ModelPhysicsConverter.cpp \
     ./src/MainWindow.cpp \
     ./src/widgets/OpenglWidget.cpp \
     ./src/widgets/GlobalSettingsWidget.cpp \
@@ -41,9 +41,10 @@ SOURCES += \
 
 HEADERS += \
     ./libs/stb_image.h \
-    ./src/core/Utils.h \
     ./src/core/Transform.h \
     ./src/core/BoundingBox.h \
+    ./src/core/SphereCollider.h \
+    ./src/core/TriangleCollider.h \
     ./src/core/GeometryPrimitives.h \
     ./src/core/Intersections.h \
     ./src/core/Rigidbody.h \
@@ -51,21 +52,20 @@ HEADERS += \
     ./src/core/Trackball.h \
     ./src/core/Camera.h \
     ./src/rendering/Render.h \
-    ./src/rendering/CustomOBJLoader.h \
     ./src/rendering/Mesh.h \
     ./src/rendering/Model.h \
     ./src/rendering/Geometry3D.h \
     ./src/rendering/Curve.h \
     ./src/rendering/Voxel.h \
-    ./src/physics/SphereCollider.h \
-    ./src/physics/TriangleCollider.h \
     ./src/physics/Particle.h \
     ./src/physics/Spring.h \
     ./src/physics/CollisionSolver.h \
     ./src/physics/PhysicsSystem.h \
-    ./src/physics/ModelPhysicsConverter.h \
     ./src/physics/PhysicsWorker.h \
     ./src/physics/MaterialPropierties.h \
+    ./src/utils/Utils.h \
+    ./src/utils/CustomOBJLoader.h \
+    ./src/utils/ModelPhysicsConverter.h \
     ./src/MainWindow.h \
     ./src/widgets/OpenglWidget.h \
     ./src/widgets/GlobalSettingsWidget.h \
@@ -81,10 +81,10 @@ INCLUDEPATH += \
     ./src/core \
     ./src/physics \
     ./src/rendering \
+    ./src/utils \
     ./src/widgets 
-    #./libs/assimp-5.4.3/include
 
 RESOURCES += $$PWD/resources/resources.qrc
 
-win32: LIBS += -lopengl32 -lgdi32 #-L"libs/assimp-5.4.3/bin"
-unix: LIBS += -lGL -ldl -lpthread #-lassimp
+win32: LIBS += -lopengl32 -lgdi32
+unix: LIBS += -lGL -ldl -lpthread
