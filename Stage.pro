@@ -6,7 +6,7 @@ QT += core gui opengl widgets concurrent
 win32: QT += openglwidgets
 
 CONFIG += c++17 release
-QMAKE_CXXFLAGS_RELEASE = -O3 -Wno-unused-parameter
+QMAKE_CXXFLAGS += -pipe -std=c++17 -fopenmp -O3 -Wno-unused-parameter
 
 TARGET = main
 
@@ -33,6 +33,7 @@ SOURCES += \
     ./src/physics/CollisionSolver.cpp \
     ./src/physics/PhysicsSystem.cpp \
     ./src/utils/ModelPhysicsConverter.cpp \
+    ./src/utils/CurveToParticleSpring.cpp \
     ./src/MainWindow.cpp \
     ./src/widgets/OpenglWidget.cpp \
     ./src/widgets/GlobalSettingsWidget.cpp \
@@ -66,6 +67,7 @@ HEADERS += \
     ./src/utils/Utils.h \
     ./src/utils/CustomOBJLoader.h \
     ./src/utils/ModelPhysicsConverter.h \
+    ./src/utils/CurveToParticleSpring.h \
     ./src/MainWindow.h \
     ./src/widgets/OpenglWidget.h \
     ./src/widgets/GlobalSettingsWidget.h \
@@ -76,6 +78,9 @@ HEADERS += \
 
 INCLUDEPATH += \
     ./libs \
+    ./libs/eigen-3.4.0 \
+    ./libs/boost_1_78_0 \
+    ./libs/CGAL-5.6.1/include \
     ./resources \
     ./src \
     ./src/core \
