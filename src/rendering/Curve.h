@@ -28,6 +28,8 @@ public:
 
     void Clear() { m_controlPoints.clear(); }
 
+    QVector3D GetCenter() const;
+
     void SetCurveType(CurveType type) { m_curveType = type; }
     void SetDegree(int degree) { m_degree = degree; }
     void SetClosed(bool closed) { m_closed = closed; }

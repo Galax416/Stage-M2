@@ -12,8 +12,8 @@ private:
 
     float restingLength { 0.0f};
     float stiffness { 0.0f };
-    float compliance { 1.0f };
-    float lambda { 0.0f };
+    double compliance { 1.0f };
+    double lambda { 0.0f };
     
     QColor m_color;
 

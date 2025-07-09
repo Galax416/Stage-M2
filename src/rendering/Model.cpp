@@ -193,3 +193,34 @@ bool Model::IsValid() const
 {
     return mesh && !mesh->vertices.empty() && !mesh->indices.empty();
 }
+
+void Model::ComputeFaces()
+{
+    if (!mesh) return;
+    if (mesh->vertices.empty() || mesh->indices.empty()) return;
+
+    customOBJ->Clear();
+
+    for (const auto& vertex : mesh->vertices) {
+        customOBJ->vertices.push_back(vertex.position);
+        customOBJ->normals.push_back(vertex.normal);
+        customOBJ->texCoords.push_back(vertex.texCoords);
+    }
+
+    for (size_t i = 0; i < mesh->indices.size(); i += 3) {
+        Face face;
+        face.vertexIndices.push_back(mesh->indices[i]);
+        face.vertexIndices.push_back(mesh->indices[i + 1]);
+        face.vertexIndices.push_back(mesh->indices[i + 2]);
+        customOBJ->faces.push_back(face);
+    }
+    
+}
+
+void Model::Remesh(double targetLength)
+{
+    if (!mesh) return;
+    mesh->Remesh(targetLength);
+    ComputeFaces();
+    SetUpColliders();
+}

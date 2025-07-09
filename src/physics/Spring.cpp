@@ -38,19 +38,19 @@ void Spring::SolveConstraints(float dt)
     QVector3D x2 = p2->GetPosition();
     QVector3D delta = x2 - x1;
     
-    float length = delta.length();
+    double length = delta.length();
     if (length == 0.0f) return; // Prevent division by zero
 
-    float w1 = p1->GetInvMass();
-    float w2 = p2->GetInvMass();
-    float wSum = w1 + w2;
+    double w1 = p1->GetInvMass();
+    double w2 = p2->GetInvMass();
+    double wSum = w1 + w2;
     if (wSum == 0.0f) return; // Prevent division by zero
 
-    float C = length - restingLength;
-    float denom = wSum + compliance / (dt * dt);
+    double C = length - restingLength;
+    double denom = wSum + compliance / (dt * dt);
     if (denom < 1e-6f) return; // Prevent division by zero
 
-    float dlambda = (-C - compliance * lambda) / denom;
+    double dlambda = (-C - compliance * lambda) / denom;
     lambda += dlambda;
 
     QVector3D correction = delta.normalized() * dlambda;
@@ -62,8 +62,9 @@ void Spring::SolveConstraints(float dt)
 void Spring::SetStiffness(float k)
 {
     stiffness = k < 1.0f ? 1.0f : k; 
-    float t = (stiffness - 1.0f) / (1000.0f - 1.0f); // ∈ [0, 1]
-    compliance = std::exp(std::log(0.999999f) * (1.0f - t) + std::log(1e-6f) * t);
+    double t = (stiffness - 1.0) / (1000.0 - 1.0); // ∈ [0, 1]
+    compliance = std::exp(std::log(0.99999999988898) * (1.0 - t) + std::log(1e-6) * t);
+
     // float scale = std::pow(stiffness / 1000.0f, 6); 
     // scale = std::clamp(scale, 1e-6f, 0.999999f); // Clamp to avoid extreme values
     // qDebug() << "Compliance:" << 1.0f / stiffness << "scale:" << scale << "compliance scaled:" << 1.0f - scale;

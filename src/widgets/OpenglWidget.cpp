@@ -1,5 +1,6 @@
 #include "OpenglWidget.h"
 #include "Camera.h"
+// #include "Camera.cpp"
 #include "Mesh.h" 
 #include "Model.h"
 #include "CustomOBJLoader.h"
@@ -11,6 +12,16 @@
 #include "Rigidbody.h"
 #include "Render.h"
 
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Surface_mesh.h>
+#include <CGAL/Polygon_mesh_processing/remesh.h>
+
+typedef CGAL::Simple_cartesian<double> Kernel;
+typedef Kernel::Point_3 Point;
+typedef CGAL::Surface_mesh<Point> SurfaceMesh;
+namespace PMP = CGAL::Polygon_mesh_processing;
+
+
 OpenGLWidget::OpenGLWidget(QWidget *parent) : QOpenGLWidget(parent), m_program(0)
 {
     setFocusPolicy(Qt::StrongFocus);  // Permit to receive key events
@@ -19,7 +30,6 @@ OpenGLWidget::OpenGLWidget(QWidget *parent) : QOpenGLWidget(parent), m_program(0
 OpenGLWidget::~OpenGLWidget()
 {
     makeCurrent();
-    // if (m_worker) m_worker->Stop();
     QMetaObject::invokeMethod(m_worker, "Stop", Qt::QueuedConnection); // Stop the worker thread
 
     if (m_physicsThread && m_physicsThread->isRunning()) {
@@ -129,9 +139,17 @@ void OpenGLWidget::initializeGL()
     // Initialize the model
     m_model = std::make_shared<Model>();
 
+    // Torso model
+    m_torsoModel = std::make_shared<Model>("./resources/models/torso.obj");
+    m_torsoModel->SetStatic();
+    m_torsoModel->SetColor(QColor(100, 100, 100));
+    m_bvhTorsoColliders = BuildBVH(m_torsoModel->triangleColliders);
+
+
     InitCurves();
     InitVoxelModel();
 
+    ClearSceneSlot();
     // InitScene();
 }
 
@@ -168,6 +186,7 @@ void OpenGLWidget::paintGL()
     // alpha = std::clamp(alpha, 0.0f, 1.0f); // Ensure alpha is between 0 and 1
     
     m_physicsSystem->Render(m_program.get()/* , alpha */); // Render the physics system
+    // UpdateModelFromParticles(m_model);
 
     m_program->release();
     
@@ -177,18 +196,13 @@ void OpenGLWidget::paintGL()
 void OpenGLWidget::mousePressEvent(QMouseEvent *event)
 {
     // Camera rotation
-    m_isRunningTemp = m_isRunning;
-    if (m_isRunning) Stop();
     m_camera->mousePressEvent(event);
 }
 
 void OpenGLWidget::mouseReleaseEvent(QMouseEvent *event)
 {
     // Camera rotation
-    m_physicsSystem->ChangeGravity(m_camera->GetDownVector() * GRAVITY.length());
-    if (m_isRunningTemp) {
-        Play();
-    }
+    // m_physicsSystem->ChangeGravity(m_camera->GetDownVector() * GRAVITY.length());
     m_camera->mouseReleaseEvent(event);
 }
 
@@ -207,70 +221,92 @@ void OpenGLWidget::wheelEvent(QWheelEvent *event)
 void OpenGLWidget::keyPressEvent(QKeyEvent *event)
 {
     if (Verbose) qDebug() << event->key();
+    
     switch (event->key())
     {
     case Qt::Key_Space:
         if (IsPaused()) Play();
         else Stop();
         break;
+
     case Qt::Key_W:
         m_isWireMode = !m_isWireMode;
         break;
+
     case Qt::Key_B:
         if (IsPaused()) {
             m_renderBVH = !m_renderBVH;
             emit renderBVHChanged(m_renderBVH);
         }
         break;
+
     case Qt::Key_C:
         if (Verbose) qDebug() << "Render Collider:" << m_renderCollider;
         m_renderCollider = !m_renderCollider;
         emit renderColliderChanged(m_renderCollider);
         break;
-    case Qt::Key_E:
-        {
-            makeCurrent();
-            auto p = std::make_shared<Particle>(QVector3D(0, 0, 0.2), 6, 1);
-            m_physicsSystem->AddRigidbody(p);
-            m_physicsSystem->AddConstraint(p);
-            doneCurrent();
-        }
+
+    case Qt::Key_P:
+        gravityChanged();
         break;
+
+    case Qt::Key_E:
+        addParticle();
+        break;
+
     case Qt::Key_R:
-        // if (m_curve.IsClosed()) m_curve.SetClosed(false);
-        // else m_curve.SetClosed(true);
         Stop();
         Reset();
         break;
+
     case 38: // &
         SetViewMode(ViewMode::View1);
         break;
+
     case 201: // é
         SetViewMode(ViewMode::View2);
         break;
+
     case 34: // "
         SetViewMode(ViewMode::View3);
         break;
+
     case 16777236: // Right Arrow
         {
-            
+            makeCurrent();
+            ChangeControlPointPosistion(QVector3D(0.1f, 0.0f, 0.0f));
+            Reset();
+            doneCurrent();
+            break;
         }
-        break;
+
     case 16777234: // Left Arrow
         {
-            
+            makeCurrent();
+            ChangeControlPointPosistion(QVector3D(-0.1f, 0.0f, 0.0f));
+            Reset();
+            doneCurrent();
+            break;
         }
-        break;
+
     case 16777237: // Down Arrow
         {
-            
+            makeCurrent();
+            ChangeControlPointPosistion(QVector3D(0.0f, -0.1f, 0.0f));
+            Reset();
+            doneCurrent();
+            break;
         }
-        break;
+
     case 16777235: // Up Arrow
         {
-            
+            makeCurrent();
+            ChangeControlPointPosistion(QVector3D(0.0f, 0.1f, 0.0f));
+            Reset();
+            doneCurrent();
+            break;
         }
-        break;
+
     case 43: // '+'
         {
             makeCurrent();
@@ -279,8 +315,9 @@ void OpenGLWidget::keyPressEvent(QKeyEvent *event)
             qDebug() << m_press->GetMass();
             m_press->SynsCollisionVolumes();
             doneCurrent();
+            break;
         }
-        break;
+
     case 45: // '-'
         {
             makeCurrent();
@@ -289,8 +326,9 @@ void OpenGLWidget::keyPressEvent(QKeyEvent *event)
             qDebug() << m_press->GetMass();
             m_press->SynsCollisionVolumes();
             doneCurrent();
+            break;
         }
-        break;
+
     default:
         break;
     }
@@ -316,76 +354,27 @@ void OpenGLWidget::InitScene()
 {
     // Initialize the scene here
     makeCurrent();    
-
-    // auto ground = std::make_shared<Plane>(QVector3D(0, -2, 0), QVector3D(0, 1, 0), QColor(150, 150, 150));
-    // ground->SetStatic();
-    // ground->SetColor(m_backgroundColor);
-    // m_physicsSystem->AddRigidbody(ground);
-    // m_physicsSystem->AddConstraint(ground);
-    
-    // CreateVoxelGrid(QVector3D(0, 0, 0), QVector3D(2, 2, 2), 10, 10, 10, m_particles, m_springs);
-    
-    // Test particle
-    // auto bottom = std::make_shared<Box>(QVector3D(0, -1, 0), QVector3D(10, 0.2, 10), QColor(150, 150, 150));
-    // bottom->SetMovable(false);
-    // m_physicsSystem->AddRigidbody(bottom);
-    // m_physicsSystem->AddConstraint(bottom);
-
-    // auto front = std::make_shared<Box>(QVector3D(0, 0, -1), QVector3D(1, 1, 0.1), QColor(100, 100, 100));
-    // front->SetMovable(false);
-    // m_physicsSystem->AddRigidbody(front);
-    // m_physicsSystem->AddConstraint(front);
-
-    // auto back = std::make_shared<Box>(QVector3D(0, 0, 1), QVector3D(1, 1, 0.1), QColor(100, 100, 100));
-    // back->SetMovable(false);
-    // m_physicsSystem->AddRigidbody(back);
-    // m_physicsSystem->AddConstraint(back);
-
-    // auto left = std::make_shared<Box>(QVector3D(-1, 0, 0), QVector3D(0.1, 1, 1), QColor(100, 100, 100));
-    // left->SetMovable(false);
-    // m_physicsSystem->AddRigidbody(left);
-    // m_physicsSystem->AddConstraint(left);
-
-    // auto right = std::make_shared<Box>(QVector3D(1, 0, 0), QVector3D(0.1, 1, 1), QColor(100, 100, 100));
-    // right->SetMovable(false);
-    // m_physicsSystem->AddRigidbody(right);
-    // m_physicsSystem->AddConstraint(right);
-
-    // auto box1 = std::make_shared<Box>(QVector3D(0, 0, 0), QVector3D(5, 1, 5), QColor(100, 100, 100));
-    // box1->SetStatic();
-    // m_physicsSystem->AddRigidbody(box1);
-    // m_physicsSystem->AddConstraint(box1);
-
-    // auto box2 = std::make_shared<Box>(QVector3D(-1.5, 4, 0), QVector3D(1, 1, 1), QColor(100, 20, 100));
-    // box2->SetDynamic();
-    // m_physicsSystem->AddRigidbody(box2);
-    // m_physicsSystem->AddConstraint(box2);
     
     if (m_isCurve)
-    { 
-        // Clear previous model
-        m_model->mesh->Clear();
-        m_model->customOBJ->Clear();
+    {
+        for (auto& p : m_curve.GetControlPoints()) {
+            auto particle = std::make_shared<Particle>(p, m_particleRadiusVolume, 1.0f, false, QColor(255,0,0));
+            m_particles.push_back(particle);
+            m_physicsSystem->AddRigidbody(particle);
+            // m_physicsSystem->AddConstraint(particle);
+        }
 
-        // for (auto p : m_curve.GetControlPoints()) m_physicsSystem->AddRigidbody(std::make_shared<Particle>(p, 2, 10, false ,QColor(255, 0, 0)));
-
-        // auto plane = std::make_shared<Plane>(QVector3D(0, 0, 0), QVector3D(0, 0, 1));
-        // plane->SetStatic();
-        // plane->SetColor(m_backgroundColor);
-        // m_physicsSystem->AddRigidbody(plane);
-        // m_physicsSystem->AddConstraint(plane);
+        // ConvertParticleSpringsToModel(m_model, m_particles, m_springs, m_triangleColliders);
+        // m_physicsSystem->AddRigidbody(m_model);
+        // m_physicsSystem->AddConstraint(m_model);
 
         m_physicsSystem->AddRigidbody(m_torsoModel);
         for (auto& t : m_torsoModel->triangleColliders) m_physicsSystem->AddTriangleCollider(t);
 
-
     } 
     else if (m_isVoxelModel) 
     {
-        // Clear previous model
-        m_model->mesh->Clear();
-        m_model->customOBJ->Clear();
-
+        // Create a ground box
         auto ground = std::make_shared<Box>(QVector3D(0, -2, 0), QVector3D(10, 0.2, 10), QColor(150, 150, 150));
         ground->SetStatic();
         m_physicsSystem->AddRigidbody(ground);
@@ -399,8 +388,9 @@ void OpenGLWidget::InitScene()
         emit update3DModelParametersChanged(m_voxel);
 
     } 
-    else if (m_model->IsValid()) 
+    else if (m_isModel) 
     {
+        // Create a ground box
         auto ground = std::make_shared<Box>(QVector3D(0, -2, 0), QVector3D(10, 0.2, 10), QColor(150, 150, 150));
         ground->SetStatic();
         m_physicsSystem->AddRigidbody(ground);
@@ -408,12 +398,11 @@ void OpenGLWidget::InitScene()
 
         if (!m_model->customOBJ->isCustomOBJ) {
             // Convert the model into particles and springs
-            // ConvertModelToParticleSprings(m_model, m_particles, m_springs, m_triangleColliders, !m_crossSpringModel);
+            ConvertModelToParticleSprings(m_model, m_particles, m_springs, m_triangleColliders, !m_crossSpringModel);
         } else {
             // Load the model from file
-            // ChargeModelParticleSprings(m_model, m_particles, m_springs, m_triangleColliders, !m_crossSpringModel);
+            ChargeModelParticleSprings(m_model, m_particles, m_springs, m_triangleColliders, !m_crossSpringModel);
         }
-        // auto tetra = m_model->ToTetra();
         m_model->SetDynamic();
         m_physicsSystem->AddRigidbody(m_model);
         m_physicsSystem->AddConstraint(m_model);
@@ -430,7 +419,6 @@ void OpenGLWidget::InitScene()
     m_physicsSystem->Update(0.0f); 
 
     m_physicsSystem->ChangeFriction(m_globalFriction);
-    m_physicsSystem->ChangeGravity(m_camera->GetDownVector() * GRAVITY.length());
     
     m_physicsSystem->SetUpBVH();
     
@@ -444,7 +432,11 @@ void OpenGLWidget::InitScene()
 void OpenGLWidget::LoadOBJ(const QString& filename)
 {
     if (Verbose) qDebug() << "Loading model from file: " << filename;
+    
+    m_isModel = true;
     m_isCurve = false;
+    m_isVoxelModel = false;
+
     makeCurrent();
     m_model->LoadModel(filename);
     m_model->SetColor(QColor(100, 100, 100));
@@ -463,63 +455,82 @@ void OpenGLWidget::SaveOBJ(const QString& filename)
 
 void OpenGLWidget::InitCurves()
 {
-    // Model
-    makeCurrent();
-    m_torsoModel = std::make_shared<Model>("./resources/models/torso.obj");
-    m_torsoModel->SetStatic();
-    // m_torsoModel->transform.scale = QVector3D(5.0f, 5.0f, 5.0f);
-    m_torsoModel->SetColor(QColor(100, 100, 100));
-    m_bvhTorsoColliders = BuildBVH(m_torsoModel->triangleColliders);
-    doneCurrent();
+    QVector3D torsoSize = m_torsoModel->GetAABB().size;
+    float torsoHeight = torsoSize.z() + 0.1f; // Add a small offset to avoid z-fighting with the ground
 
     // Curve
     m_curve.SetCurveType(CurveType::BSpline);
     m_curve.Clear();
 
-    m_curve.AddControlPoint(QVector3D(0, 1, 10));
-    m_curve.AddControlPoint(QVector3D(-0.38, 0.92, 10));
-    m_curve.AddControlPoint(QVector3D(-0.70, 0.70, 10));
-    m_curve.AddControlPoint(QVector3D(-1, 0, 10));
-    m_curve.AddControlPoint(QVector3D(-0.70, -0.70, 10));
-    m_curve.AddControlPoint(QVector3D(0, -1, 10));
-    m_curve.AddControlPoint(QVector3D(0.70, -0.70, 10));
-    m_curve.AddControlPoint(QVector3D(1, 0, 10));
-    m_curve.AddControlPoint(QVector3D(0.71, 0.71, 10));
-    m_curve.AddControlPoint(QVector3D(0.38, 0.92, 10));
-
-    m_curvePoints = m_curve.GetControlPoints();
-    ChangeControlPointPosistion(QVector3D(1, 0.9, 1));
+    // Default control points for the curve
+    m_curve.AddControlPoint(QVector3D(0, 1, torsoHeight));
+    m_curve.AddControlPoint(QVector3D(-0.38, 0.92, torsoHeight));
+    m_curve.AddControlPoint(QVector3D(-0.70, 0.70, torsoHeight));
+    m_curve.AddControlPoint(QVector3D(-1, 0, torsoHeight));
+    m_curve.AddControlPoint(QVector3D(-0.70, -0.70, torsoHeight));
+    m_curve.AddControlPoint(QVector3D(0, -1, torsoHeight));
+    m_curve.AddControlPoint(QVector3D(0.70, -0.70, torsoHeight));
+    m_curve.AddControlPoint(QVector3D(1, 0, torsoHeight));
+    m_curve.AddControlPoint(QVector3D(0.71, 0.71, torsoHeight));
+    m_curve.AddControlPoint(QVector3D(0.38, 0.92, torsoHeight));
+    
+    m_initialCurvePoints = m_curve.GetControlPoints();
+    m_curvePoints = m_initialCurvePoints;
+    m_curvePointsSliders = m_initialCurvePoints;
+    
+    // Change position and size of the curve
     UpdateCurveHeightWidth();
+    ChangeControlPointPosistion(QVector3D(1.0, 1.1, 0));
 
-    m_curvePoints = m_curve.GetControlPoints();
-    m_curvePointsSliders = m_curve.GetControlPoints();
+    m_initialCurveCenter = m_curve.GetCenter();
+    m_curveCenter = m_initialCurveCenter;
+
+    m_defaultCurvePoints = m_curve.GetControlPoints();
+
+    size_t n = m_curvePoints.size() * 0.5f;
+    for (size_t i = 1; i < n ; ++i) m_curveDeformation.push_back({i, m_curvePoints.size() - i, 0.0f});
 
 }
 
 void OpenGLWidget::ChangeControlPointPosistion(const QVector3D& direction)
-{
-    emit breastSlidersChanged();
-    
-    for (size_t i = 0; i < m_curvePoints.size(); ++i)
+{    
+    bool isValid = true;
+    for (auto& pt : m_curvePoints)
     {
-        auto& pt = m_curvePoints[i];
-        pt.setX(pt.x() + direction.x());
-        pt.setY(pt.y() + direction.y());
-        pt.setZ(pt.z() + direction.z());
-        
-        m_curve.SetControlPoint(i, pt);
+        QVector3D p = QVector3D(pt.x() + direction.x(), pt.y() + direction.y(), pt.z() + direction.z());
+        if (!GetPointOntoMesh(p)) 
+        {
+            isValid = false;
+            break;
+        }
     }
+
+    if (isValid)
+    {
+        for (size_t i = 0; i < m_curvePoints.size(); ++i)
+        {
+            m_initialCurvePoints[i] += direction;
+            m_curvePointsSliders[i] += direction;
+                                                
+            QVector3D p = m_curvePoints[i] + direction;
+            m_curve.SetControlPoint(i, p);
+
+        }
+    }
+
+    m_curvePoints = m_curve.GetControlPoints();
+
 }
 
-QVector3D OpenGLWidget::GetPointOntoMesh(const QVector3D& point)
+bool OpenGLWidget::GetPointOntoMesh(QVector3D& point)
 {
     // Project the point onto the mesh
     RayCastResult result;
+    bool hit = false;
 
     Ray ray(point, QVector3D(0, 0, -1));
 
     float minDistSq = std::numeric_limits<float>::max();
-    QVector3D closestPoint = point;
 
     std::vector<std::shared_ptr<TriangleCollider>> triangles;
     QueryBVH<TriangleCollider>(AABB(point - QVector3D(0.01,0.01,0.01), point + QVector3D(0.01,0.01,0.01)), m_bvhTorsoColliders.get(), triangles);
@@ -533,12 +544,13 @@ QVector3D OpenGLWidget::GetPointOntoMesh(const QVector3D& point)
             if (distSq < minDistSq)
             {
                 minDistSq = distSq;
-                closestPoint = result.point;
+                point = result.point;
             }
-        }
+            hit = true;
+        };
     }
 
-    return closestPoint;
+    return hit;
 
 }
 
@@ -867,25 +879,509 @@ void OpenGLWidget::CurveToParticlesSprings()
 }
 // */
 
-QVector3D OpenGLWidget::EvaluateCurveSurface(float u, float v) {
-    size_t numPoints = m_profilePoints.size();
-    float angleIndex = u * numPoints;
-    int i0 = int(std::floor(angleIndex)) % numPoints;
-    int i1 = (i0 + 1) % numPoints;
-    float localT = angleIndex - float(i0);
+struct RemeshingConstraints {
+    std::unordered_set<SurfaceMesh::Vertex_index> constrainedVertices;
+    std::unordered_set<SurfaceMesh::Edge_index> constrainedEdges;
+};
 
-    QVector3D p0 = Lerp(m_profilePoints[i0], m_profilePoints[i1], localT);
-    QVector3D p1 = Lerp(m_ringPoints[i0], m_ringPoints[i1], localT);
+struct BorderSprings {
+    std::vector<std::shared_ptr<Spring>> springs;
+    std::vector<std::shared_ptr<Particle>> particles;
+};
 
-    float tCurve = std::pow(v, 3.0f);
-    QVector3D pos = Lerp(p0, p1, tCurve);
+SurfaceMesh ConvertToCGALMeshWithConstraints(
+    const std::vector<std::shared_ptr<Particle>>& particles,
+    const std::vector<std::shared_ptr<TriangleCollider>>& triangles,
+    std::unordered_map<SurfaceMesh::Vertex_index, std::shared_ptr<Particle>>& vertexToParticleMap,
+    RemeshingConstraints& constraints)
+{
+    SurfaceMesh mesh;
+    std::unordered_map<std::shared_ptr<Particle>, SurfaceMesh::Vertex_index> particleToVertexMap;
 
-    float totalDepth = m_curveDepth;
-    float zOffset = v * totalDepth;
-    pos.setZ(pos.z() + zOffset);
+    for (const auto& p : particles)
+    {
+        QVector3D pos = p->GetPosition();
+        SurfaceMesh::Vertex_index v = mesh.add_vertex(Point(pos.x(), pos.y(), pos.z()));
+        particleToVertexMap[p] = v;
+        vertexToParticleMap[v] = p;
 
-    return pos;
+        if (p->IsConstraint()) {
+            constraints.constrainedVertices.insert(v);  // Marquer les sommets à contraindre
+        }
+    }
+
+    for (const auto& tri : triangles)
+    {
+        auto a = tri->p0;
+        auto b = tri->p1;
+        auto c = tri->p2;
+        mesh.add_face(particleToVertexMap[a], particleToVertexMap[b], particleToVertexMap[c]);
+    }
+
+    return mesh;
 }
+
+void MarkConstrainedVertices(
+    SurfaceMesh& mesh,
+    const RemeshingConstraints& constraints,
+    SurfaceMesh::Property_map<SurfaceMesh::Vertex_index, bool>& vertexConstrained)
+{
+    for (auto v : mesh.vertices())
+    {
+        if (constraints.constrainedVertices.count(v)) vertexConstrained[v] = true;
+        else vertexConstrained[v] = false;
+    }
+}
+
+
+void MarkConstrainedEdges(
+    SurfaceMesh& mesh,
+    const RemeshingConstraints& constraints,
+    SurfaceMesh::Property_map<SurfaceMesh::Edge_index, bool>& edgeConstrained)
+{    
+    // for (auto f : mesh.faces())
+    // {
+    //     std::vector<SurfaceMesh::Vertex_index> faceVertices;
+    //     for (auto v : CGAL::vertices_around_face(mesh.halfedge(f), mesh))
+    //         faceVertices.push_back(v);
+
+    //     for (int i = 0; i < 3; ++i)
+    //     {
+    //         auto v1 = faceVertices[i];
+    //         auto v2 = faceVertices[(i + 1) % 3];
+
+    //         if (constraints.constrainedVertices.count(v1) && constraints.constrainedVertices.count(v2))
+    //         {
+    //             auto h = CGAL::halfedge(v1, v2, mesh);
+    //             if (!h.second) {
+    //                 h = CGAL::halfedge(v2, v1, mesh);
+    //             }
+    //             if (h.second) {
+    //                 auto e = mesh.edge(h.first);
+    //                 edgeConstrained[e] = true;
+    //             }
+    //         }
+    //     }
+    // }
+
+    for (auto e : mesh.edges())
+    {
+        auto h = mesh.halfedge(e);
+        auto v1 = mesh.source(h);
+        auto v2 = mesh.target(h);
+
+        if (constraints.constrainedVertices.count(v1) && constraints.constrainedVertices.count(v2))
+        {
+            edgeConstrained[e] = true;
+        }
+    }
+}
+
+std::vector<std::vector<std::shared_ptr<Particle>>> GetBorderParticles(
+    const SurfaceMesh& mesh,
+    const std::unordered_map<SurfaceMesh::Vertex_index, std::shared_ptr<Particle>>& vertexToParticleMap)
+{
+    std::unordered_set<SurfaceMesh::Halfedge_index> visited;
+    std::vector<std::vector<std::shared_ptr<Particle>>> boundaryParticles;
+
+    for (auto h : mesh.halfedges())
+    {
+        if (!mesh.is_border(h) || visited.count(h)) continue;
+
+        std::vector<std::shared_ptr<Particle>> boundary;
+        SurfaceMesh::Halfedge_index start = h;
+        SurfaceMesh::Halfedge_index current = h;
+
+        do {
+            visited.insert(current);
+            auto v = mesh.target(current);
+            auto it = vertexToParticleMap.find(v);
+            if (it != vertexToParticleMap.end()) boundary.push_back(it->second);
+            current = mesh.next(current);
+        } while (current != start && mesh.is_border(current));
+
+        if (!boundary.empty()) boundaryParticles.push_back(boundary);
+    }
+
+    return boundaryParticles;
+}
+
+std::vector<BorderSprings> GetBorderSprings(
+    const SurfaceMesh& mesh,
+    const std::unordered_map<SurfaceMesh::Vertex_index, std::shared_ptr<Particle>>& vertexToParticleMap,
+    const std::vector<std::shared_ptr<Spring>>& allSprings)
+{
+    auto borderParticleLoops = GetBorderParticles(mesh, vertexToParticleMap);
+
+    std::vector<BorderSprings> result;
+
+    for (const auto& borderParticles : borderParticleLoops)
+    {
+        BorderSprings borderData;
+        borderData.particles = borderParticles;
+
+        for (const auto& spring : allSprings)
+        {
+            auto p1 = spring->GetP1();
+            auto p2 = spring->GetP2();
+
+            bool p1OnBorder = std::find(borderData.particles.begin(), borderData.particles.end(), p1) != borderData.particles.end();
+            bool p2OnBorder = std::find(borderData.particles.begin(), borderData.particles.end(), p2) != borderData.particles.end();
+
+            if (p1OnBorder && p2OnBorder)
+                borderData.springs.push_back(spring);
+        }
+
+        result.push_back(borderData);
+    }
+
+    return result;
+}
+
+std::unordered_map<SurfaceMesh::Vertex_index, int> AssignSegmentToVertices(
+    const SurfaceMesh& mesh,
+    const QVector3D& center,
+    const std::vector<float>& angularWeights,
+    const QVector3D& up = QVector3D(0, 0, 1),
+    const QVector3D& ref = QVector3D(0, 1, 0))
+{
+    std::unordered_map<SurfaceMesh::Vertex_index, int> segmentMap;
+
+    // Check if angularWeights is valid
+    float total = std::accumulate(angularWeights.begin(), angularWeights.end(), 0.0f);
+    if (std::abs(total - 1.0f) > 0.01f) {
+        qWarning("Warning: AssignSegmentToVertices: angularWeights should sum to 1.0");
+        return segmentMap;
+    }
+
+    std::vector<float> cumulativeAngles;
+    cumulativeAngles.push_back(0.0f);
+    for (float w : angularWeights) cumulativeAngles.push_back(cumulativeAngles.back() + w * 2.0f * M_PI);
+
+    for (auto v : mesh.vertices())
+    {
+        auto pt = mesh.point(v);
+        QVector3D dir(pt.x() - center.x(), pt.y() - center.y(), pt.z() - center.z());
+        dir.normalize();
+
+        QVector3D proj = dir - QVector3D::dotProduct(dir, up) * up;
+        QVector3D ref2D = ref - QVector3D::dotProduct(ref, up) * up;
+        ref2D.normalize();
+        proj.normalize();
+
+        float angle = std::atan2(QVector3D::crossProduct(ref2D, proj).length(), QVector3D::dotProduct(ref2D, proj));
+        if (QVector3D::dotProduct(QVector3D::crossProduct(ref2D, proj), up) < 0) angle = 2 * M_PI - angle;
+
+        int segment = 0;
+        for (size_t i = 0; i < cumulativeAngles.size() - 1; ++i)
+        {
+            if (angle >= cumulativeAngles[i] && angle < cumulativeAngles[i + 1])
+            {
+                segment = static_cast<int>(i);
+                break;
+            }
+        }
+        segmentMap[v] = segment;
+    }
+
+    return segmentMap;
+}
+
+
+void RemeshWithConstraints(
+    SurfaceMesh& mesh,
+    const RemeshingConstraints& constraints,
+    double targetEdgeLength,
+    int iterations = 3)
+{
+    auto vmap = mesh.add_property_map<SurfaceMesh::Vertex_index, bool>("v:is_constrained", false).first;
+    auto emap = mesh.add_property_map<SurfaceMesh::Edge_index, bool>("e:is_constrained", false).first;
+
+    MarkConstrainedVertices(mesh, constraints, vmap);
+    MarkConstrainedEdges(mesh, constraints, emap);
+
+        
+    PMP::isotropic_remeshing(
+        faces(mesh),
+        targetEdgeLength,
+        mesh,
+        PMP::parameters::number_of_iterations(iterations)
+            .vertex_is_constrained_map(vmap)
+            .edge_is_constrained_map(emap)
+    );
+
+}
+
+
+void ReconstructFromCGALMesh(
+    const SurfaceMesh& mesh,
+    const std::unordered_map<SurfaceMesh::Vertex_index, int>& sectorMap,
+    const std::unordered_map<int, float>& sectorStiffness,
+    std::unordered_map<SurfaceMesh::Vertex_index, std::shared_ptr<Particle>>& vertexToParticleMap,
+    std::vector<std::shared_ptr<Particle>>& outParticles,
+    std::vector<std::shared_ptr<Spring>>& outSprings,
+    std::vector<std::shared_ptr<TriangleCollider>>& outTriangles)
+{
+    vertexToParticleMap.clear();
+
+    for (auto v : mesh.vertices())
+    {
+        const auto& pt = mesh.point(v);
+        QVector3D pos(pt.x(), pt.y(), pt.z());
+        auto particle = std::make_shared<Particle>(pos, 1, 1.0f);
+        particle->SetSegmentID(sectorMap.at(v));
+        vertexToParticleMap[v] = particle;
+        outParticles.push_back(particle);
+    }
+
+    // Springs from edges
+    for (auto e : mesh.edges())
+    {
+        auto he = mesh.halfedge(e);
+        auto v1 = mesh.source(he);
+        auto v2 = mesh.target(he);
+
+        auto p1 = vertexToParticleMap[v1];
+        auto p2 = vertexToParticleMap[v2];
+
+        int s1 = p1->GetSegmentID();
+        int s2 = p2->GetSegmentID();
+
+        float stiffness = s1 == s2 ? sectorStiffness.at(s1) : sectorStiffness.at(s2);
+
+        auto spring = std::make_shared<Spring>(p1, p2, stiffness);
+        outSprings.push_back(spring);
+    }
+
+    // TriangleColliders from faces
+    for (auto f : mesh.faces())
+    {
+        std::vector<std::shared_ptr<Particle>> faceParticles;
+        for (auto v : CGAL::vertices_around_face(mesh.halfedge(f), mesh)) faceParticles.push_back(vertexToParticleMap[v]);
+        
+        if (faceParticles.size() == 3)
+        {
+            outTriangles.push_back(std::make_shared<TriangleCollider>(
+                faceParticles[0], faceParticles[1], faceParticles[2]
+            ));
+        }
+    }
+}
+
+
+void OpenGLWidget::CurveToParticlesSprings() 
+{
+    if (!m_isCurve || !m_torsoModel) return;
+
+    makeCurrent();
+    // Clear previous model
+    m_particles.clear();
+    m_springs.clear();
+    m_triangleColliders.clear();
+    m_fillTriangleColliders.clear();
+
+    // Parameters
+    float mass = 1.0f;
+    int numLayers = m_curveLayers + 2;
+    float layerStep = m_curveDepth / (numLayers - 1);
+    float thickness = 0.05f; 
+
+    // Model curve
+    m_profilePoints = m_curve.Sample(m_numSamples);
+
+    // Remove the last points to avoid duplicates
+    m_profilePoints.pop_back();
+
+    size_t numPoints = m_profilePoints.size();
+    if (numPoints < 3) return; // Not enough profilePoints to create a curve
+
+    // Place sample points in the torso model
+    for (size_t i = 0; i < numPoints; ++i) GetPointOntoMesh(m_profilePoints[i]);
+
+    // Get the center of the curves
+    QVector3D centerCurve = QVector3D(0, 0, 0);
+    for (const auto& pt : m_profilePoints) centerCurve += pt;
+    centerCurve /= static_cast<float>(numPoints);
+
+    m_curveCenter = centerCurve;
+    QVector3D centerRing = centerCurve; 
+    
+    // Compute the normal of the curve
+    for (size_t i = 0; i < numPoints; ++i)
+    {
+        auto& p1 = m_profilePoints[i];
+        auto& p2 = m_profilePoints[(i + 1) % numPoints];
+        auto& p3 = m_profilePoints[(i + 2) % numPoints];
+
+        QVector3D v1 = p2 - p1;
+        QVector3D v2 = p3 - p2;
+
+        m_curveNormal += QVector3D::crossProduct(v1, v2).normalized();
+    }
+    m_curveNormal.normalize();
+
+    // Add offset to the center
+    // centerRing.setY(centerRing.y() - 0.2f);
+    // Set the center to he height
+    // centerRing += m_curveNormal * height;
+    
+    QVector3D zAxis = m_curveNormal;
+    QVector3D xAxis;
+
+    if (std::abs(zAxis.y()) < 0.99f) xAxis = QVector3D::crossProduct(zAxis, QVector3D(0, 1, 0)).normalized();
+    else xAxis = QVector3D::crossProduct(zAxis, QVector3D(1, 0, 0)).normalized();
+
+    QVector3D yAxis = QVector3D::crossProduct(zAxis, xAxis).normalized();
+
+    // Ring curve
+    m_ringPoints.clear();
+    for (size_t i = 0; i < numPoints; ++i)
+    {
+        float angle = static_cast<float>(i) / static_cast<float>(numPoints) * 2.0f * M_PI - M_PI_4;
+
+        float cosAngle = std::cos(angle);
+        float sinAngle = std::sin(angle);
+        QVector3D p = cosAngle * xAxis * m_curveRingRadius + sinAngle * yAxis * m_curveRingRadius;
+
+        m_ringPoints.push_back(centerRing + p * 1.5f);
+    }
+
+    // Create the layers of particles
+    std::vector<std::vector<std::shared_ptr<Particle>>> layers;
+
+    for (int layer = 0; layer < numLayers; ++layer)
+    {
+        std::vector<std::shared_ptr<Particle>> layerParticles;
+
+        float t = static_cast<float>(layer) / static_cast<float>(numLayers - 1);
+        float tCurve = std::pow(t, 3.0f); //1.0f - std::sqrt(1.0f - t * t); // 1.0f + std::sin(-(1.0f - t) * M_PI_2); 
+        float z = layer * layerStep;
+
+        float previousStiffness = -1.0f;
+
+        for (size_t i = 0; i < numPoints; ++i) {
+            QVector3D pos = (1.0f - tCurve) * m_profilePoints[i] + tCurve * m_ringPoints[i];
+            pos.setZ(pos.z() + z);
+
+            auto p = std::make_shared<Particle>(pos, 1, mass, (layer != 0));
+            if (layer == 0) p->SetIsConstraint(true);
+            layerParticles.push_back(p);
+            m_particles.push_back(p);
+        }
+
+        layers.push_back(layerParticles);
+    }
+
+    centerRing.setZ(centerRing.z() + m_curveDepth);
+
+    // Center particle
+    auto centerParticle = std::make_shared<Particle>(centerRing, 1, mass);
+    // centerParticle->SetIsConstraint(true);
+    // m_particles.push_back(centerParticle);
+
+    auto ringlayers = layers.back();
+    for (size_t i = 0; i < ringlayers.size(); ++i) {
+        auto& p1 = ringlayers[i];
+        if (i % 4 == 0) p1->SetIsConstraint(true);
+    }
+
+    // Triangle collider generation
+    for (int layer = 0; layer < numLayers - 1; ++layer)
+    {
+        const auto& current = layers[layer];
+        const auto& next = layers[layer + 1];
+        size_t count = current.size();
+
+        for (size_t i = 0; i < count; ++i)
+        {
+            size_t next_i = (i + 1) % count;
+
+            // First triangle of the quad
+            auto a = current[i];
+            auto b = next[i];
+            auto c = next[next_i];
+
+            // Second triangle of the quad
+            auto d = current[next_i];
+
+            m_triangleColliders.push_back(std::make_shared<TriangleCollider>(b, a, c));
+            m_triangleColliders.push_back(std::make_shared<TriangleCollider>(c, a, d));
+        }
+    }
+
+    // 1. Créer un mapping entre les sommets du maillage CGAL et les particules et un ensemble de sommets contraints
+    std::unordered_map<SurfaceMesh::Vertex_index, std::shared_ptr<Particle>> vertexToParticleMap;
+    RemeshingConstraints constraints;
+
+    // 2. Convertir en CGAL mesh
+    SurfaceMesh mesh = ConvertToCGALMeshWithConstraints(m_particles, m_triangleColliders, vertexToParticleMap, constraints);
+
+    // 3. Remeshing avec sommets protégés (base profil)
+    double target_edge_length = 360.0f / m_numSamples * 0.02f + 0.01f;
+    RemeshWithConstraints(mesh, constraints, target_edge_length, 5);
+
+    auto segmentMap = AssignSegmentToVertices(mesh, centerRing, m_angularWeights, QVector3D(0, 0, 1), m_nSegments == 2 ? QVector3D(1, 0, 0) : QVector3D(0, 1, 0));
+
+    std::unordered_map<int, float> stiffnessBySegment(m_nSegments);
+    for (int i = 0; i < m_nSegments; ++i) stiffnessBySegment[i] = 400.0f + i * 10.0f;
+
+    // 5. Reconstruire le modèle
+    m_particles.clear();
+    m_springs.clear();
+    m_triangleColliders.clear();
+    m_fillTriangleColliders.clear();
+
+    ReconstructFromCGALMesh(mesh, segmentMap, stiffnessBySegment, vertexToParticleMap, m_particles, m_springs, m_triangleColliders);
+    
+    auto borderSprings = GetBorderSprings(mesh, vertexToParticleMap, m_springs);
+    if (borderSprings.size() >= 2) {
+        BorderSprings& profil = borderSprings[0];
+        BorderSprings& ring   = borderSprings[1];
+
+        for (auto& p : profil.particles) p->SetStatic();
+        for (auto& s : profil.springs) { s->SetStiffness(1000.0f); s->SetColor(floatToQColor(1000.0f)); }
+        for (auto& s : ring.springs) { s->SetStiffness(1000.0f); s->SetColor(floatToQColor(1000.0f)); }
+        
+        m_particles.push_back(centerParticle);
+        
+        // Copy unordered_set to vector for indexed access
+        size_t ringSize = ring.particles.size();
+        for (size_t i = 0; i < ringSize; ++i)
+        {
+            // Springs connections
+            auto s = std::make_shared<Spring>(ring.particles[i], centerParticle, 1000.0f);
+            m_springs.push_back(s);
+
+            // Triangles Colliders
+            size_t next_i = (i + 1) % ringSize;
+
+            auto a = ring.particles[i];
+            auto b = ring.particles[next_i];
+            auto c = centerParticle;
+
+            m_triangleColliders.push_back(std::make_shared<TriangleCollider>(a, b, c));
+        }
+    }
+
+    m_fillTriangleColliders = m_triangleColliders;
+
+
+    // Add a closed triangle 
+    for (size_t i = 0; i < numPoints; ++i) {
+        const QVector3D& a = m_profilePoints[i];
+        const QVector3D& b = m_profilePoints[(i + 1) % numPoints]; // wrap around
+
+        // Triangle (a, b, center)
+        auto tri = std::make_shared<TriangleCollider>(a, b, centerCurve + m_curveNormal * 0.1f);
+        m_fillTriangleColliders.push_back(tri);
+    }
+
+    doneCurrent();
+
+    FillVolumeWithParticle();
+
+}
+
 
 /*
 // Uniform Grille
@@ -1152,114 +1648,6 @@ void OpenGLWidget::CurveToParticlesSprings()
     doneCurrent();
 
     FillVolumeWithParticle();
-}
-// */
-
-
-// Uniform Delaunay
-void OpenGLWidget::CurveToParticlesSprings()
-{
-    if (!m_isCurve || !m_torsoModel) return;
-
-    makeCurrent();
-    // Clear previous model
-    m_particles.clear();
-    m_springs.clear();
-    m_triangleColliders.clear();
-    m_fillTriangleColliders.clear();
-
-    // Parameters
-    float mass = 1.0f;
-    int numLayers = m_curveLayers + 2;
-    float height = m_curveDepth;
-    float layerStep = m_curveDepth / (numLayers - 1);
-    float ringRadius = m_curveRingRadius;
-    float thickness = 0.05f; 
-
-    // Model curve
-    m_profilePoints = m_curve.Sample(m_numSamples);
-
-    // Remove the last points to avoid duplicates
-    m_profilePoints.pop_back();
-
-    size_t numPoints = m_profilePoints.size();
-    if (numPoints < 3) return; // Not enough profilePoints to create a curve
-
-    // Place sample points in the torso model
-    for (size_t i = 0; i < numPoints; ++i) 
-    {
-        QVector3D p = GetPointOntoMesh(m_profilePoints[i]);
-        m_profilePoints[i] = p;
-    }
-
-    // Compute the center of the curve
-    QVector3D centerCurve(0, 0, 0);
-    QVector3D centerRing(0, 0, 0);
-    for (const auto& pt : m_profilePoints) centerCurve += pt;
-    centerCurve /= static_cast<float>(numPoints);
-    
-    centerRing = centerCurve;
-
-    // Compute the normal of the curve
-    for (size_t i = 0; i < numPoints; ++i)
-    {
-        auto& p1 = m_profilePoints[i];
-        auto& p2 = m_profilePoints[(i + 1) % numPoints];
-        auto& p3 = m_profilePoints[(i + 2) % numPoints];
-
-        QVector3D v1 = p2 - p1;
-        QVector3D v2 = p3 - p2;
-
-        m_curveNormal += QVector3D::crossProduct(v1, v2).normalized();
-    }
-    m_curveNormal.normalize();
-
-    // Add offset to the center
-    centerRing.setY(centerRing.y() - 0.2f);
-    // Set the center to he height
-    // centerRing += m_curveNormal * height;
-    
-    QVector3D zAxis = m_curveNormal;
-    QVector3D xAxis;
-
-    if (std::abs(zAxis.y()) < 0.99f) xAxis = QVector3D::crossProduct(zAxis, QVector3D(0, 1, 0)).normalized();
-    else xAxis = QVector3D::crossProduct(zAxis, QVector3D(1, 0, 0)).normalized();
-
-    QVector3D yAxis = QVector3D::crossProduct(zAxis, xAxis).normalized();
-
-    // Ring curve
-    m_ringPoints.clear();
-    for (size_t i = 0; i < numPoints; ++i)
-    {
-        float angle = static_cast<float>(i) / static_cast<float>(numPoints) * 2.0f * M_PI - M_PI_4;
-
-        float cosAngle = std::cos(angle);
-        float sinAngle = std::sin(angle);
-        QVector3D p = cosAngle * xAxis * ringRadius + sinAngle * yAxis * ringRadius;
-
-        m_ringPoints.push_back(centerRing + p * 1.5f);
-    }
-
-    // Add a closed triangle 
-    std::vector<std::shared_ptr<TriangleCollider>> closingTriangles;
-
-    for (size_t i = 0; i < numPoints; ++i) {
-        const QVector3D& a = m_profilePoints[i];
-        const QVector3D& b = m_profilePoints[(i + 1) % numPoints]; // wrap around
-
-        // Triangle (a, b, center)
-        auto tri = std::make_shared<TriangleCollider>(a, b, centerCurve);
-        closingTriangles.push_back(tri);
-    }
-
-    m_fillTriangleColliders.insert(m_fillTriangleColliders.end(), closingTriangles.begin(), closingTriangles.end());
-
-
-    doneCurrent();
-
-
-
-    // FillVolumeWithParticle();
 }
 // */
 
@@ -1674,7 +2062,7 @@ void OpenGLWidget::CurveToParticlesSprings()
 
     doneCurrent();
 
-    FillVolumeWithParticle();
+    // FillVolumeWithParticle();
 
 }
 // */
@@ -1686,12 +2074,18 @@ void OpenGLWidget::FillVolumeWithParticle()
     makeCurrent();
 
     float particleMass = 1.0f;
-    float particleRadius = 6.0f;
-    float spacing = 0.12f;
+    float particleRadius = m_particleRadiusVolume;
+    float spacing = m_spacingVolume;
+    float stiffness = 100.0f;
 
     // float particleMass = 5.0f;
     // float particleRadius = 17.0f;
     // float spacing = 0.3f;
+
+    // std::vector<std::shared_ptr<TriangleCollider>> triangles;
+    // auto torsoTriangles = m_torsoModel->triangleColliders;
+    // triangles.insert(triangles.end(), torsoTriangles.begin(), torsoTriangles.end());
+    // triangles.insert(triangles.end(), m_fillTriangleColliders.begin(), m_fillTriangleColliders.end());
 
     std::unique_ptr<BVHNode<TriangleCollider>> bvh = BuildBVH(m_fillTriangleColliders);
 
@@ -1718,8 +2112,10 @@ void OpenGLWidget::FillVolumeWithParticle()
         return x + y * countX + z * countX * countY;
     };
 
+    std::vector<std::shared_ptr<Particle>> particlesNearToTorso;
+    bool isNearToTorso = false;
     std::vector<std::shared_ptr<Particle>> temp(countX * countY * countZ, nullptr);
-    
+
     for (int i = 0; i < countX; ++i) {
         for (int j = 0; j < countY; ++j) {
             for (int k = 0; k < countZ; ++k) {
@@ -1732,12 +2128,19 @@ void OpenGLWidget::FillVolumeWithParticle()
                 std::vector<std::shared_ptr<TriangleCollider>> trianglesClosest;
                 // QueryBVH<TriangleCollider>(p->GetAABB(), bvh.get(), trianglesClosest);
                 QueryBVH<TriangleCollider>(FromRay(Ray(p->GetPosition(), QVector3D(0, 0, 1)), 0.001f), bvh.get(), trianglesClosest);
+                
+                bool isInside = IsParticleInsideMesh(p, trianglesClosest);
 
-                if (IsParticleInsideMesh(p, trianglesClosest)){
-                    temp[getIndex(i, j, k)] = p;
+                if (isInside && !isNearToTorso) { 
+                    particlesNearToTorso.push_back(p); 
+                    isNearToTorso = true; 
                 }
+                if (isInside) temp[getIndex(i, j, k)] = p;
+                
             }
+            isNearToTorso = false;
         }
+        isNearToTorso = false;
     }
 
     std::vector<std::shared_ptr<Particle>> particlesToAdd;
@@ -1748,21 +2151,24 @@ void OpenGLWidget::FillVolumeWithParticle()
                 auto p = temp[getIndex(i, j, k)];
                 if (!p) continue;
                 
-                // // X+1
-                // if (i + 1 < countX) {
-                //     auto neighbor = temp[getIndex(i + 1, j, k)];
-                //     if (neighbor) m_springs.push_back(std::make_shared<Spring>(p, neighbor, 200));
-                // }
-                // // Y+1
-                // if (j + 1 < countY) {
-                //     auto neighbor = temp[getIndex(i, j + 1, k)];
-                //     if (neighbor) m_springs.push_back(std::make_shared<Spring>(p, neighbor, 200));
-                // }
-                // // Z+1
-                // if (k + 1 < countZ) {
-                //     auto neighbor = temp[getIndex(i, j, k + 1)];
-                //     if (neighbor) m_springs.push_back(std::make_shared<Spring>(p, neighbor, 200));
-                // }
+                if (m_isAttached)
+                {
+                    // X+1
+                    if (i + 1 < countX) {
+                        auto neighbor = temp[getIndex(i + 1, j, k)];
+                        if (neighbor) m_springs.push_back(std::make_shared<Spring>(p, neighbor, stiffness));
+                    }
+                    // Y+1
+                    if (j + 1 < countY) {
+                        auto neighbor = temp[getIndex(i, j + 1, k)];
+                        if (neighbor) m_springs.push_back(std::make_shared<Spring>(p, neighbor, stiffness));
+                    }
+                    // Z+1
+                    if (k + 1 < countZ) {
+                        auto neighbor = temp[getIndex(i, j, k + 1)];
+                        if (neighbor) m_springs.push_back(std::make_shared<Spring>(p, neighbor, stiffness));
+                    }
+                }
 
                 particlesToAdd.push_back(p);
                 m_particles.push_back(p);
@@ -1770,48 +2176,62 @@ void OpenGLWidget::FillVolumeWithParticle()
         }
     }
 
-    // float threshold = spacing * 1.5f;
+    if (m_isAttached)
+    {
+        if (m_isAttachedToModel) 
+        {
+            float threshold = spacing * 1.1f;
+    
+            for (auto& p : particlesToAdd) {
+                std::vector<std::shared_ptr<TriangleCollider>> trianglesClosest;
+                QueryBVH<TriangleCollider>(FromRay(Ray(p->GetPosition(), QVector3D(0, 0, 1)), 0.001f), bvh.get(), trianglesClosest);
+    
+                float minDist = std::numeric_limits<float>::max();
+                std::shared_ptr<TriangleCollider> closestTriangle = nullptr;
+    
+                for (auto& tri : trianglesClosest) {
+                    float d = tri->DistanceTo(p->GetPosition());
+                    if (d < minDist) {
+                        minDist = d;
+                        closestTriangle = tri;
+                    }
+                }
+    
+                if (closestTriangle && minDist < threshold) {
+                    if (!closestTriangle->p0 || !closestTriangle->p1 || !closestTriangle->p2) continue;
+                    // auto p0 = closestTriangle->p0 ? closestTriangle->p0 : std::make_shared<Particle>(closestTriangle->pos0, 1, 1.0f);
+                    // auto p1 = closestTriangle->p1 ? closestTriangle->p1 : std::make_shared<Particle>(closestTriangle->pos1, 1, 1.0f);
+                    // auto p2 = closestTriangle->p2 ? closestTriangle->p2 : std::make_shared<Particle>(closestTriangle->pos2, 1, 1.0f);
+                    
+                    auto s1 = std::make_shared<Spring>(p, closestTriangle->p0, stiffness);
+                    auto s2 = std::make_shared<Spring>(p, closestTriangle->p1, stiffness);
+                    auto s3 = std::make_shared<Spring>(p, closestTriangle->p2, stiffness);
+                    m_springs.push_back(s1);
+                    m_springs.push_back(s2);
+                    m_springs.push_back(s3);
+                }
+            }
+        }
 
-    // for (auto& p : particlesToAdd) {
-    //     std::vector<std::shared_ptr<TriangleCollider>> trianglesClosest;
-    //     QueryBVH<TriangleCollider>(FromRay(Ray(p->GetPosition(), QVector3D(0, 0, 1)), 0.001f), bvh.get(), trianglesClosest);
-
-    //     float minDist = std::numeric_limits<float>::max();
-    //     std::shared_ptr<TriangleCollider> closestTriangle = nullptr;
-
-    //     for (auto& tri : trianglesClosest) {
-    //         float d = tri->DistanceTo(p->GetPosition());
-    //         if (d < minDist) {
-    //             minDist = d;
-    //             closestTriangle = tri;
-    //         }
-    //     }
-
-    //     if (closestTriangle && minDist < threshold) {
-    //         if (!closestTriangle->p0 || !closestTriangle->p1 || !closestTriangle->p2) continue;
-    //         auto s1 = std::make_shared<Spring>(p, closestTriangle->p0, 200.0f);
-    //         auto s2 = std::make_shared<Spring>(p, closestTriangle->p1, 200.0f);
-    //         auto s3 = std::make_shared<Spring>(p, closestTriangle->p2, 200.0f);
-    //         m_springs.push_back(s1);
-    //         m_springs.push_back(s2);
-    //         m_springs.push_back(s3);
-    //     }
-    // }
-
+        for (auto& p : particlesNearToTorso) 
+        {
+            QVector3D pointOnMesh = p->GetPosition();
+            GetPointOntoMesh(pointOnMesh);
+            if (pointOnMesh.isNull()) continue;
+            auto torsoParticle = std::make_shared<Particle>(pointOnMesh, p->GetRadius(), p->GetMass(), false);
+            auto s = std::make_shared<Spring>(p, torsoParticle, stiffness);
+            m_springs.push_back(s);
+        }
+            
+    }
 
     doneCurrent();
 }
 
-void OpenGLWidget::setDeformation(int p1, int p2, float value)
+void OpenGLWidget::UpdateCurveForm(int i1, int i2, float value)
 {
-    if (Verbose) qDebug() << "setDeformation" << p1 << p2 << value;
-    if (!m_isCurve) return;
-
-    p1--;
-    p2--;
-
-    QVector3D A = m_curvePointsSliders[p1];
-    QVector3D B = m_curvePointsSliders[p2];
+    QVector3D A = m_curvePointsSliders[i1];
+    QVector3D B = m_curvePointsSliders[i2];
 
     QVector3D center = (A + B) * 0.5f;
 
@@ -1823,57 +2243,75 @@ void OpenGLWidget::setDeformation(int p1, int p2, float value)
     A = center - dir * scaledHalfDist;
     B = center + dir * scaledHalfDist;
 
-    if (p1 != 0) m_curve.SetControlPoint(p1, A);
-    if (p2 != 0) m_curve.SetControlPoint(p2, B);
+    QVector3D tempA = A, tempB = B;
+    bool isValid = GetPointOntoMesh(tempA) && GetPointOntoMesh(tempB);
 
-    Reset();
-}
+    if (isValid)
+    {
+        m_curve.SetControlPoint(i1, A);
+        m_curve.SetControlPoint(i2, B);
 
-void OpenGLWidget::setCurveWidth(float value)
-{
-    if (Verbose) qDebug() << "setCurveWidth" << value;
-    if (!m_isCurve) return;
-    m_widthScale = (value + 1.0f);
-    UpdateCurveHeightWidth();    
-}
+        m_lastValidDeformation = {i1, i2, value};
+    } 
+    else emit setDeformationSlider(i1, i2, static_cast<int>((std::get<2>(m_lastValidDeformation) + 1.0f) * 50.f));
 
-void OpenGLWidget::setCurveHeight(float value)
-{
-    if (Verbose) qDebug() << "setCurveHeight" << value;
-    if (!m_isCurve) return;
-    m_heightScale = (value + 1.0f);
-    UpdateCurveHeightWidth();
+    m_curvePoints = m_curve.GetControlPoints();
 }
 
 void OpenGLWidget::UpdateCurveHeightWidth()
 {
-    for (size_t i = 0; i < m_curvePoints.size(); ++i) 
+    bool isValid = true;
+    std::vector<QVector3D> newPoints(m_initialCurvePoints.size());
+    for (size_t i = 0; i < m_initialCurvePoints.size(); ++i) 
     {
-        auto p = m_curvePoints[i];
-        p.setX(p.x() * m_widthScale);
-        p.setY(p.y() * m_heightScale);
-        m_curve.SetControlPoint(i, p);
+        QVector3D p = m_initialCurvePoints[i];
+        p -= m_curveCenter;
+
+        p.setX(p.x() * m_curveSize/* m_widthScale */);
+        p.setY(p.y() * m_curveSize/* m_heightScale */);
+
+        p += m_curveCenter;
+        newPoints[i] = p;
+
+        if (!GetPointOntoMesh(p)) 
+        {
+            isValid = false;
+            emit setSizeSlider(static_cast<int>(m_lastValidCurveSize * 50));
+            break;
+        }
+
     }
-    m_curvePointsSliders = m_curve.GetControlPoints();
-    Reset();
 
+    if (isValid) m_lastValidCurveSize = m_curveSize;
+
+    for (size_t i = 0; i < m_initialCurvePoints.size(); ++i) m_curve.SetControlPoint(i, isValid ? newPoints[i] : m_curvePoints[i]);
+
+    m_curvePoints = m_curve.GetControlPoints();
+    m_curvePointsSliders = m_curvePoints;
+
+    for (auto& d : m_curveDeformation) UpdateCurveForm(std::get<0>(d), std::get<1>(d), std::get<2>(d));
 }
 
-void OpenGLWidget::setCurveDepth(float value)
+void OpenGLWidget::addParticle()
 {
-    if (Verbose) qDebug() << "setCurveDepth" << value;
-    if (!m_isCurve) return;
-    m_curveDepth = (value + 1.0f);
-    Reset();
+    makeCurrent();
+    bool isRunning = IsRunning();
+    Stop();
+    auto p = std::make_shared<Particle>(m_curveCenter + QVector3D(0, 0, 0.24), m_particleRadiusVolume, 1);
+    m_physicsSystem->AddRigidbody(p);
+    m_physicsSystem->AddConstraint(p);
+    if (isRunning) Play();
+    doneCurrent();
 }
 
-void OpenGLWidget::setCurveRing(float radius)
+void OpenGLWidget::gravityChanged()
 {
-    if (Verbose) qDebug() << "setCurveRing" << radius;
-    if (!m_isCurve) return;
-    m_curveRingRadius = (radius + 1.0f) * 0.5f * 0.2f;
-    Reset();
+    bool isRunning = IsRunning();
+    Stop();
+    m_physicsSystem->ChangeGravity(m_camera->GetDownVector() * GRAVITY.length());
+    if (isRunning) Play(); 
 }
+
 
 void OpenGLWidget::InitVoxelModel()
 {
@@ -1912,20 +2350,20 @@ void OpenGLWidget::SetViewMode(ViewMode mode)
     {
         m_camera->SetPosition(QVector3D(0, 0, m_camera->GetDistance()));
         m_camera->SetTarget(QVector3D(0, 0, 0));
-        m_physicsSystem->ChangeGravity(m_camera->GetDownVector() * GRAVITY.length());
+        // m_physicsSystem->ChangeGravity(m_camera->GetDownVector() * GRAVITY.length());
     } 
     else if (mode == ViewMode::View2) 
     {
         m_camera->SetPosition(QVector3D(m_camera->GetDistance(), 0, 0));
         m_camera->SetTarget(QVector3D(0, 0, 0));
-        m_physicsSystem->ChangeGravity(m_camera->GetDownVector() * GRAVITY.length());
+        // m_physicsSystem->ChangeGravity(m_camera->GetDownVector() * GRAVITY.length());
 
     } 
     else if (mode == ViewMode::View3) 
     {
         m_camera->SetPosition(QVector3D(-m_camera->GetDistance(), 0, 0));
         m_camera->SetTarget(QVector3D(0, 0, 0));
-        m_physicsSystem->ChangeGravity(m_camera->GetDownVector() * GRAVITY.length());
+        // m_physicsSystem->ChangeGravity(m_camera->GetDownVector() * GRAVITY.length());
     } 
 
     update();

@@ -140,55 +140,6 @@ void ConvertModelToParticleSprings(std::shared_ptr<Model> &model,
 
 }
 
-/*void ConvertParticleSpringsToModel(Model* model, 
-    std::vector<std::shared_ptr<Particle>> &particles, 
-    std::vector<std::shared_ptr<Spring>> &springs)
-{
-    // Convert the particles and springs back into a model
-    if (model == nullptr || model->customOBJ == nullptr) return;
-
-    if (model->mesh) delete model->mesh; // Clean up the mesh if it exists
-    model->mesh = nullptr; // Set the mesh pointer to null
-    
-    // Clear the model's customOBJ data
-    model->customOBJ->clear();
-
-    // Resize the customOBJ vectors to match the number of particles
-    model->customOBJ->vertices.resize(particles.size());
-    model->customOBJ->nodes.resize(particles.size());
-    model->customOBJ->springLinks.resize(springs.size());
-
-    // Convert particles to vertices / nodes
-    for (size_t i = 0, size = particles.size(); i < size; ++i) {
-        auto& particle = particles[i];
-        model->customOBJ->vertices[i] = particle->transform.position;
-        model->customOBJ->nodes[i].vertexIndex = i;
-        model->customOBJ->nodes[i].radius = particle->GetRadius();
-        model->customOBJ->nodes[i].mass = particle->GetMass();
-        model->customOBJ->nodes[i].movable = particle->IsMovable();
-    }
-
-    // Convert springs to face / spring links
-    for (size_t i = 0, size = springs.size(); i < size; ++i) {
-        auto& spring = springs[i];
-        auto p1 = spring->GetP1();
-        auto p2 = spring->GetP2();
-
-        // Find the indices of the particles in the model
-        int indexA = std::distance(particles.begin(), std::find_if(particles.begin(), particles.end(), [&](const std::shared_ptr<Particle>& p) { return p.get() == p1; }));
-        int indexB = std::distance(particles.begin(), std::find_if(particles.begin(), particles.end(), [&](const std::shared_ptr<Particle>& p) { return p.get() == p2; }));
-
-        // Create a face (edge) ???
-
-        // Create a face for the spring link
-        model->customOBJ->springLinks[i].nodeA = indexA;
-        model->customOBJ->springLinks[i].nodeB = indexB;
-
-        model->customOBJ->springLinks[i].stiffness = spring->GetK(); // Use the spring's stiffness
-
-    }
-
-}*/
 
 void ChargeModelParticleSprings(std::shared_ptr<Model> &model, 
     std::vector<std::shared_ptr<Particle>> &particles, 
@@ -271,9 +222,9 @@ void ChargeModelParticleSprings(std::shared_ptr<Model> &model,
 }
 
 void ConvertParticleSpringsToModel(std::shared_ptr<Model> &model, 
-    std::vector<std::shared_ptr<Particle>> &particles, 
-    std::vector<std::shared_ptr<Spring>> &springs,
-    std::vector<std::shared_ptr<TriangleCollider>> &triangleColliders)
+    const std::vector<std::shared_ptr<Particle>> &particles, 
+    const std::vector<std::shared_ptr<Spring>> &springs,
+    const std::vector<std::shared_ptr<TriangleCollider>> &triangleColliders)
 {
     // Convert the particles and springs back into a model
     if (!model) return;
@@ -285,6 +236,8 @@ void ConvertParticleSpringsToModel(std::shared_ptr<Model> &model,
     model->customOBJ->normals.resize(particles.size());
     model->customOBJ->nodes.resize(particles.size());
     model->customOBJ->springLinks.resize(springs.size());
+
+    model->particleRefs = particles; // Store the particle references in the model
 
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
@@ -363,5 +316,24 @@ void ConvertParticleSpringsToModel(std::shared_ptr<Model> &model,
     }
 
     model->triangleColliders = triangleColliders;
-    
+     
+}
+
+void UpdateModelFromParticles(std::shared_ptr<Model> &model)
+{
+    if (!model || !model->mesh) return;
+    if (model->particleRefs.size() != model->customOBJ->vertices.size()) {
+        qWarning("Mismatch between particles and vertices.");
+        return;
+    }
+
+    // Update the model's vertices based on the particles' positions
+    for (size_t i = 0; i < model->particleRefs.size(); ++i) {
+        const auto& particle = model->particleRefs[i];
+        model->mesh->vertices[i].position = particle->GetPosition();
+    }
+
+    // model->mesh->ComputeNormals(); // Recompute normals after updating positions
+    model->mesh->UpdateBuffers(); // Update the OpenGL buffers with the new vertex data
+
 }

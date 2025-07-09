@@ -3,6 +3,17 @@
 #include "Model.h"
 #include <memory>
 
+struct Triangle 
+{
+	QVector3D a;
+	QVector3D b;
+	QVector3D c;
+
+	inline Triangle() {}
+	inline Triangle(const QVector3D& a, const QVector3D& b, const QVector3D& c) :
+		a(a), b(b), c(c) { }
+};
+
 class Plane : public Model
 {
 public:

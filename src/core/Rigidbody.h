@@ -31,6 +31,7 @@ protected:
     float mass { 1.0f }; // default mass
     float invMass { 1.0f }; // default inverse mass
     bool isStatic { true }; // is the rigidbody static or dynamic
+    // bool isDirty { false }; // is the rigidbody dirty (needs to be updated)
 
 public:
     // Transform

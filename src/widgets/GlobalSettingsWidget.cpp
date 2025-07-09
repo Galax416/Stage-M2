@@ -21,65 +21,98 @@ void GlobalSettingsWidget::InitUI()
 
     auto globalSettingsLayout = new QVBoxLayout(m_globalSettingsGroupBox);
 
-    // Delta time input
-    m_dtGroupBox = new QGroupBox("", this);
-    m_dtGroupBox->setMaximumHeight(50);
-    m_dtGroupBox->setStyleSheet("QGroupBox { font-size: 12px; font-weight: normal; }");
-    m_dtGroupBox->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    
-    auto dtLayout = new QHBoxLayout(m_dtGroupBox);
-    auto dtLabel = new QLabel("Delta time: ", this);
-    dtLabel->setStyleSheet("QLabel { font-size: 12px; }");
-    dtLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    dtLayout->addWidget(dtLabel);
-    m_dtLineEdit = new QLineEdit(this);
-    m_dtLineEdit->setValidator(new QDoubleValidator(0.0, 1.0, 4, this));
-    m_dtLineEdit->setText(QString::number(DELTATIME, 'f', 4));
-    dtLayout->addWidget(m_dtLineEdit);
-    m_dtButton = new QPushButton("Set", this);
-    m_dtButton->setStyleSheet("QPushButton { font-size: 12px; }");
-    m_dtButton->setFixedSize(40, 20);
-    dtLayout->addWidget(m_dtButton);
-    globalSettingsLayout->addWidget(m_dtGroupBox);
+    { // Clear scene button
+        m_clearSceneButton = new QPushButton("Clear Scene", this);
+        m_clearSceneButton->setStyleSheet("QPushButton { font-size: 12px; }");
+        // m_clearSceneButton->setFixedSize(100, 30);
+        m_clearSceneButton->setMinimumHeight(30);
+        m_clearSceneButton->setMaximumHeight(30);
+        m_clearSceneButton->setToolTip("Clear the current scene");
+        globalSettingsLayout->addWidget(m_clearSceneButton);
+    }
 
-    // Friction slider and spin box
-    m_frictionGroupBox = new QGroupBox("Friction", this);
-    m_frictionGroupBox->setMaximumHeight(60);
-    m_frictionGroupBox->setStyleSheet("QGroupBox { font-size: 12px; font-weight: normal; }");
-    m_frictionGroupBox->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    { // Delta time input
+        m_dtGroupBox = new QGroupBox("", this);
+        m_dtGroupBox->setMaximumHeight(50);
+        m_dtGroupBox->setStyleSheet("QGroupBox { font-size: 12px; font-weight: normal; }");
+        m_dtGroupBox->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        
+        auto dtLayout = new QHBoxLayout(m_dtGroupBox);
+        auto dtLabel = new QLabel("Delta time: ", this);
+        dtLabel->setStyleSheet("QLabel { font-size: 12px; }");
+        dtLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        dtLayout->addWidget(dtLabel);
+        m_dtLineEdit = new QLineEdit(this);
+        m_dtLineEdit->setValidator(new QDoubleValidator(0.0, 1.0, 4, this));
+        m_dtLineEdit->setText(QString::number(DELTATIME, 'f', 4));
+        dtLayout->addWidget(m_dtLineEdit);
+        m_dtButton = new QPushButton("Set", this);
+        m_dtButton->setStyleSheet("QPushButton { font-size: 12px; }");
+        m_dtButton->setFixedSize(40, 20);
+        dtLayout->addWidget(m_dtButton);
+        globalSettingsLayout->addWidget(m_dtGroupBox);
+    }
 
-    auto frictionLayout = new QHBoxLayout(m_frictionGroupBox);
-    m_frictionSlider = new QSlider(Qt::Horizontal, this);
-    m_frictionSlider->setRange(0, 100);
-    m_frictionSlider->setValue(10);
-    m_frictionSlider->setSingleStep(1);
-    m_frictionSpinBox = new QSpinBox(this);
-    m_frictionSpinBox->setRange(0, 100);
-    m_frictionSpinBox->setValue(5);
-    m_frictionSpinBox->setSingleStep(1);
-    auto frictionLabel = new QLabel("%", this);
-    frictionLabel->setStyleSheet("QLabel { font-size: 12px; }");
-    frictionLayout->addWidget(m_frictionSlider);
-    frictionLayout->addWidget(m_frictionSpinBox);
-    frictionLayout->addWidget(frictionLabel);
-    globalSettingsLayout->addWidget(m_frictionGroupBox);
+    { // Friction slider and spin box
+        m_frictionGroupBox = new QGroupBox("Friction", this);
+        m_frictionGroupBox->setMaximumHeight(60);
+        m_frictionGroupBox->setStyleSheet("QGroupBox { font-size: 12px; font-weight: normal; }");
+        m_frictionGroupBox->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
-    // Background color picker
-    m_backgroundColorGroupBox = new QGroupBox("Background Color", this);
-    m_backgroundColorGroupBox->setMaximumHeight(60);
-    m_backgroundColorGroupBox->setStyleSheet("QGroupBox { font-size: 12px; font-weight: normal; }");
-    m_backgroundColorGroupBox->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        auto frictionLayout = new QHBoxLayout(m_frictionGroupBox);
+        m_frictionSlider = new QSlider(Qt::Horizontal, this);
+        m_frictionSlider->setRange(0, 100);
+        m_frictionSlider->setValue(10);
+        m_frictionSlider->setSingleStep(1);
+        m_frictionSpinBox = new QSpinBox(this);
+        m_frictionSpinBox->setRange(0, 100);
+        m_frictionSpinBox->setValue(5);
+        m_frictionSpinBox->setSingleStep(1);
+        auto frictionLabel = new QLabel("%", this);
+        frictionLabel->setStyleSheet("QLabel { font-size: 12px; }");
+        frictionLayout->addWidget(m_frictionSlider);
+        frictionLayout->addWidget(m_frictionSpinBox);
+        frictionLayout->addWidget(frictionLabel);
+        globalSettingsLayout->addWidget(m_frictionGroupBox);
+    }
 
-    auto backgroundColorLayout = new QHBoxLayout(m_backgroundColorGroupBox);
-    auto backgroundColorLabel = new QLabel("Color: ", this);
-    backgroundColorLabel->setStyleSheet("QLabel { font-size: 12px; }");
-    backgroundColorLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    m_backgroundColorButton = new QPushButton(this);
-    m_backgroundColorButton->setStyleSheet("background-color: rgba(25, 25, 25, 255); border: 1px solid black;");
-    m_backgroundColorButton->setFixedSize(40, 20);
-    backgroundColorLayout->addWidget(backgroundColorLabel);
-    backgroundColorLayout->addWidget(m_backgroundColorButton);
-    globalSettingsLayout->addWidget(m_backgroundColorGroupBox);
+    { // Background color picker
+        m_backgroundColorGroupBox = new QGroupBox("Background Color", this);
+        m_backgroundColorGroupBox->setMaximumHeight(60);
+        m_backgroundColorGroupBox->setStyleSheet("QGroupBox { font-size: 12px; font-weight: normal; }");
+        m_backgroundColorGroupBox->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+
+        auto backgroundColorLayout = new QHBoxLayout(m_backgroundColorGroupBox);
+        auto backgroundColorLabel = new QLabel("Color: ", this);
+        backgroundColorLabel->setStyleSheet("QLabel { font-size: 12px; }");
+        backgroundColorLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        m_backgroundColorButton = new QPushButton(this);
+        m_backgroundColorButton->setStyleSheet("background-color: rgba(25, 25, 25, 255); border: 1px solid black;");
+        m_backgroundColorButton->setFixedSize(40, 20);
+        backgroundColorLayout->addWidget(backgroundColorLabel);
+        backgroundColorLayout->addWidget(m_backgroundColorButton);
+        globalSettingsLayout->addWidget(m_backgroundColorGroupBox);
+    }
+
+    { // Gravity
+        m_gravityGroupBox = new QGroupBox("Gravity", this);
+        m_gravityGroupBox->setMaximumHeight(60);
+        m_gravityGroupBox->setStyleSheet("QGroupBox { font-size: 12px; font-weight: normal; }");
+        m_gravityGroupBox->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+
+        auto gravityLayout = new QHBoxLayout(m_gravityGroupBox);
+        auto gravityLabel = new QLabel("Changes gravity based on camera: ", this);
+        gravityLabel->setStyleSheet("QLabel { font-size: 12px; }");
+        gravityLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+
+        m_gravityButton = new QPushButton("Toggle", this);
+        m_gravityButton->setStyleSheet("QPushButton { font-size: 12px; }");
+        // m_gravityButton->setFixedSize(80, 20);
+
+        gravityLayout->addWidget(gravityLabel);
+        gravityLayout->addWidget(m_gravityButton);
+        globalSettingsLayout->addWidget(m_gravityGroupBox);
+    }
 
     /*
     // Rotation slider and spin box
@@ -160,28 +193,12 @@ void GlobalSettingsWidget::InitUI()
 void GlobalSettingsWidget::InitConnections()
 {
 
-    // Friction
-    connect(m_frictionSlider, &QSlider::valueChanged, this, [this](int value) { 
-        m_frictionSpinBox->setValue(value);
-        emit FrictionChanged((float)(value) * 0.01f); // value / 100.0f
-    });
-    connect(m_frictionSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int value) {
-        m_frictionSlider->setValue(value);
-        emit FrictionChanged((float)(value) * 0.01f); // value / 100.0f 
+    // Clear scene button
+    connect(m_clearSceneButton, &QPushButton::clicked, this, [this]() {
+        emit ClearSceneButtonClicked();
     });
 
     // Delta time
-    // connect(m_dtLineEdit, &QLineEdit::editingFinished, this, [this]() {
-    //     bool ok;
-    //     float value = m_dtLineEdit->text().toFloat(&ok);
-    //     if (ok) {
-    //         value = qMax(0.0001f, qMin(value, 1.0f)); // Clamp value between 0.0001 and 1.0
-    //         m_dtLineEdit->setText(QString::number(value, 'f', 4));
-    //         emit DeltaTimeChanged(value);
-    //     } else {
-    //         m_dtLineEdit->setText(QString::number(value, 'f', 4));
-    //     }
-    // });
     connect(m_dtButton, &QPushButton::clicked, this, [this]() {
         bool ok;
         float value = m_dtLineEdit->text().toFloat(&ok);
@@ -193,7 +210,16 @@ void GlobalSettingsWidget::InitConnections()
             m_dtLineEdit->setText(QString::number(value, 'f', 4));
         }
     });
-    
+
+    // Friction
+    connect(m_frictionSlider, &QSlider::valueChanged, this, [this](int value) { 
+        m_frictionSpinBox->setValue(value);
+        emit FrictionChanged((float)(value) * 0.01f); // value / 100.0f
+    });
+    connect(m_frictionSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int value) {
+        m_frictionSlider->setValue(value);
+        emit FrictionChanged((float)(value) * 0.01f); // value / 100.0f 
+    });
 
     // Background color
     connect(m_backgroundColorButton, &QPushButton::clicked, this, [this]() {
@@ -201,9 +227,12 @@ void GlobalSettingsWidget::InitConnections()
         if (color.isValid()) {
             m_backgroundColorButton->setStyleSheet(QString("background-color: %1; border: 1px solid black;").arg(color.name()));
             emit BackgroundColorChanged(color);
-            qDebug() << "Background color changed to:" << color.name();
-            qDebug() << "Background color changed to:" << color.red() << color.green() << color.blue();
         }
+    });
+
+    // Gravity
+    connect(m_gravityButton, &QPushButton::clicked, this, [this]() {
+        emit GravityChanged();
     });
 
     /*

@@ -56,6 +56,7 @@ public:
         nodes.clear();
         springLinks.clear();
         variables.clear();
+        isCustomOBJ = false;
     }
 
     // à refaire

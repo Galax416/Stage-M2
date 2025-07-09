@@ -80,6 +80,17 @@ std::vector<QVector3D> Curve::Sample(int numSamples) const
     return samples;
 }
 
+QVector3D Curve::GetCenter() const 
+{
+    if (m_controlPoints.empty()) return QVector3D(0, 0, 0);
+    
+    QVector3D center(0, 0, 0);
+    for (const auto& point : m_controlPoints) center += point;
+    center /= static_cast<float>(m_controlPoints.size());
+    
+    return center;
+}
+
 std::vector<QVector3D> GetClosedControlPoints(std::vector<QVector3D> controlPoints, int degree) 
 {
     std::vector<QVector3D> closedControlPoints = controlPoints;

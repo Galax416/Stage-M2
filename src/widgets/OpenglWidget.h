@@ -16,12 +16,13 @@
 // #include "PhysicsWorker.h"
 #include "Curve.h"
 #include "Voxel.h"
+#include "ModelSettingsWidget.h"
 
 // SCREEN SIZE
 #define SCREEN_WIDTH  1080
 #define SCREEN_HEIGHT 720
 
-#define DELTATIME  0.0160f
+#define DELTATIME  0.0100f
 #define GRAVITY    QVector3D(0.0f, -9.81f, 0.0f)
 
 #define Verbose false // Set to true to enable verbose output
@@ -55,6 +56,9 @@ public:
     void SaveOBJ(const QString& filename);
 
     void SetViewMode(ViewMode mode);
+    void SetRenderWireframe() { m_isWireMode = !m_isWireMode; emit statusBarMessageChanged(QString("Wireframe mode: %1").arg(m_isWireMode ? "ON" : "OFF")); }
+    void SetRenderCollider() { m_renderCollider = !m_renderCollider; emit renderColliderChanged(m_renderCollider); emit statusBarMessageChanged(QString("Render Collider: %1").arg(m_renderCollider ? "ON" : "OFF")); }
+    void SetRenderBVH() { if (IsPaused()) { m_renderBVH = !m_renderBVH; emit renderBVHChanged(m_renderBVH); } emit statusBarMessageChanged(QString("Render BVH: %1").arg(m_renderBVH ? "ON" : "OFF")); }
 
 protected:
     void initializeGL() override;
@@ -81,26 +85,37 @@ signals:
     void physcisStateChanged(bool isPaused);
     void deltaTimeChanged(float deltaTime);
     void breastSlidersChanged();
+    void setSizeSlider(int value);
+    void setDeformationSlider(int p1, int p2, int value);
 
 public slots:
     void setGlobalDeltaTime(float value)        { Stop(); m_deltaTime = value; emit deltaTimeChanged(value); }
     void setGlobalFriction(float value)         { m_globalFriction = (1.0f - value); m_physicsSystem->ChangeFriction(m_globalFriction);}
-    void setGlobalBackgroundColor(QColor color) { m_backgroundColor = color; if (Verbose) qDebug() << "setGlobalBackgroundColor"; Reset(); }
+    void setGlobalBackgroundColor(QColor color) { m_backgroundColor = color; if (Verbose) qDebug() << "setGlobalBackgroundColor" << m_backgroundColor; Reset(); }
+    void gravityChanged();
 
-    void setCrossSpringModel(bool value) { m_crossSpringModel = value; if (Verbose) qDebug() << "setCrossSpringModel"; Reset(); }
-    void setCurves(bool create)          { m_isCurve = create; if (Verbose) qDebug() << "setCurves"; Reset(); }
-    void setVoxelModel(bool create)      { m_isVoxelModel = create; if (Verbose) qDebug() << "setVoxelModel"; Reset(); }
-    void setThickness(bool value)        { m_haveThickness = value; if (Verbose) qDebug() << "setThickness"; Reset(); }
-    void setSamplingModel(int value)     { m_numSamples  = value; if (Verbose) qDebug() << "setSamplingModel"; Reset(); }
-    void setLayerModel(int value)        { m_curveLayers = value; if (Verbose) qDebug() << "setLayerModel"; Reset(); }
-    void setDeformation(int p1, int p2, float value);
-    void setCurveWidth(float value);
-    void setCurveHeight(float value);
-    void setCurveDepth(float value);
-    void setCurveRing(float radius);
+    void setCrossSpringModel(bool value)      { m_crossSpringModel = value; if (Verbose) qDebug() << "setCrossSpringModel"; Reset(); }
+    void setCurves(bool create)               { m_isCurve = create; m_isModel = false; m_isVoxelModel = false; SetDefaultCurveValues(); if (Verbose) qDebug() << "setCurves"; Reset(); }
+    void setVoxelModel(bool create)           { m_isVoxelModel = create; m_isModel = false; m_isCurve = false; if (Verbose) qDebug() << "setVoxelModel"; Reset(); }
+    void setThickness(bool value)             { m_haveThickness = value; if (Verbose) qDebug() << "setThickness"; Reset(); }
+    void setAttached(bool value)              { m_isAttached = value; if (Verbose) qDebug() << "setAttached"; Reset(); }
+    void setAttachedToModel(bool value)       { m_isAttachedToModel = value; if (Verbose) qDebug() << "setAttachedToModel"; Reset(); }
+    void addParticle();
+    void setSamplingModel(int value)          { m_numSamples  = value; if (Verbose) qDebug() << "setSamplingModel" << m_numSamples; Reset(); }
+    void setLayerModel(int value)             { m_curveLayers = value; if (Verbose) qDebug() << "setLayerModel" << m_curveLayers; Reset(); }
+    void setParticleRadiusVolume(float value) { m_particleRadiusVolume = (4.5 * value * value + 9.5 * value + 6); if (Verbose) qDebug() << "setParticleRadiusVolume" << m_particleRadiusVolume; Reset(); } // f(-1) = 1.0, f(0) = 6.0, f(1) = 20.0,
+    void setSpacingVolume(float value)        { m_spacingVolume = (0.105 * value * value + -0.175 * value + 0.12); if (Verbose) qDebug() << "setSpacingVolume" << m_spacingVolume; Reset(); } // f(-1) = 0.04, f(0) = 0.12, f(1) = 0.05
+    void setDeformation(int p1, int p2, float value) { for (auto& entry : m_curveDeformation) { if (std::get<0>(entry) == p1 && std::get<1>(entry) == p2) std::get<2>(entry) = value; } UpdateCurveForm(p1, p2, value); if (Verbose) qDebug() << "setDeformation" << p1 << p2 << value; Reset(); }
+    void setCurveWidth(float value)                  { m_widthScale = (value + 1.0f); UpdateCurveHeightWidth(); if (Verbose) qDebug() << "setCurveWidth"; Reset(); }
+    void setCurveHeight(float value)                 { m_heightScale = (value + 1.0f); UpdateCurveHeightWidth(); if (Verbose) qDebug() << "setCurveHeight"; Reset(); }
+    void setCurveSize(float value)                   { m_curveSize = (value + 1.0f); UpdateCurveHeightWidth(); if (Verbose) qDebug() << "setCurveSize" << m_curveSize; Reset(); }
+    void setCurveDepth(float value)                  { m_curveDepth = (value + 1.0f); if (Verbose) qDebug() << "setCurveDepth" << m_curveDepth; Reset(); }
+    void setCurveRing(float value)                   { m_curveRingRadius = (value + 1.0f) * 0.5f * 0.2f; if (Verbose) qDebug() << "setCurveRing" << m_curveRingRadius; Reset(); }
+    void setNSegements(int value)                    { m_nSegments = value; m_angularWeights = std::vector<float>(value, 1.0f / static_cast<float>(value)); if (Verbose) qDebug() << "setNSegements" << m_nSegments; Reset(); }
+    void setSegmentSliders(std::vector<float> values){ if (m_angularWeights.size() != values.size()) return; m_angularWeights = values; if (Verbose) qDebug() << "setSegmentSliders"; Reset(); }
 
-    // void Reset() { qDebug() << "-------------------"; makeCurrent(); Stop(); qDebug() << "Stop OK!"; ClearScene(); qDebug() << "Clear OK!"; doneCurrent(); CurveToParticlesSprings(); qDebug() << "CurveToParticle OK!"; VoxelToParticlesSprings(); qDebug() << "VoxelToParticle OK!"; InitScene(); qDebug() << "InitScene OK!"; }
-    void Reset(); //{ makeCurrent(); Stop(); ClearScene(); doneCurrent(); CurveToParticlesSprings(); VoxelToParticlesSprings(); InitScene(); }
+    void ClearSceneSlot() { Stop(); ClearScene(); m_isModel = false; m_isCurve = false; m_isVoxelModel = false; m_renderBVH = false; m_isWireMode = false; Reset(); }
+    void Reset();
     void Stop()  { m_isRunning = false; emit buttonStateChanged(m_isRunning); }
     void Play()  { m_isRunning = true; m_renderBVH = false; emit renderBVHChanged(m_renderBVH); emit buttonStateChanged(m_isRunning); }
     
@@ -110,12 +125,25 @@ private:
     void InitScene();
     void ClearScene() { m_physicsSystem->ClearAll(); m_particles.clear(); m_springs.clear(); m_triangleColliders.clear(); }
     
+    void SetDefaultCurveValues() 
+    {
+        // InitCurves();
+        m_numSamples      = DEFAULT_SAMPLING;
+        m_curveLayers     = DEFAULT_LAYERS;
+        m_curveSize       = DEFAULT_SIZE / 50.0f;
+        m_curveDepth      = DEFAULT_DEPTH / 50.0f;
+        m_curveRingRadius = 0.1f;
+        m_spacingVolume   = 0.12f;
+        m_particleRadiusVolume = 6.0f; // Default particle radius for volume filling
+        m_angularWeights = std::vector<float>(DEFAULT_N_SEGMENTS, 1.0f / static_cast<float>(DEFAULT_N_SEGMENTS));
+    }
+
     void InitCurves();
+    void UpdateCurveForm(int i1, int i2, float value);
     void UpdateCurveHeightWidth();
     void ChangeControlPointPosistion(const QVector3D& direction);
     void CurveToParticlesSprings();
-    QVector3D EvaluateCurveSurface(float u, float v);
-    QVector3D GetPointOntoMesh(const QVector3D& point);
+    bool GetPointOntoMesh(QVector3D& point);
     void FillVolumeWithParticle();
     std::vector<std::shared_ptr<TriangleCollider>> m_fillTriangleColliders;
 
@@ -144,25 +172,39 @@ private:
     QVector3D m_globalRotation  { 0.0f, 0.0f, 0.0f };
 
     // Model settings
+    bool m_isModel { false }; // Is a model loaded
     bool m_crossSpringModel { true }; // Cross spring model
 
     // Custom Parametric Model
     std::shared_ptr<Model> m_torsoModel;
     std::unique_ptr<BVHNode<TriangleCollider>> m_bvhTorsoColliders;
     Curve m_curve; // Cubic closed curve
+    std::vector<QVector3D> m_initialCurvePoints;
     std::vector<QVector3D> m_curvePoints; // Control points of the curve
     std::vector<QVector3D> m_curvePointsSliders; 
+    std::vector<QVector3D> m_defaultCurvePoints;
     std::vector<QVector3D> m_profilePoints; // Sampled points of the curve
     std::vector<QVector3D> m_ringPoints; // Sampled points of the ring
-    QVector3D m_curveNormal { 0.0f, 0.0f, 1.0f };
-    bool  m_isCurve         { false };
-    int   m_numSamples      { 32 };
-    int   m_curveLayers     { 12 };
-    float m_widthScale      { 0.94f };
-    float m_heightScale     { 1.14f };
-    float m_curveDepth      { 1.0f };
-    float m_curveRingRadius { 0.1f };
-    bool  m_haveThickness   { true };
+    std::vector<std::tuple<int, int, float>> m_curveDeformation;
+    std::tuple<int, int, float> m_lastValidDeformation; // Last valid deformation values
+    QVector3D m_curveCenter      { 0.0f, 0.0f, 0.0f }, m_initialCurveCenter;
+    QVector3D m_curveNormal      { 0.0f, 0.0f, 1.0f };
+    bool  m_isCurve              { false };
+    int   m_numSamples           { DEFAULT_SAMPLING };
+    int   m_curveLayers          { DEFAULT_LAYERS };
+    float m_widthScale           { 1.0f/* 0.94f */ };
+    float m_heightScale          { 1.0f/* 1.14f */ };
+    float m_curveSize            { DEFAULT_SIZE / 50.0f };
+    float m_lastValidCurveSize   { DEFAULT_SIZE / 50.0f }; // Last valid curve size
+    float m_curveDepth           { DEFAULT_DEPTH / 50.0f };
+    float m_curveRingRadius      { 0.1f };
+    bool  m_haveThickness        { true };
+    bool  m_isAttached           { false }; 
+    bool  m_isAttachedToModel    { false }; 
+    float m_spacingVolume        { 0.12f };
+    float m_particleRadiusVolume { 6.0f }; 
+    int m_nSegments              { DEFAULT_N_SEGMENTS };
+    std::vector<float> m_angularWeights = std::vector<float>(DEFAULT_N_SEGMENTS, 1.0f / static_cast<float>(DEFAULT_N_SEGMENTS));
 
     // Voxel model
     VoxelGrid m_voxel;
@@ -170,9 +212,8 @@ private:
     std::shared_ptr<Box> m_press { nullptr };
 
     // Mode
-    bool m_is2DMode { false };
-    bool m_isRunning { false };
-    bool m_isRunningTemp { false };
+    bool m_is2DMode   { false };
+    bool m_isRunning  { false };
     bool m_isWireMode { false };
 
     // Colliders debug

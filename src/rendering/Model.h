@@ -32,32 +32,37 @@ protected:
 public:
     std::shared_ptr<Mesh> mesh { nullptr };
     std::shared_ptr<CustomOBJLoader> customOBJ { nullptr };
+    std::vector<std::shared_ptr<Particle>> particleRefs; 
 
     Model();
     Model(const QString &path);
+
     void ReleaseGLResources();
-
-    // void ResetModel();
+    
     void LoadModel(const QString &path);
-    // std::shared_ptr<Model> ToTetra(float spacing = 0.1f);
-
+    
     void Update(float dt) override;
     void Render(QOpenGLShaderProgram* shaderProgram) override;
-
+    
     void SynsCollisionVolumes() override;
 
+    AABB GetAABB() const override { return bounds; }
+    
     void SetPosition(const QVector3D& p) override;
     void SetRotation(const QQuaternion& q) override;
-
+    
     void SetColor(QColor c) { color = c; }
     QColor GetColor() const { return color; }
     bool IsValid() const;
-
+    
+    void ComputeFaces();
+    void Remesh(double targetLength);
     void SetDisplayAABB(bool display) { displayAABB = display; }
 
 private:
     AABB bounds;
     bool displayAABB { false };
+
 };
 
 

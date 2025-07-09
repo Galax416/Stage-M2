@@ -22,10 +22,12 @@ public:
     // ~GlobalSettingsWidget() override;
 
 signals:
-    void FrictionChanged(float value);
+    void ClearSceneButtonClicked();
     void DeltaTimeChanged(float value);
+    void FrictionChanged(float value);
     void RotationChanged(QVector3D rotation);
     void BackgroundColorChanged(QColor color);
+    void GravityChanged();
 
 private:
     void InitUI();
@@ -34,6 +36,9 @@ private:
     QHBoxLayout *m_mainLayout;
 
     QGroupBox   *m_globalSettingsGroupBox;
+
+    QPushButton *m_clearSceneButton;
+    // QPushButton *m_changeGravityButton;
 
     QGroupBox   *m_dtGroupBox;
     QLineEdit   *m_dtLineEdit;
@@ -45,6 +50,9 @@ private:
 
     QGroupBox   *m_backgroundColorGroupBox;
     QPushButton *m_backgroundColorButton;
+
+    QGroupBox   *m_gravityGroupBox;
+    QPushButton *m_gravityButton;
 
     /*
     QGroupBox *m_rotationGroupBox;

@@ -14,7 +14,6 @@ MainWindow::MainWindow(QWidget* parent)
     // m_timer = new QTimer(this);
     // m_timer->setInterval(16); // 60 FPS
 
-
     // Set status bar
     m_statusBar = new QStatusBar(this);
     m_statusBar->setVisible(false);
@@ -32,6 +31,11 @@ MainWindow::MainWindow(QWidget* parent)
     QAction* vue1 = view->addAction("View 1");
     QAction* vue2 = view->addAction("View 2");
     QAction* vue3 = view->addAction("View 3");
+    m_menuBar->addSeparator();
+    QMenu* debug = m_menuBar->addMenu("Debug");
+    QAction* debugWireframe = debug->addAction("Debug Wireframe");
+    QAction* debugColliders = debug->addAction("Debug Colliders");
+    QAction* debugBVH = debug->addAction("Debug BVH");
     setMenuBar(m_menuBar);
 
     // Set splitter
@@ -88,12 +92,10 @@ MainWindow::MainWindow(QWidget* parent)
    
     m_rightLayout->addLayout(buttonLayout);
 
-    
-
-
     // Add OpenGL widget and right container to splitter
     m_splitter->addWidget(m_openGLWidget);
     m_splitter->addWidget(scrollArea);
+
 
     setCentralWidget(m_splitter);
 
@@ -121,29 +123,51 @@ MainWindow::MainWindow(QWidget* parent)
     connect(vue3, &QAction::triggered, this, [this]() {
         m_openGLWidget->SetViewMode(ViewMode::View3);
     });
+    connect(debugWireframe, &QAction::triggered, this, [this]() {
+        m_openGLWidget->SetRenderWireframe();
+    });
+    connect(debugColliders, &QAction::triggered, this, [this]() {
+        m_openGLWidget->SetRenderCollider();
+    });
+    connect(debugBVH, &QAction::triggered, this, [this]() {
+        m_openGLWidget->SetRenderBVH();
+    });
     
-
     // Status bar
     connect(m_openGLWidget, &OpenGLWidget::statusBarMessageChanged, this, &MainWindow::updateStatusBarMessage);
     
     // Gloal settings
-    connect(m_globalSettingsWidget, &GlobalSettingsWidget::DeltaTimeChanged,       m_openGLWidget, &OpenGLWidget::setGlobalDeltaTime);
-    connect(m_globalSettingsWidget, &GlobalSettingsWidget::FrictionChanged,        m_openGLWidget, &OpenGLWidget::setGlobalFriction);
-    connect(m_globalSettingsWidget, &GlobalSettingsWidget::BackgroundColorChanged, m_openGLWidget, &OpenGLWidget::setGlobalBackgroundColor);
+    connect(m_globalSettingsWidget, &GlobalSettingsWidget::ClearSceneButtonClicked, m_openGLWidget, &OpenGLWidget::ClearSceneSlot);
+    connect(m_globalSettingsWidget, &GlobalSettingsWidget::ClearSceneButtonClicked, m_modelSettingsWidget, &ModelSettingsWidget::ClearSceneSlot);
+    connect(m_globalSettingsWidget, &GlobalSettingsWidget::DeltaTimeChanged,        m_openGLWidget, &OpenGLWidget::setGlobalDeltaTime);
+    connect(m_globalSettingsWidget, &GlobalSettingsWidget::FrictionChanged,         m_openGLWidget, &OpenGLWidget::setGlobalFriction);
+    connect(m_globalSettingsWidget, &GlobalSettingsWidget::BackgroundColorChanged,  m_openGLWidget, &OpenGLWidget::setGlobalBackgroundColor);
+    connect(m_globalSettingsWidget, &GlobalSettingsWidget::GravityChanged,          m_openGLWidget, &OpenGLWidget::gravityChanged);
 
     // Model settings
-    connect(m_modelSettingsWidget, &ModelSettingsWidget::CrossSpringModelChanged,        m_openGLWidget, &OpenGLWidget::setCrossSpringModel);
-    connect(m_modelSettingsWidget, &ModelSettingsWidget::CreateBreastModelButtonClicked, m_openGLWidget, &OpenGLWidget::setCurves);
-    connect(m_openGLWidget,        &OpenGLWidget::breastSlidersChanged,                  m_modelSettingsWidget, &ModelSettingsWidget::ResetSliders);    
-    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelThicknessChanged,    m_openGLWidget, &OpenGLWidget::setThickness);
-    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelSamplingChanged,     m_openGLWidget, &OpenGLWidget::setSamplingModel);
-    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelLayerChanged,        m_openGLWidget, &OpenGLWidget::setLayerModel);
-    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelCurveChanged,        m_openGLWidget, &OpenGLWidget::setDeformation);
-    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelWidthChanged,        m_openGLWidget, &OpenGLWidget::setCurveWidth);
-    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelHeightChanged,       m_openGLWidget, &OpenGLWidget::setCurveHeight);
-    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelDepthChanged,        m_openGLWidget, &OpenGLWidget::setCurveDepth);
-    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelRingChanged,         m_openGLWidget, &OpenGLWidget::setCurveRing);
-    connect(m_modelSettingsWidget, &ModelSettingsWidget::Create3DModelButtonClicked,     m_openGLWidget, &OpenGLWidget::setVoxelModel);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::CrossSpringModelChanged,                m_openGLWidget, &OpenGLWidget::setCrossSpringModel);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::CreateBreastModelButtonClicked,         m_openGLWidget, &OpenGLWidget::setCurves);
+    connect(m_openGLWidget,        &OpenGLWidget::breastSlidersChanged,                          m_modelSettingsWidget, &ModelSettingsWidget::ResetSliders);    
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelThicknessChanged,            m_openGLWidget, &OpenGLWidget::setThickness);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelAttachedChanged,             m_openGLWidget, &OpenGLWidget::setAttached);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelAttachedToModelChanged,      m_openGLWidget, &OpenGLWidget::setAttachedToModel);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::AddParticleButtonClicked,               m_openGLWidget, &OpenGLWidget::addParticle);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelSamplingChanged,             m_openGLWidget, &OpenGLWidget::setSamplingModel);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelLayerChanged,                m_openGLWidget, &OpenGLWidget::setLayerModel);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelCurveChanged,                m_openGLWidget, &OpenGLWidget::setDeformation);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelWidthChanged,                m_openGLWidget, &OpenGLWidget::setCurveWidth);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelHeightChanged,               m_openGLWidget, &OpenGLWidget::setCurveHeight);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelSizeChanged,                 m_openGLWidget, &OpenGLWidget::setCurveSize);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelDepthChanged,                m_openGLWidget, &OpenGLWidget::setCurveDepth);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelRingChanged,                 m_openGLWidget, &OpenGLWidget::setCurveRing);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelSpacingVolumeChanged,        m_openGLWidget, &OpenGLWidget::setSpacingVolume);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::DeformModelParticleRadiusVolumeChanged, m_openGLWidget, &OpenGLWidget::setParticleRadiusVolume);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::UpdateNSegmentsChanged,                 m_openGLWidget, &OpenGLWidget::setNSegements);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::SegmentParameterChanged,                m_openGLWidget, &OpenGLWidget::setSegmentSliders);
+    connect(m_modelSettingsWidget, &ModelSettingsWidget::Create3DModelButtonClicked,             m_openGLWidget, &OpenGLWidget::setVoxelModel);
+
+    connect(m_openGLWidget, &OpenGLWidget::setSizeSlider,        m_modelSettingsWidget, &ModelSettingsWidget::SetSizeSlider);
+    connect(m_openGLWidget, &OpenGLWidget::setDeformationSlider, m_modelSettingsWidget, &ModelSettingsWidget::SetDeformationSlider);
 
     // Model settings (3D)
     connect(m_openGLWidget, &OpenGLWidget::update3DModelParametersChanged, m_modelSettingsWidget, &ModelSettingsWidget::Update3DModelParameters);
@@ -172,11 +196,6 @@ MainWindow::MainWindow(QWidget* parent)
     //     qDebug() << "Tab pressed";
     //     ui->overlayUI->setVisible(!ui->overlayUI->isVisible());
     // });
-
-}
-
-MainWindow::~MainWindow()
-{
 
 }
 

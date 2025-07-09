@@ -10,6 +10,11 @@
 #include <cmath>
 #include <random>
 
+inline uint qHash(const QVector3D& key, uint seed = 0) 
+{
+    return qHash(key.x(), seed) ^ qHash(key.y(), seed << 1) ^ qHash(key.z(), seed << 2);
+}
+
 inline QVector3D Lerp(const QVector3D& a, const QVector3D& b, float t) 
 {
     return (1.0f - t) * a + t * b;

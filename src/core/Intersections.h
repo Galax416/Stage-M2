@@ -2,6 +2,7 @@
 
 #include <QVector3D>
 #include "GeometryPrimitives.h"
+#include "Geometry3D.h"
 #include "Mesh.h"
 
 #include <cmath>

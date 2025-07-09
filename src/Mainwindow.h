@@ -27,7 +27,6 @@ class MainWindow : public QMainWindow
 
 public:
     explicit MainWindow(QWidget* parent = nullptr);
-    ~MainWindow();
 
 public slots:
     void updateStatusBarMessage(const QString& message);

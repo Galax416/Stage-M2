@@ -1,8 +1,74 @@
 #include "Mesh.h"
 #include "TriangleCollider.h"
+#include "Utils.h"
 
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Surface_mesh.h>
+#include <CGAL/Polygon_mesh_processing/remesh.h>
+#include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
+
+namespace PMP = CGAL::Polygon_mesh_processing;
+typedef CGAL::Simple_cartesian<double> Kernel;
+typedef Kernel::Point_3 Point;
+typedef CGAL::Surface_mesh<Point> SurfaceMesh;
+
+
+// CGALMesh is a wrapper around CGAL::Surface_mesh<Point>
+class CGALMesh {
+public:
+    SurfaceMesh mesh;
+
+    void FromVertices(const std::vector<Vertex>& verts, const std::vector<unsigned int>& indices) {
+        mesh.clear();
+        std::vector<SurfaceMesh::Vertex_index> vmap;
+        for (const auto& v : verts)
+            vmap.push_back(mesh.add_vertex(Point(v.position.x(), v.position.y(), v.position.z())));
+
+        for (size_t i = 0; i + 2 < indices.size(); i += 3)
+            mesh.add_face(vmap[indices[i]], vmap[indices[i+1]], vmap[indices[i+2]]);
+    }
+
+    void ToVertices(std::vector<Vertex>& verts, std::vector<unsigned int>& indices) {
+        verts.clear();
+        indices.clear();
+        std::unordered_map<SurfaceMesh::Vertex_index, int> vmap;
+        int idx = 0;
+
+        for (auto v : mesh.vertices()) {
+            const auto& p = mesh.point(v);
+            Vertex vert;
+            vert.position = QVector3D(p.x(), p.y(), p.z());
+            vert.normal = QVector3D(0, 0, 0); // Normals will be computed later
+            vert.texCoords = QVector2D(0, 0);
+            vert.tangent = QVector3D(1, 0, 0);
+            vert.bitangent = QVector3D(0, 1, 0);
+            verts.push_back(vert);
+            vmap[v] = idx++;
+        }
+
+        for (auto f : mesh.faces()) {
+            std::vector<unsigned int> face;
+            for (auto v : CGAL::vertices_around_face(mesh.halfedge(f), mesh))
+                face.push_back(vmap[v]);
+
+            if (face.size() == 3)
+                indices.insert(indices.end(), face.begin(), face.end());
+        }
+    }
+
+    void Remesh(double targetLength) {
+        PMP::isotropic_remeshing(
+            faces(mesh),
+            targetLength,
+            mesh,
+            PMP::parameters::number_of_iterations(3) // .protect_constraints(true)
+        );
+    }
+};
+
+// Mesh class implementation
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, Material material) :
-    vertices(vertices), indices(indices), material(material),
+    vertices(vertices), indices(indices), material(material), cgalMesh(std::make_shared<CGALMesh>()),
     VAO(std::make_unique<QOpenGLVertexArrayObject>()), VBO(std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer)), IBO(std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer))
 {
     initializeOpenGLFunctions();
@@ -11,18 +77,10 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, Mate
     VBO->create();
     IBO->create();
 
-	UnifySharedVertices();
+	// UnifySharedVertices();
+    ComputeNormals();
     SetUpMesh();
-    // SetUpTriangles();
 
-}
-
-void Mesh::Clear() 
-{
-    vertices.clear();
-    indices.clear();
-    // triangles.clear();
-    material = Material();
 }
 
 void Mesh::ReleaseGLResources() 
@@ -36,11 +94,41 @@ void Mesh::ReleaseGLResources()
     if (IBO && IBO->isCreated()) IBO->destroy();
 }
 
+void Mesh::Clear() 
+{
+    vertices.clear();
+    indices.clear();
+}
+
+void Mesh::FromCGALMesh()
+{
+    cgalMesh->ToVertices(vertices, indices);
+
+    ComputeNormals();
+    SetUpMesh();
+}
+
+void Mesh::ToCGALMesh()
+{
+    cgalMesh->FromVertices(vertices, indices);
+
+    // Ensure the mesh is triangulated
+    PMP::triangulate_faces(cgalMesh->mesh);
+}
+
+void Mesh::Remesh(double target_length)
+{
+    ToCGALMesh();
+    cgalMesh->Remesh(target_length);
+    FromCGALMesh();
+}
+
 void Mesh::SetUpMesh()
 {   
     VAO->bind();
     
     VBO->bind();
+    VBO->setUsagePattern(QOpenGLBuffer::DynamicDraw);
     VBO->allocate(vertices.data(), vertices.size() * sizeof(Vertex));
 
     IBO->bind();
@@ -64,23 +152,16 @@ void Mesh::SetUpMesh()
     VBO->release();
     IBO->release();
     VAO->release();
-    
 }
 
-// void Mesh::SetUpTriangles()
-// {
-//     triangles.clear();
-//     triangles.reserve(indices.size() / 3);
-
-//     for (size_t i = 0; i < indices.size(); i += 3) {
-//         Triangle triangle(
-//             vertices[indices[i]].position,
-//             vertices[indices[i + 1]].position,
-//             vertices[indices[i + 2]].position
-//         );
-//         triangles.push_back(triangle);
-//     }
-// }
+void Mesh::UpdateBuffers()
+{
+    if (!VBO || !VBO->isCreated()) return;
+    
+    VBO->bind();
+    VBO->write(0, vertices.data(), vertices.size() * sizeof(Vertex));
+    VBO->release();
+}
 
 void Mesh::Render(QOpenGLShaderProgram* shaderProgram)
 {
@@ -110,7 +191,6 @@ void Mesh::Render(QOpenGLShaderProgram* shaderProgram)
 
 void Mesh::ComputeNormals()
 {
-
 	// Reset normals to zero
 	for (auto& vertex : vertices) {
 		vertex.normal = QVector3D(0.0f, 0.0f, 0.0f);
@@ -160,76 +240,4 @@ void Mesh::UnifySharedVertices()
     indices = newIndices;
 
 	ComputeNormals();
-
 }
-
-// std::shared_ptr<Mesh> Mesh::ToTetra(float spacing)
-// {
-    // std::vector<Vertex> vertices = this->vertices;
-    // std::vector<unsigned int> indices = this->indices;
-
-    // if (vertices.empty()) return nullptr;
-
-    // // Bounding box
-    // QVector3D minV = vertices[0].position;
-    // QVector3D maxV = vertices[0].position;
-    // for (const auto& v : vertices) {
-    //     minV.setX(std::min(minV.x(), v.position.x()));
-    //     minV.setY(std::min(minV.y(), v.position.y()));
-    //     minV.setZ(std::min(minV.z(), v.position.z()));
-    //     maxV.setX(std::max(maxV.x(), v.position.x()));
-    //     maxV.setY(std::max(maxV.y(), v.position.y()));
-    //     maxV.setZ(std::max(maxV.z(), v.position.z()));
-    // }
-
-
-    // QHash<QVector3D, int> pointIndex;
-    // auto AddPoint = [&](const QVector3D& p) -> int {
-    //     if (pointIndex.count(p)) return pointIndex[p];
-    //     Vertex v;
-    //     v.position = p;
-    //     v.normal = QVector3D(0, 0, 1); // dummy
-    //     v.texCoords = QVector2D(0, 0);
-    //     v.tangent = QVector3D(1, 0, 0);
-    //     v.bitangent = QVector3D(0, 1, 0);
-    //     int idx = static_cast<int>(vertices.size());
-    //     vertices.push_back(v);
-    //     pointIndex[p] = idx;
-    //     return idx;
-    // };
-
-    // for (float x = minV.x(); x < maxV.x(); x += spacing) {
-    //     for (float y = minV.y(); y < maxV.y(); y += spacing) {
-    //         for (float z = minV.z(); z < maxV.z(); z += spacing){
-    //             QVector3D p0 = QVector3D(x, y, z);
-    //             QVector3D p1 = p0 + QVector3D(spacing, 0, 0);
-    //             QVector3D p2 = p0 + QVector3D(0, spacing, 0);
-    //             QVector3D p3 = p0 + QVector3D(spacing, spacing, 0);
-    //             QVector3D p4 = p0 + QVector3D(0, 0, spacing);
-    //             QVector3D p5 = p0 + QVector3D(spacing, 0, spacing);
-    //             QVector3D p6 = p0 + QVector3D(0, spacing, spacing);
-    //             QVector3D p7 = p0 + QVector3D(spacing, spacing, spacing);
-        
-    //             std::array<std::array<QVector3D, 4>, 5> tetraList = {{
-    //                 {p0, p1, p3, p6},
-    //                 {p0, p3, p2, p6},
-    //                 {p0, p5, p1, p6},
-    //                 {p0, p4, p5, p6},
-    //                 {p5, p7, p3, p6},
-    //             }};
-        
-    //             for (const auto& tet : tetraList) {
-    //                 QVector3D bary = (tet[0] + tet[1] + tet[2] + tet[3]) / 4.0f;
-    //                 if (!IsPointInsideMesh(bary, triangles)) continue;
-        
-    //                 indices.push_back(AddPoint(tet[0]));
-    //                 indices.push_back(AddPoint(tet[1]));
-    //                 indices.push_back(AddPoint(tet[2]));
-    //                 indices.push_back(AddPoint(tet[3]));
-    //             }
-    //         }
-    //     }
-    // }
-
-    // return std::make_shared<Mesh>(vertices, indices, material);
-// }
