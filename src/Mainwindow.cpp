@@ -22,8 +22,13 @@ MainWindow::MainWindow(QWidget* parent)
     // Set menu bar
     m_menuBar = new QMenuBar(this);
     QMenu* fileMenu = m_menuBar->addMenu("File");
-    QAction* loadAction = fileMenu->addAction("Load");
-    QAction* saveAction = fileMenu->addAction("Save");
+    QAction* loadAction = fileMenu->addAction("Load model");
+    QAction* saveAction = fileMenu->addAction("Save model");
+    fileMenu->addSeparator();
+    QAction* loadSceneAction = fileMenu->addAction("Load scene");
+    QAction* saveSceneAction = fileMenu->addAction("Save scene");
+    fileMenu->addSeparator();
+    QAction* exitAction = fileMenu->addAction("Exit");
     // QMenu* menu2D = m_menuBar->addMenu("2D");
     // QMenu* menu3D = m_menuBar->addMenu("3D");
     m_menuBar->addSeparator();
@@ -42,12 +47,6 @@ MainWindow::MainWindow(QWidget* parent)
     m_splitter = new QSplitter(this);
     m_splitter->setOrientation(Qt::Horizontal);
     m_splitter->setStretchFactor(0, 7);
-
-    // Set OpenGL widget
-    m_openGLWidget = new OpenGLWidget();
-    QSurfaceFormat format = QSurfaceFormat::defaultFormat();
-    format.setSamples(16); // Enable multisampling for anti-aliasing
-    m_openGLWidget->setFormat(format);
 
     // Set Right container
     QScrollArea* scrollArea = new QScrollArea(this);
@@ -92,6 +91,12 @@ MainWindow::MainWindow(QWidget* parent)
    
     m_rightLayout->addLayout(buttonLayout);
 
+    // Set OpenGL widget
+    m_openGLWidget = new OpenGLWidget();
+    QSurfaceFormat format = QSurfaceFormat::defaultFormat();
+    format.setSamples(16); // Enable multisampling for anti-aliasing
+    m_openGLWidget->setFormat(format);
+
     // Add OpenGL widget and right container to splitter
     m_splitter->addWidget(m_openGLWidget);
     m_splitter->addWidget(scrollArea);
@@ -114,6 +119,20 @@ MainWindow::MainWindow(QWidget* parent)
             m_openGLWidget->SaveOBJ(fileName);
         }
     });
+    connect(loadSceneAction, &QAction::triggered, this, [this]() {
+        QString fileName = QFileDialog::getOpenFileName(this, "Load Scene", "", "Scene Files (*.scene);;All Files (*)");
+        if (!fileName.isEmpty()) {
+            m_openGLWidget->LoadScene(fileName);
+        }
+    });
+    connect(saveSceneAction, &QAction::triggered, this, [this]() {
+        QString fileName = QFileDialog::getSaveFileName(this, "Save Scene", "", "Scene Files (*.scene);;All Files (*)");
+        if (!fileName.isEmpty()) {
+            m_openGLWidget->SaveScene(fileName);
+        }
+    });
+    connect(exitAction, &QAction::triggered, this, &MainWindow::close);
+
     connect(vue1, &QAction::triggered, this, [this]() {
         m_openGLWidget->SetViewMode(ViewMode::View1);
     });
@@ -166,8 +185,15 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_modelSettingsWidget, &ModelSettingsWidget::SegmentParameterChanged,                m_openGLWidget, &OpenGLWidget::setSegmentSliders);
     connect(m_modelSettingsWidget, &ModelSettingsWidget::Create3DModelButtonClicked,             m_openGLWidget, &OpenGLWidget::setVoxelModel);
 
-    connect(m_openGLWidget, &OpenGLWidget::setSizeSlider,        m_modelSettingsWidget, &ModelSettingsWidget::SetSizeSlider);
-    connect(m_openGLWidget, &OpenGLWidget::setDeformationSlider, m_modelSettingsWidget, &ModelSettingsWidget::SetDeformationSlider);
+    connect(m_openGLWidget, &OpenGLWidget::setSizeSlider,                 m_modelSettingsWidget, &ModelSettingsWidget::SetSizeSlider);
+    connect(m_openGLWidget, &OpenGLWidget::setDeformationSlider,          m_modelSettingsWidget, &ModelSettingsWidget::SetDeformationSlider);
+    connect(m_openGLWidget, &OpenGLWidget::setBreastModel,                m_modelSettingsWidget, &ModelSettingsWidget::UpdateBreastModelButton);
+    connect(m_openGLWidget, &OpenGLWidget::setSamplingModelSlider,        m_modelSettingsWidget, &ModelSettingsWidget::SetSamplingModel);
+    connect(m_openGLWidget, &OpenGLWidget::setCurveSizeSlider,            m_modelSettingsWidget, &ModelSettingsWidget::SetCurveSize);
+    connect(m_openGLWidget, &OpenGLWidget::setCurveDepthSlider,           m_modelSettingsWidget, &ModelSettingsWidget::SetCurveDepth);
+    connect(m_openGLWidget, &OpenGLWidget::setRingRadiusSlider,           m_modelSettingsWidget, &ModelSettingsWidget::SetRingRadius);
+    connect(m_openGLWidget, &OpenGLWidget::setParticleRadiusVolumeSlider, m_modelSettingsWidget, &ModelSettingsWidget::SetParticleRadiusVolume);
+    connect(m_openGLWidget, &OpenGLWidget::setSpacingVolumeSlider,        m_modelSettingsWidget, &ModelSettingsWidget::SetSpacingVolume);
 
     // Model settings (3D)
     connect(m_openGLWidget, &OpenGLWidget::update3DModelParametersChanged, m_modelSettingsWidget, &ModelSettingsWidget::Update3DModelParameters);

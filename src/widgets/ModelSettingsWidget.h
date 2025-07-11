@@ -68,6 +68,12 @@ public slots:
     void Update3DModelParameters(VoxelGrid voxel);
     void SetSizeSlider(int value);
     void SetDeformationSlider(int p1, int p2, int value);
+    void SetSamplingModel(int value);
+    void SetCurveSize(int value);
+    void SetCurveDepth(int value);
+    void SetRingRadius(int value);
+    void SetParticleRadiusVolume(int value);
+    void SetSpacingVolume(int value);
 
 private:
     void InitUI();

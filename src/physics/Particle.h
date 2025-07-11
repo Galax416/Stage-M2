@@ -23,14 +23,14 @@ class Particle : public Rigidbody
 {
 private:
     int m_segmentID { -1 }; // Segment ID for remeshing
-    float m_radius { 0.1f }; // default radius
+    float m_radius { 0.01f }; // default radius
     std::shared_ptr<Model> m_particleModel; // Model for rendering
     ParticleFlags m_flags { PARTICLE_FREE }; // Flags for particle state
     bool m_isConstraint { false }; // Is this particle a constraint (i.e., for remeshing)
 
 public:
     // Particle();
-    Particle(QVector3D pos, float r, float m, bool isDynamic = true, QColor color = Qt::white);
+    Particle(const QVector3D pos, float r, float m, bool isDynamic = true, QColor color = Qt::white);
     void ReleaseGLResources();
 
     void Update(float dt) override;
@@ -54,6 +54,7 @@ public:
     bool IsConstraint() const { return m_isConstraint; }
 
     void SetFlags(ParticleFlags flags) { m_flags = flags; }
+    ParticleFlags GetFlags() const { return m_flags; }
     void AddFlag(ParticleFlags flag) { m_flags = static_cast<ParticleFlags>(m_flags | flag); }
     void RemoveFlag(ParticleFlags flag) { m_flags = static_cast<ParticleFlags>(m_flags & ~flag); }
     bool HasFlag(ParticleFlags flag) const { return (m_flags & flag) != 0; }

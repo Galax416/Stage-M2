@@ -110,3 +110,19 @@ namespace std
     };
 }
 
+inline float fromMapped(float mappedValue, float A, float B, float C)
+{
+    C = C - mappedValue;
+
+    float discriminant = B * B - 4 * A * C;
+    if (discriminant < 0)
+        return -1.0f; 
+
+    float sqrtDisc = sqrt(discriminant);
+    float denom = 2.0f * A;
+    float x1 = (-B + sqrtDisc) / denom;
+    float x2 = (-B - sqrtDisc) / denom;
+
+    // Choose the root that is within the range [0, 100]
+    return (x1 >= -1 && x1 <= 1) ? x1 : x2;
+}

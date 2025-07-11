@@ -86,6 +86,7 @@ public:
     inline void ClearConstraints() { constraints.clear(); pendingConstraints.clear(); triangleColliders.clear(); pendingTriangleColliders.clear(); }
     inline void ClearBVH() { bvhRigidbodies.reset(); bvhRigidbodies = nullptr; bvhTriangleColliders.reset(); bvhTriangleColliders = nullptr; }
 
+    QVector3D GetGravity() const { return bodies.empty() ? QVector3D(0.0f, -9.82f, 0.0f) : bodies[0]->GetGravity(); }
     void ChangeGravity(const QVector3D& g);
     void ChangeFriction(float f);
 

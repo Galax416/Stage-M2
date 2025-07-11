@@ -1,7 +1,7 @@
 #include "Particle.h"
 #include "Geometry3D.h"
 
-Particle::Particle(QVector3D pos, float r, float m, bool isDynamic, QColor color)
+Particle::Particle(const QVector3D pos, float r, float m, bool isDynamic, QColor color)
     : m_radius(r * 0.01f), m_flags(PARTICLE_FREE)
 {
     type = RIGIDBODY_TYPE_PARTICLE;

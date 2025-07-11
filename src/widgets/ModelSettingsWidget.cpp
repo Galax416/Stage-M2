@@ -20,6 +20,7 @@ ModelSettingsWidget::ModelSettingsWidget(QWidget *parent) : QWidget(parent)
 
 void ModelSettingsWidget::InitUI()
 {
+    qDebug() << "Initializing ModelSettingsWidget UI";
     // Set the layout for the widget
     m_mainLayout = new QVBoxLayout(this);
     
@@ -447,6 +448,7 @@ void ModelSettingsWidget::ResetSliders()
 
 void ModelSettingsWidget::UpdateBreastModelButton(bool clicked)
 {
+    qDebug() << "UpdateBreastModelButton called with clicked:" << clicked;
     m_createBreastModelButtonClicked = clicked;
     m_createBreastModelButton->setText(clicked ? "Destroy Breast Model" : "Create Breast Model");
     m_deformBreastModelGroupBox->setVisible(clicked);
@@ -656,3 +658,46 @@ void ModelSettingsWidget::SetDeformationSlider(int i1, int i2, int value)
         m_s4->setValue(value);
     }
 }
+
+void ModelSettingsWidget::SetSamplingModel(int value)
+{
+    qDebug() << "Setting sampling model to:" << value;
+    QSignalBlocker blocker(m_samplingBreastModelSpinBox);
+    m_samplingBreastModelSpinBox->setValue(value);
+}
+
+void ModelSettingsWidget::SetCurveSize(int value)
+{
+    qDebug() << "Setting curve size to:" << value;
+    QSignalBlocker blocker(m_sSize);
+    m_sSize->setValue(value);
+}
+
+void ModelSettingsWidget::SetCurveDepth(int value)
+{
+    qDebug() << "Setting curve depth to:" << value;
+    QSignalBlocker blocker(m_sDepth);
+    m_sDepth->setValue(value);
+}
+
+void ModelSettingsWidget::SetRingRadius(int value)
+{
+    qDebug() << "Setting ring radius to:" << value;
+    QSignalBlocker blocker(m_sRing);
+    m_sRing->setValue(value);
+}
+
+void ModelSettingsWidget::SetParticleRadiusVolume(int value)
+{
+    qDebug() << "Setting particle radius volume to:" << value;
+    QSignalBlocker blocker(m_sParticleRadiusVolume);
+    m_sParticleRadiusVolume->setValue(value);
+}
+
+void ModelSettingsWidget::SetSpacingVolume(int value)
+{
+    qDebug() << "Setting spacing volume to:" << value;
+    QSignalBlocker blocker(m_sSpacingVolume);
+    m_sSpacingVolume->setValue(value);
+}
+

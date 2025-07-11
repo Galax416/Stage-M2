@@ -7,6 +7,8 @@
 #include <QOpenGLShaderProgram>
 #include <QKeyEvent>
 #include <QThread>
+#include <QJsonObject>
+#include <QJsonArray>
 #include <vector>
 #include <memory>
 #include <set>
@@ -25,7 +27,7 @@
 #define DELTATIME  0.0100f
 #define GRAVITY    QVector3D(0.0f, -9.81f, 0.0f)
 
-#define Verbose false // Set to true to enable verbose output
+#define Verbose true // Set to true to enable verbose output
 
 // Foward declarations
 class Camera;
@@ -54,6 +56,8 @@ public:
     bool IsRunning() const { return  m_isRunning; }  
     void LoadOBJ(const QString& filename);
     void SaveOBJ(const QString& filename);
+    void LoadScene(const QString& filename);
+    void SaveScene(const QString& filename);
 
     void SetViewMode(ViewMode mode);
     void SetRenderWireframe() { m_isWireMode = !m_isWireMode; emit statusBarMessageChanged(QString("Wireframe mode: %1").arg(m_isWireMode ? "ON" : "OFF")); }
@@ -87,6 +91,16 @@ signals:
     void breastSlidersChanged();
     void setSizeSlider(int value);
     void setDeformationSlider(int p1, int p2, int value);
+    void setBreastModel(bool value);
+    void setSamplingModelSlider(int value);
+    void setCurveSizeSlider(int value);
+    void setCurveDepthSlider(int value);
+    void setRingRadiusSlider(int value);  
+    void setParticleRadiusVolumeSlider(int value);
+    void setSpacingVolumeSlider(int value);
+    void setAttachedChekBox(bool value);
+    void setAttachedToModelCheckBox(bool value);
+
 
 public slots:
     void setGlobalDeltaTime(float value)        { Stop(); m_deltaTime = value; emit deltaTimeChanged(value); }
@@ -110,7 +124,7 @@ public slots:
     void setCurveHeight(float value)                 { m_heightScale = (value + 1.0f); UpdateCurveHeightWidth(); if (Verbose) qDebug() << "setCurveHeight"; Reset(); }
     void setCurveSize(float value)                   { m_curveSize = (value + 1.0f); UpdateCurveHeightWidth(); if (Verbose) qDebug() << "setCurveSize" << m_curveSize; Reset(); }
     void setCurveDepth(float value)                  { m_curveDepth = (value + 1.0f); if (Verbose) qDebug() << "setCurveDepth" << m_curveDepth; Reset(); }
-    void setCurveRing(float value)                   { m_curveRingRadius = (value + 1.0f) * 0.5f * 0.2f; if (Verbose) qDebug() << "setCurveRing" << m_curveRingRadius; Reset(); }
+    void setCurveRing(float value)                   { m_curveRingRadius = (value + 1.0f) * 0.1f; if (Verbose) qDebug() << "setCurveRing" << m_curveRingRadius; Reset(); }
     void setNSegements(int value)                    { m_nSegments = value; m_angularWeights = std::vector<float>(value, 1.0f / static_cast<float>(value)); if (Verbose) qDebug() << "setNSegements" << m_nSegments; Reset(); }
     void setSegmentSliders(std::vector<float> values){ if (m_angularWeights.size() != values.size()) return; m_angularWeights = values; if (Verbose) qDebug() << "setSegmentSliders"; Reset(); }
 
@@ -123,7 +137,7 @@ private:
     void InitShaders(QOpenGLShaderProgram *program, QString vertex_shader = "", QString geometry_shader = "", QString fragment_shader = "");
     
     void InitScene();
-    void ClearScene() { m_physicsSystem->ClearAll(); m_particles.clear(); m_springs.clear(); m_triangleColliders.clear(); }
+    void ClearScene() { makeCurrent(); m_physicsSystem->ClearAll(); m_particles.clear(); m_springs.clear(); m_triangleColliders.clear(); doneCurrent(); }
     
     void SetDefaultCurveValues() 
     {

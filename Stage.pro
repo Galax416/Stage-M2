@@ -5,8 +5,8 @@
 QT += core gui opengl widgets concurrent
 win32: QT += openglwidgets
 
-CONFIG += c++17 release console
-QMAKE_CXXFLAGS += -pipe -std=c++17 -fopenmp -O3 -Wno-unused-parameter
+CONFIG += c++17 release #console
+QMAKE_CXXFLAGS += -pipe -std=c++17 -fopenmp -O3 -Wno-unused-parameter -isystem ./libs/eigen-3.4.0 -isystem ./libs/boost_1_78_0 -isystem ./libs/CGAL-5.6.1/include
 
 TARGET = main
 
@@ -66,6 +66,7 @@ HEADERS += \
     ./src/utils/Utils.h \
     ./src/utils/CustomOBJLoader.h \
     ./src/utils/ModelPhysicsConverter.h \
+    ./src/utils/Remeshing.h \
     ./src/MainWindow.h \
     ./src/widgets/OpenglWidget.h \
     ./src/widgets/GlobalSettingsWidget.h \

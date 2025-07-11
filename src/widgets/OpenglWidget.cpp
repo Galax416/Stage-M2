@@ -11,15 +11,7 @@
 #include "Utils.h"
 #include "Rigidbody.h"
 #include "Render.h"
-
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/Surface_mesh.h>
-#include <CGAL/Polygon_mesh_processing/remesh.h>
-
-typedef CGAL::Simple_cartesian<double> Kernel;
-typedef Kernel::Point_3 Point;
-typedef CGAL::Surface_mesh<Point> SurfaceMesh;
-namespace PMP = CGAL::Polygon_mesh_processing;
+#include "Remeshing.h"
 
 
 OpenGLWidget::OpenGLWidget(QWidget *parent) : QOpenGLWidget(parent), m_program(0)
@@ -357,12 +349,12 @@ void OpenGLWidget::InitScene()
     
     if (m_isCurve)
     {
-        for (auto& p : m_curve.GetControlPoints()) {
-            auto particle = std::make_shared<Particle>(p, m_particleRadiusVolume, 1.0f, false, QColor(255,0,0));
-            m_particles.push_back(particle);
-            m_physicsSystem->AddRigidbody(particle);
-            // m_physicsSystem->AddConstraint(particle);
-        }
+        // for (auto& p : m_curve.GetControlPoints()) {
+        //     auto particle = std::make_shared<Particle>(p, m_particleRadiusVolume, 1.0f, false, QColor(255,0,0));
+        //     m_particles.push_back(particle);
+        //     m_physicsSystem->AddRigidbody(particle);
+        //     // m_physicsSystem->AddConstraint(particle);
+        // }
 
         // ConvertParticleSpringsToModel(m_model, m_particles, m_springs, m_triangleColliders);
         // m_physicsSystem->AddRigidbody(m_model);
@@ -451,6 +443,350 @@ void OpenGLWidget::SaveOBJ(const QString& filename)
     if (m_isCurve) ConvertParticleSpringsToModel(m_model, m_particles, m_springs, m_fillTriangleColliders);
     m_model->customOBJ->SaveOBJ(filename);
     // emit statusBarMessageChanged("Model saved");
+}
+
+void OpenGLWidget::LoadScene(const QString& filename)
+{
+    if (Verbose) qDebug() << "Loading scene from file: " << filename;
+    
+    ClearSceneSlot();
+    emit setBreastModel(true);
+    
+    // Load all the scene data from a JSON file
+    QFile file(filename);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << "Failed to open scene file:" << filename;
+        return;
+    }
+
+    QByteArray data = file.readAll();
+    file.close();
+
+    QJsonParseError error;
+    QJsonDocument doc = QJsonDocument::fromJson(data, &error);
+    if (error.error != QJsonParseError::NoError) {
+        qWarning() << "JSON parse error:" << error.errorString();
+        return;
+    }
+
+    QJsonObject sceneRoot = doc.object();
+
+    // Load global parameters
+    if (sceneRoot.contains("backgroundColor")) {
+        QJsonArray bgColorArray = sceneRoot["backgroundColor"].toArray();
+        if (bgColorArray.size() == 4) {
+            m_backgroundColor = QColor(bgColorArray[0].toInt(), bgColorArray[1].toInt(), bgColorArray[2].toInt(), bgColorArray[3].toInt());
+        }
+    }
+    if (sceneRoot.contains("deltaTime")) {
+        m_deltaTime = static_cast<float>(sceneRoot["deltaTime"].toDouble());
+        emit deltaTimeChanged(m_deltaTime);
+    }
+
+    // if (sceneRoot.contains("gravity")) {
+    //     QJsonArray gravityArray = sceneRoot["gravity"].toArray();
+    //     if (gravityArray.size() == 3) {
+    //         QVector3D gravity(gravityArray[0].toDouble(), gravityArray[1].toDouble(), gravityArray[2].toDouble());
+    //         m_physicsSystem->ChangeGravity(gravity);
+    //     }
+    // }
+
+    m_isModel = sceneRoot["isModel"].toBool();
+    m_isCurve = sceneRoot["isCurve"].toBool();
+    m_isVoxelModel = sceneRoot["isVoxel"].toBool();
+
+
+    if (m_isModel && sceneRoot.contains("modelSettings"))
+    {
+
+    }
+
+
+    if (m_isCurve && sceneRoot.contains("curveSettings"))
+    {
+
+        auto cs = sceneRoot["curveSettings"].toObject();
+        m_numSamples = cs["numSamples"].toInt();
+        m_curveLayers = cs["layers"].toInt();
+        m_curveSize = cs["size"].toDouble();
+        m_lastValidCurveSize = cs["lastSize"].toDouble();
+        m_curveDepth = cs["depth"].toDouble();
+        m_curveRingRadius = cs["ringRadius"].toDouble();
+        m_isAttached = cs["isAttached"].toBool();
+        m_isAttachedToModel = cs["isAttachedToModel"].toBool();
+        m_spacingVolume = cs["spacingVolume"].toDouble();
+        m_particleRadiusVolume = cs["particleRadiusVolume"].toDouble();
+        m_nSegments = cs["nSegments"].toInt();
+        {
+            QJsonArray arr = cs["curveCenter"].toArray();
+            if (arr.size() == 3)
+                m_curveCenter = QVector3D(arr[0].toDouble(), arr[1].toDouble(), arr[2].toDouble());
+        }
+        {
+            QJsonArray arr = cs["initialCurveCenter"].toArray();
+            if (arr.size() == 3)
+                m_initialCurveCenter = QVector3D(arr[0].toDouble(), arr[1].toDouble(), arr[2].toDouble());
+        }
+        {
+            QJsonArray arr = cs["initialCurvePoints"].toArray();
+            m_initialCurvePoints.clear();
+            for (const auto& v : arr) {
+                QJsonArray pt = v.toArray();
+                if (pt.size() == 3)
+                    m_initialCurvePoints.push_back(QVector3D(pt[0].toDouble(), pt[1].toDouble(), pt[2].toDouble()));
+            }
+        }
+        {
+            QJsonArray arr = cs["curvePoints"].toArray();
+            m_curvePoints.clear();
+            for (const auto& v : arr) {
+                QJsonArray pt = v.toArray();
+                if (pt.size() == 3)
+                    m_curvePoints.push_back(QVector3D(pt[0].toDouble(), pt[1].toDouble(), pt[2].toDouble()));
+            }
+        }
+        {
+            QJsonArray arr = cs["curvePointsSliders"].toArray();
+            m_curvePointsSliders.clear();
+            for (const auto& v : arr) {
+                QJsonArray pt = v.toArray();
+                if (pt.size() == 3)
+                    m_curvePointsSliders.push_back(QVector3D(pt[0].toDouble(), pt[1].toDouble(), pt[2].toDouble()));
+            }
+        }
+        {
+            QJsonArray arr = cs["defaultCurvePoints"].toArray();
+            m_defaultCurvePoints.clear();
+            for (const auto& v : arr) {
+                QJsonArray pt = v.toArray();
+                if (pt.size() == 3)
+                    m_defaultCurvePoints.push_back(QVector3D(pt[0].toDouble(), pt[1].toDouble(), pt[2].toDouble()));
+            }
+        }
+        {
+            QJsonArray arr = cs["curveDeformation"].toArray();
+            m_curveDeformation.clear();
+            for (const auto& v : arr) {
+                QJsonArray tuple = v.toArray();
+                if (tuple.size() == 3)
+                    m_curveDeformation.push_back({tuple[0].toInt(), tuple[1].toInt(), tuple[2].toDouble()});
+            }
+        }
+        {
+            QJsonArray arr = cs["lastDeformation"].toArray();
+            if (arr.size() == 3)
+                m_lastValidDeformation = {arr[0].toInt(), arr[1].toInt(), arr[2].toDouble()};
+        }
+        {
+            QJsonArray arr = cs["angularWeights"].toArray();
+            m_angularWeights.clear();
+            for (const auto& v : arr) {
+                m_angularWeights.push_back(v.toDouble());
+            }
+        }
+
+        emit setSamplingModelSlider(m_numSamples);
+        emit setCurveSizeSlider(m_curveSize * 50.0f);
+        emit setCurveDepthSlider(m_curveDepth * 50.0f);
+        for (const auto& d : m_curveDeformation) emit setDeformationSlider(std::get<0>(d), std::get<1>(d), static_cast<int>((std::get<2>(d) + 1.0f) * 50.f));
+        emit setRingRadiusSlider(m_curveRingRadius * 500.0f);
+        emit setParticleRadiusVolumeSlider((fromMapped(m_particleRadiusVolume, 4.5f, 9.5f, 6.0) + 1.0f) * 0.5f * 100.0f);
+        emit setSpacingVolumeSlider((fromMapped(m_spacingVolume, 0.105f, -0.175f, 0.12f) + 1.0f) * 0.5f * 100.0f);
+        emit setAttachedChekBox(m_isAttached);
+        emit setAttachedToModelCheckBox(m_isAttachedToModel);
+    }
+
+    if (m_isVoxelModel && sceneRoot.contains("voxelSettings"))
+    {
+    
+    }
+
+
+    // // Load particles
+    // makeCurrent();
+    // auto particlesJson = sceneRoot["particles"].toArray();
+    // std::vector<std::shared_ptr<Particle>> loadedParticles;
+    // for (const auto& item : particlesJson) {
+    //     auto obj = item.toObject();
+
+    //     QJsonArray pos = obj["pos"].toArray();
+    //     QVector3D position(pos[0].toDouble(), pos[1].toDouble(), pos[2].toDouble());
+    //     float radius = obj["radius"].toDouble();
+    //     float mass = obj["mass"].toDouble();
+    //     bool isDynamic = obj["dynamic"].toBool();
+
+    //     // Create a new particle
+    //     auto particle = std::make_shared<Particle>(position, radius * 100.f, mass, isDynamic);
+    //     loadedParticles.push_back(particle);
+    // }
+    // // doneCurrent();
+
+    // // Load springs
+    // auto springsJson = sceneRoot["springs"].toArray();
+    // std::vector<std::shared_ptr<Spring>> loadedSprings;
+    // // makeCurrent();
+    // for (const auto& item : springsJson) {
+    //     auto obj = item.toObject();
+
+    //     int p1Index = obj["p1"].toInt();
+    //     int p2Index = obj["p2"].toInt();
+    //     float stiffness = obj["stiffness"].toDouble();
+
+    //     // Create a new spring
+    //     auto spring = std::make_shared<Spring>(loadedParticles[p1Index], loadedParticles[p2Index], stiffness);
+    //     loadedSprings.push_back(spring);
+    // }
+    // // doneCurrent();
+
+    // // Load triangle colliders
+    // auto triangleCollidersJson = sceneRoot["triangleColliders"].toArray();
+    // std::vector<std::shared_ptr<TriangleCollider>> loadedTriangleColliders;
+    // // makeCurrent();
+    // for (const auto& item : triangleCollidersJson) {
+    //     auto obj = item.toObject();
+    //     int a = obj["a"].toInt();
+    //     int b = obj["b"].toInt();
+    //     int c = obj["c"].toInt();
+    //     auto triangleCollider = std::make_shared<TriangleCollider>(loadedParticles[a], loadedParticles[b], loadedParticles[c]);
+    //     loadedTriangleColliders.push_back(triangleCollider);
+    // }
+    
+    // m_particles = loadedParticles;
+    // m_springs = loadedSprings;
+    // m_triangleColliders = loadedTriangleColliders;
+    // doneCurrent();
+    
+    // InitScene();
+    Reset();
+}
+
+void OpenGLWidget::SaveScene(const QString& filename)
+{
+    if (Verbose) qDebug() << "Saving scene to file: " << filename;
+    
+    // Save all the scene date in a JSON file
+    QJsonObject sceneRoot;
+
+    // Save global parameters
+    sceneRoot["backgroundColor"] = QJsonArray{ m_backgroundColor.red(), m_backgroundColor.green(), m_backgroundColor.blue(), m_backgroundColor.alpha() };
+    sceneRoot["deltaTime"] = m_deltaTime;
+    sceneRoot["gravity"] = QJsonArray{ m_physicsSystem->GetGravity().x(), m_physicsSystem->GetGravity().y(), m_physicsSystem->GetGravity().z() };
+    sceneRoot["isModel"] = m_isModel;
+    sceneRoot["isCurve"] = m_isCurve;
+    sceneRoot["isVoxelModel"] = m_isVoxelModel;
+
+    // Save model settings
+    if (m_isModel)
+    {
+
+    }
+    // Save curve settings
+    else if (m_isCurve)
+    {
+        QJsonObject curveObject;
+
+        QJsonArray initialCurvePointsArray;
+        for (const auto& pt : m_initialCurvePoints) initialCurvePointsArray.append(QJsonArray{ pt.x(), pt.y(), pt.z() });
+        curveObject["initialCurvePoints"] = initialCurvePointsArray;
+
+        QJsonArray curvePointsArray;
+        for (const auto& pt : m_curvePoints) curvePointsArray.append(QJsonArray{ pt.x(), pt.y(), pt.z() });
+        curveObject["curvePoints"] = curvePointsArray;
+
+        QJsonArray curvePointsSlidersArray;
+        for (const auto& pt : m_curvePointsSliders) curvePointsSlidersArray.append(QJsonArray{ pt.x(), pt.y(), pt.z() });
+        curveObject["curvePointsSliders"] = curvePointsSlidersArray;
+
+        QJsonArray defaultCurvePointsArray;
+        for (const auto& pt : m_defaultCurvePoints) defaultCurvePointsArray.append(QJsonArray{ pt.x(), pt.y(), pt.z() });
+        curveObject["defaultCurvePoints"] = defaultCurvePointsArray;
+
+        QJsonArray curveDeformationArray;
+        for (const auto& deformation : m_curveDeformation) curveDeformationArray.append(QJsonArray{ std::get<0>(deformation), std::get<1>(deformation), std::get<2>(deformation) });
+        curveObject["curveDeformation"] = curveDeformationArray;
+        curveObject["lastDeformation"] = QJsonArray{ std::get<0>(m_lastValidDeformation), std::get<1>(m_lastValidDeformation), std::get<2>(m_lastValidDeformation) };
+
+        curveObject["curveCenter"] = QJsonArray{ m_curveCenter.x(), m_curveCenter.y(), m_curveCenter.z() };
+        curveObject["initialCurveCenter"] = QJsonArray{ m_initialCurveCenter.x(), m_initialCurveCenter.y(), m_initialCurveCenter.z() };
+        curveObject["numSamples"] = m_numSamples;
+        curveObject["layers"] = m_curveLayers;
+        curveObject["size"] = m_curveSize;
+        curveObject["lastSize"] = m_lastValidCurveSize;
+        curveObject["depth"] = m_curveDepth;
+        curveObject["ringRadius"] = m_curveRingRadius;
+        // curveObject["haveThickness"] = m_haveThickness;
+        curveObject["isAttached"] = m_isAttached;
+        curveObject["isAttachedToModel"] = m_isAttachedToModel;
+        curveObject["spacingVolume"] = m_spacingVolume;
+        curveObject["particleRadiusVolume"] = m_particleRadiusVolume;
+        curveObject["nSegments"] = m_nSegments;
+
+        QJsonArray angularWeigthtsArray;
+        for (const auto& weight : m_angularWeights) angularWeigthtsArray.append(weight);
+        curveObject["angularWeights"] = angularWeigthtsArray;
+
+        sceneRoot["curveSettings"] = curveObject;
+    }
+    // Save voxel model settings
+    else if (m_isVoxelModel)
+    {
+
+    }
+
+    // // Save the particles
+    // QJsonArray particlesArray;
+    // for (const auto& particle : m_particles) 
+    // {
+    //     QJsonObject particleObject;
+    //     particleObject["pos"] = QJsonArray{particle->GetPosition().x(), particle->GetPosition().y(), particle->GetPosition().z()};
+    //     particleObject["radius"] = particle->GetRadius();
+    //     particleObject["mass"] = particle->GetMass();
+    //     particleObject["dynamic"] = particle->IsDynamic();
+    //     // particleObject["flags"] = particle->GetFlags();
+    //     particlesArray.append(particleObject);
+    // }
+    // sceneRoot["particles"] = particlesArray;
+
+    // // Save the springs
+    // QJsonArray springsArray;
+    // for (const auto& spring : m_springs)
+    // {
+    //     QJsonObject springObject;
+    //     int a = static_cast<int>(std::distance(m_particles.begin(), std::find(m_particles.begin(), m_particles.end(), spring->GetP1())));
+    //     int b = static_cast<int>(std::distance(m_particles.begin(), std::find(m_particles.begin(), m_particles.end(), spring->GetP2())));
+        
+    //     springObject["p1"] = a;
+    //     springObject["p2"] = b;
+    //     springObject["stiffness"] = spring->GetStiffness();
+    //     springsArray.append(springObject);
+    // }
+    // sceneRoot["springs"] = springsArray;
+
+    // // Save the triangle colliders
+    // QJsonArray triangleCollidersArray;
+    // for (const auto& triangle : m_triangleColliders)
+    // {
+    //     QJsonObject triangleObject;
+    //     int a = static_cast<int>(std::distance(m_particles.begin(), std::find(m_particles.begin(), m_particles.end(), triangle->p0)));
+    //     int b = static_cast<int>(std::distance(m_particles.begin(), std::find(m_particles.begin(), m_particles.end(), triangle->p1)));
+    //     int c = static_cast<int>(std::distance(m_particles.begin(), std::find(m_particles.begin(), m_particles.end(), triangle->p2)));
+    //     triangleObject["a"] = a;
+    //     triangleObject["b"] = b;
+    //     triangleObject["c"] = c;
+    //     triangleCollidersArray.append(triangleObject);
+    // }
+    // sceneRoot["triangleColliders"] = triangleCollidersArray;
+
+    // Write the scene to a JSON file
+    QJsonDocument sceneDoc(sceneRoot);
+    QFile file(filename);
+    if (!file.open(QIODevice::WriteOnly)) {
+        qWarning() << "Failed to write scene file:" << file.errorString();
+        return;
+    }
+    file.write(sceneDoc.toJson(QJsonDocument::Indented));
+    file.close();
+
 }
 
 void OpenGLWidget::InitCurves()
@@ -554,626 +890,13 @@ bool OpenGLWidget::GetPointOntoMesh(QVector3D& point)
 
 }
 
-/*
-// Couches
-void OpenGLWidget::CurveToParticlesSprings()
-{
-    if (!m_isCurve || !m_torsoModel) return;
-
-    makeCurrent();
-    // Clear previous model
-    m_particles.clear();
-    m_springs.clear();
-    m_triangleColliders.clear();
-    m_fillTriangleColliders.clear();
-
-    // Parameters
-    float mass = 1.0f;
-    int numInnerLayers = 5;
-    int numLayers = m_curveLayers + 2;
-    float height = m_curveDepth;
-    float layerStep = m_curveDepth / (numLayers - 1);
-    float ringRadius = m_curveRingRadius;
-
-    // Model curve
-    m_profilePoints = m_curve.Sample(m_numSamples);
-
-    // Remove the last points to avoid duplicates
-    m_profilePoints.pop_back();
-
-    size_t numPoints = m_profilePoints.size();
-    if (numPoints < 3) return; // Not enough profilePoints to create a curve
-
-    // Place sample points in the torso model
-    for (size_t i = 0; i < numPoints; ++i) 
-    {
-        QVector3D p = GetPointOntoMesh(m_profilePoints[i]);
-        m_profilePoints[i] = p;
-    }
-
-    // Compute the center of the curve
-    QVector3D centerCurve(0, 0, 0);
-    QVector3D centerRing(0, 0, 0);
-    for (const auto& pt : m_profilePoints) centerCurve += pt;
-    centerCurve /= static_cast<float>(numPoints);
-    
-    centerRing = centerCurve;
-
-    // Compute the normal of the curve
-    for (size_t i = 0; i < numPoints; ++i)
-    {
-        auto& p1 = m_profilePoints[i];
-        auto& p2 = m_profilePoints[(i + 1) % numPoints];
-        auto& p3 = m_profilePoints[(i + 2) % numPoints];
-
-        QVector3D v1 = p2 - p1;
-        QVector3D v2 = p3 - p2;
-
-        m_curveNormal += QVector3D::crossProduct(v1, v2).normalized();
-    }
-    m_curveNormal.normalize();
-
-    // Add offset to the center
-    centerRing.setY(centerRing.y() - 0.2f);
-    // Set the center to he height
-    // centerRing += m_curveNormal * height;
-    
-    QVector3D zAxis = m_curveNormal;
-    QVector3D xAxis;
-
-    if (std::abs(zAxis.y()) < 0.99f) xAxis = QVector3D::crossProduct(zAxis, QVector3D(0, 1, 0)).normalized();
-    else xAxis = QVector3D::crossProduct(zAxis, QVector3D(1, 0, 0)).normalized();
-
-    QVector3D yAxis = QVector3D::crossProduct(zAxis, xAxis).normalized();
-
-    // Ring curve
-    std::vector<QVector3D> ringPoints;
-    for (size_t i = 0; i < numPoints; ++i)
-    {
-        float angle = static_cast<float>(i) / static_cast<float>(numPoints) * 2.0f * M_PI - M_PI_4;
-
-        float cosAngle = std::cos(angle);
-        float sinAngle = std::sin(angle);
-        QVector3D p = cosAngle * xAxis * ringRadius + sinAngle * yAxis * ringRadius;
-
-        ringPoints.push_back(centerRing + p);
-    }
-
-    centerRing.setZ(centerRing.z() + height);
-
-    // Center particle
-    auto centerParticle = std::make_shared<Particle>(centerRing, 1, mass);
-    centerParticle->SetFlags(PARTICLE_NO_COLLISION_WITH_US);
-    m_particles.push_back(centerParticle);
-
-    // Create the inner layer particle
-    std::vector<std::vector<std::vector<std::shared_ptr<Particle>>>> innerLayers;
-    
-    // Create the vector of stiffness for the springs
-    std::vector<float> springStiffness(numPoints, 0.0f), springCrossStiffness(numPoints, 0.0f);
-    
-    for (int innerLayer = 0; innerLayer < numInnerLayers; ++innerLayer)
-    {
-        // Create the layers of particles
-        std::vector<std::vector<std::shared_ptr<Particle>>> layers;
-
-        // For each innerLayer, shrink m_profilePoints towards centerCurve de façon non linéaire (concentré au début)
-        std::vector<QVector3D> layerProfilePoints = m_profilePoints;
-        float t = static_cast<float>(innerLayer) / static_cast<float>(numInnerLayers); 
-        float k = 2.0f; // Exponent to control the non-linearity
-        float shrinkFactor = 1.0f - std::pow(t, k); // Non-linear shrink factor
-        for (size_t i = 0; i < layerProfilePoints.size(); ++i) {
-            layerProfilePoints[i] = centerCurve + (layerProfilePoints[i] - centerCurve) * shrinkFactor;
-        }
-
-        for (int layer = 0; layer < numLayers; ++layer)
-        {
-            std::vector<std::shared_ptr<Particle>> layerParticles;
-
-            if (layer == numLayers - 1 && innerLayer > 0) {
-                layerParticles = innerLayers[innerLayer - 1].back();
-                layers.push_back(layerParticles);
-                continue;
-            }
-    
-            float t = static_cast<float>(layer) / static_cast<float>(numLayers - 1);
-            float tCurve = 1.0f + std::sin(-(1.0f - t) * M_PI_2); 
-            float z = layer * layerStep;
-    
-            for (size_t i = 0; i < numPoints; ++i) {      
-                QVector3D pos = (1.0f - tCurve) * layerProfilePoints[i] + tCurve * ringPoints[i];
-    
-                pos.setZ(pos.z() + z);
-                float rad, m;
-                if (innerLayer < 2) rad = 1.0f; else if (layer == numLayers - 1) rad = 1.0f; else rad = innerLayer * 2.0f;
-                if (innerLayer < 2) m = mass; else m = mass * 0.5f;
-                auto p = std::make_shared<Particle>(pos, rad, mass, (layer != 0));
-                if (innerLayer != 0 || layer == numLayers - 1) {
-                    p->AddFlag(PARTICLE_NO_COLLISION_WITH_US);
-                    // p->AddFlag(PARTICLE_NO_COLLISION_WITH_US); p->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-                }
-                layerParticles.push_back(p);
-                m_particles.push_back(p);
-    
-                // Horizontally connect particles in the same layer
-                if (i > 0) 
-                {
-                    auto& p1 = layerParticles[i - 1];
-                    auto& p2 = layerParticles[i];
-                    if (layer == 0) springStiffness[i - 1] = GetStiffnessByQuadrant(p1->GetPosition(), p2->GetPosition(), centerCurve);
-                    float stiffness = springStiffness[i - 1];
-                    if (innerLayer != 0) stiffness = 500.0f * (1.0f + (float)innerLayer / (float)numInnerLayers);
-                    auto spring = std::make_shared<Spring>(p1, p2, (layer == numLayers - 1) ? 1000.0f : stiffness);
-                    m_springs.push_back(spring);
-                }
-            }
-    
-            // Close the curve
-            auto& p1 = layerParticles.front();
-            auto& p2 = layerParticles.back();
-            if (layer == 0) springStiffness[numPoints - 1] = GetStiffnessByQuadrant(p1->GetPosition(), p2->GetPosition(), centerCurve);
-            float stiffness = springStiffness[numPoints - 1];
-            if (innerLayer != 0) stiffness = 500.0f * (1.0f + (float)innerLayer / (float)numInnerLayers);
-            auto springLoop = std::make_shared<Spring>(p1, p2, (layer == numLayers - 1) ? 1000.0f : stiffness);
-            m_springs.push_back(springLoop);
-    
-            layers.push_back(layerParticles);
-        }
-
-        innerLayers.push_back(layers);
-
-        // Connect the center to the last layer
-        if (innerLayer == 0) {
-            for (auto& p : innerLayers[innerLayer].back()) {
-                auto spring = std::make_shared<Spring>(p, centerParticle, 1000.0f); 
-                m_springs.push_back(spring);
-            }
-            auto ringlayers = innerLayers[innerLayer].back();
-            for (size_t i = 0; i < ringlayers.size(); ++i) { // Add springs for more rigidity
-                auto& p1 = ringlayers[i];
-                for (size_t j = 0; j < ringlayers.size(); ++j) {
-                    if (i == j) continue;
-                    auto& p2 = ringlayers[j];
-                    auto spring = std::make_shared<Spring>(p1, p2, 1000.0f);
-                    m_springs.push_back(spring);
-                }
-            }
-        }
-
-        
-        // Vertical and diagonal connections between layers
-        for (int layer = 0; layer < numLayers - 1; ++layer) {
-
-            for (size_t i = 0; i < numPoints; ++i) {
-
-                // edge
-                auto& p1 = innerLayers[innerLayer][layer][i];
-                auto& p2 = innerLayers[innerLayer][layer + 1][i];
-                if (layer == 0) springStiffness[i] = GetStiffnessByQuadrant(p1->GetPosition(), p2->GetPosition(), centerCurve);
-                float stiffness = springStiffness[i];
-                if (innerLayer != 0) stiffness = 500.0f * (1.0f + (float)innerLayer / (float)numInnerLayers);
-                auto spring = std::make_shared<Spring>(p1, p2, stiffness);
-                m_springs.push_back(spring);
-
-                // diagonal
-                if (i > 0 && m_crossSpringModel) 
-                {
-                    auto& p3 = innerLayers[innerLayer][layer][i];
-                    auto& p4 = innerLayers[innerLayer][layer + 1][i - 1];
-                    if (layer == 0) springCrossStiffness[i - 1] = GetStiffnessByQuadrant(p3->GetPosition(), p4->GetPosition(), centerCurve);
-                    float stiffness = springCrossStiffness[i - 1];
-                    if (innerLayer != 0) stiffness = 500.0f * (1.0f + (float)innerLayer / (float)numInnerLayers);
-                    auto s1 = std::make_shared<Spring>(p3, p4, stiffness);
-                    m_springs.push_back(s1);
-                    
-                    auto& p5 = innerLayers[innerLayer][layer][i - 1];
-                    auto& p6 = innerLayers[innerLayer][layer + 1][i];
-                    if (layer == 0) springCrossStiffness[i - 1] = GetStiffnessByQuadrant(p5->GetPosition(), p6->GetPosition(), centerCurve);
-                    stiffness = springCrossStiffness[i - 1];
-                    if (innerLayer != 0) stiffness = 500.0f * (1.0f + (float)innerLayer / (float)numInnerLayers);
-                    auto s2 = std::make_shared<Spring>(p5, p6, stiffness);
-                    m_springs.push_back(s2);
-                }
-            }
-            // close the curve
-            if (m_crossSpringModel)
-            {
-                auto& p1 = innerLayers[innerLayer][layer].back();
-                auto& p2 = innerLayers[innerLayer][layer + 1].front();
-                float stiffness = springStiffness[numPoints - 1];
-                if (innerLayer != 0) stiffness = 500.0f * (1.0f + (float)innerLayer / (float)numInnerLayers);
-                auto s1 = std::make_shared<Spring>(p1, p2, stiffness);
-                m_springs.push_back(s1);
-
-                auto& p3 = innerLayers[innerLayer][layer].front();
-                auto& p4 = innerLayers[innerLayer][layer + 1].back();
-                stiffness = springStiffness[numPoints - 1];
-                if (innerLayer != 0) stiffness = 500.0f * (1.0f + (float)innerLayer / (float)numInnerLayers);
-                auto s2 = std::make_shared<Spring>(p3, p4, stiffness);
-                m_springs.push_back(s2);
-            }
-        }
-
-        // Triangle collider generation
-        if (innerLayer == 0)
-        {
-            for (int layer = 0; layer < numLayers - 1; ++layer)
-            {
-                const auto& current = layers[layer];
-                const auto& next = layers[layer + 1];
-                size_t count = current.size();
-
-                for (size_t i = 0; i < count; ++i)
-                {
-                    size_t next_i = (i + 1) % count;
-
-                    // First triangle of the quad
-                    auto a = current[i];
-                    a->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-                    auto b = next[i];
-                    b->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-                    auto c = next[next_i];
-                    c->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-
-                    // Second triangle of the quad
-                    auto d = current[next_i];
-
-                    m_triangleColliders.push_back(std::make_shared<TriangleCollider>(a, b, c));
-                    m_triangleColliders.push_back(std::make_shared<TriangleCollider>(a, c, d));
-                }
-            }
-
-            auto ringlayers = layers.back();
-            for (size_t i = 0; i < ringlayers.size(); ++i)
-            {
-                size_t next_i = (i + 1) % ringlayers.size();
-
-                auto a = ringlayers[i];
-                a->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-                auto b = ringlayers[next_i];
-                b->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-                auto c = centerParticle;
-                c->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-
-                m_triangleColliders.push_back(std::make_shared<TriangleCollider>(a, b, c));
-            }
-        }
-    }
-    // Set the last springCrossStiffness to the last value to avoid out of bounds access
-    springCrossStiffness[numPoints - 1] = springCrossStiffness[numPoints - 2];
-
-    // Connect innerLayers between them (inter-layer edge & diagonal springs)
-    for (int innerLayer = 0; innerLayer < numInnerLayers - 1; ++innerLayer)
-    {
-        auto& current = innerLayers[innerLayer];
-        auto& next = innerLayers[innerLayer + 1];
-
-        for (int layer = 0; layer < numLayers; ++layer) {
-            for (size_t i = 0; i < numPoints; ++i) {
-                auto& p1 = current[layer][i];
-                auto& p2 = next[layer][i];
-
-                float stiffness = 200.0f; // springStiffness[i];
-                // if (innerLayer != 0) stiffness = 500.0f * (1.0f + (float)innerLayer / (float)numInnerLayers);
-                m_springs.push_back(std::make_shared<Spring>(p1, p2, stiffness));
-
-                if (m_crossSpringModel) {
-                    // diagonals
-                    auto& p1_diag = current[layer][i];
-                    auto& p2_diag = next[layer][(i + 1) % numPoints];
-
-                    float diagStiffness = 200.0f; //springCrossStiffness[i] * 1.2f;
-                    m_springs.push_back(std::make_shared<Spring>(p1_diag, p2_diag, diagStiffness));
-
-                    auto& p3_diag = current[layer][(i + 1) % numPoints];
-                    auto& p4_diag = next[layer][i];
-
-                    diagStiffness = 200.0f; //springCrossStiffness[i] * 1.2f;
-                    m_springs.push_back(std::make_shared<Spring>(p3_diag, p4_diag, diagStiffness));
-                }
-            }
-        }
-    }
-
-    doneCurrent();
-}
-// */
-
-struct RemeshingConstraints {
-    std::unordered_set<SurfaceMesh::Vertex_index> constrainedVertices;
-    std::unordered_set<SurfaceMesh::Edge_index> constrainedEdges;
-};
-
-struct BorderSprings {
-    std::vector<std::shared_ptr<Spring>> springs;
-    std::vector<std::shared_ptr<Particle>> particles;
-};
-
-SurfaceMesh ConvertToCGALMeshWithConstraints(
-    const std::vector<std::shared_ptr<Particle>>& particles,
-    const std::vector<std::shared_ptr<TriangleCollider>>& triangles,
-    std::unordered_map<SurfaceMesh::Vertex_index, std::shared_ptr<Particle>>& vertexToParticleMap,
-    RemeshingConstraints& constraints)
-{
-    SurfaceMesh mesh;
-    std::unordered_map<std::shared_ptr<Particle>, SurfaceMesh::Vertex_index> particleToVertexMap;
-
-    for (const auto& p : particles)
-    {
-        QVector3D pos = p->GetPosition();
-        SurfaceMesh::Vertex_index v = mesh.add_vertex(Point(pos.x(), pos.y(), pos.z()));
-        particleToVertexMap[p] = v;
-        vertexToParticleMap[v] = p;
-
-        if (p->IsConstraint()) {
-            constraints.constrainedVertices.insert(v);  // Marquer les sommets à contraindre
-        }
-    }
-
-    for (const auto& tri : triangles)
-    {
-        auto a = tri->p0;
-        auto b = tri->p1;
-        auto c = tri->p2;
-        mesh.add_face(particleToVertexMap[a], particleToVertexMap[b], particleToVertexMap[c]);
-    }
-
-    return mesh;
-}
-
-void MarkConstrainedVertices(
-    SurfaceMesh& mesh,
-    const RemeshingConstraints& constraints,
-    SurfaceMesh::Property_map<SurfaceMesh::Vertex_index, bool>& vertexConstrained)
-{
-    for (auto v : mesh.vertices())
-    {
-        if (constraints.constrainedVertices.count(v)) vertexConstrained[v] = true;
-        else vertexConstrained[v] = false;
-    }
-}
-
-
-void MarkConstrainedEdges(
-    SurfaceMesh& mesh,
-    const RemeshingConstraints& constraints,
-    SurfaceMesh::Property_map<SurfaceMesh::Edge_index, bool>& edgeConstrained)
-{    
-    // for (auto f : mesh.faces())
-    // {
-    //     std::vector<SurfaceMesh::Vertex_index> faceVertices;
-    //     for (auto v : CGAL::vertices_around_face(mesh.halfedge(f), mesh))
-    //         faceVertices.push_back(v);
-
-    //     for (int i = 0; i < 3; ++i)
-    //     {
-    //         auto v1 = faceVertices[i];
-    //         auto v2 = faceVertices[(i + 1) % 3];
-
-    //         if (constraints.constrainedVertices.count(v1) && constraints.constrainedVertices.count(v2))
-    //         {
-    //             auto h = CGAL::halfedge(v1, v2, mesh);
-    //             if (!h.second) {
-    //                 h = CGAL::halfedge(v2, v1, mesh);
-    //             }
-    //             if (h.second) {
-    //                 auto e = mesh.edge(h.first);
-    //                 edgeConstrained[e] = true;
-    //             }
-    //         }
-    //     }
-    // }
-
-    for (auto e : mesh.edges())
-    {
-        auto h = mesh.halfedge(e);
-        auto v1 = mesh.source(h);
-        auto v2 = mesh.target(h);
-
-        if (constraints.constrainedVertices.count(v1) && constraints.constrainedVertices.count(v2))
-        {
-            edgeConstrained[e] = true;
-        }
-    }
-}
-
-std::vector<std::vector<std::shared_ptr<Particle>>> GetBorderParticles(
-    const SurfaceMesh& mesh,
-    const std::unordered_map<SurfaceMesh::Vertex_index, std::shared_ptr<Particle>>& vertexToParticleMap)
-{
-    std::unordered_set<SurfaceMesh::Halfedge_index> visited;
-    std::vector<std::vector<std::shared_ptr<Particle>>> boundaryParticles;
-
-    for (auto h : mesh.halfedges())
-    {
-        if (!mesh.is_border(h) || visited.count(h)) continue;
-
-        std::vector<std::shared_ptr<Particle>> boundary;
-        SurfaceMesh::Halfedge_index start = h;
-        SurfaceMesh::Halfedge_index current = h;
-
-        do {
-            visited.insert(current);
-            auto v = mesh.target(current);
-            auto it = vertexToParticleMap.find(v);
-            if (it != vertexToParticleMap.end()) boundary.push_back(it->second);
-            current = mesh.next(current);
-        } while (current != start && mesh.is_border(current));
-
-        if (!boundary.empty()) boundaryParticles.push_back(boundary);
-    }
-
-    return boundaryParticles;
-}
-
-std::vector<BorderSprings> GetBorderSprings(
-    const SurfaceMesh& mesh,
-    const std::unordered_map<SurfaceMesh::Vertex_index, std::shared_ptr<Particle>>& vertexToParticleMap,
-    const std::vector<std::shared_ptr<Spring>>& allSprings)
-{
-    auto borderParticleLoops = GetBorderParticles(mesh, vertexToParticleMap);
-
-    std::vector<BorderSprings> result;
-
-    for (const auto& borderParticles : borderParticleLoops)
-    {
-        BorderSprings borderData;
-        borderData.particles = borderParticles;
-
-        for (const auto& spring : allSprings)
-        {
-            auto p1 = spring->GetP1();
-            auto p2 = spring->GetP2();
-
-            bool p1OnBorder = std::find(borderData.particles.begin(), borderData.particles.end(), p1) != borderData.particles.end();
-            bool p2OnBorder = std::find(borderData.particles.begin(), borderData.particles.end(), p2) != borderData.particles.end();
-
-            if (p1OnBorder && p2OnBorder)
-                borderData.springs.push_back(spring);
-        }
-
-        result.push_back(borderData);
-    }
-
-    return result;
-}
-
-std::unordered_map<SurfaceMesh::Vertex_index, int> AssignSegmentToVertices(
-    const SurfaceMesh& mesh,
-    const QVector3D& center,
-    const std::vector<float>& angularWeights,
-    const QVector3D& up = QVector3D(0, 0, 1),
-    const QVector3D& ref = QVector3D(0, 1, 0))
-{
-    std::unordered_map<SurfaceMesh::Vertex_index, int> segmentMap;
-
-    // Check if angularWeights is valid
-    float total = std::accumulate(angularWeights.begin(), angularWeights.end(), 0.0f);
-    if (std::abs(total - 1.0f) > 0.01f) {
-        qWarning("Warning: AssignSegmentToVertices: angularWeights should sum to 1.0");
-        return segmentMap;
-    }
-
-    std::vector<float> cumulativeAngles;
-    cumulativeAngles.push_back(0.0f);
-    for (float w : angularWeights) cumulativeAngles.push_back(cumulativeAngles.back() + w * 2.0f * M_PI);
-
-    for (auto v : mesh.vertices())
-    {
-        auto pt = mesh.point(v);
-        QVector3D dir(pt.x() - center.x(), pt.y() - center.y(), pt.z() - center.z());
-        dir.normalize();
-
-        QVector3D proj = dir - QVector3D::dotProduct(dir, up) * up;
-        QVector3D ref2D = ref - QVector3D::dotProduct(ref, up) * up;
-        ref2D.normalize();
-        proj.normalize();
-
-        float angle = std::atan2(QVector3D::crossProduct(ref2D, proj).length(), QVector3D::dotProduct(ref2D, proj));
-        if (QVector3D::dotProduct(QVector3D::crossProduct(ref2D, proj), up) < 0) angle = 2 * M_PI - angle;
-
-        int segment = 0;
-        for (size_t i = 0; i < cumulativeAngles.size() - 1; ++i)
-        {
-            if (angle >= cumulativeAngles[i] && angle < cumulativeAngles[i + 1])
-            {
-                segment = static_cast<int>(i);
-                break;
-            }
-        }
-        segmentMap[v] = segment;
-    }
-
-    return segmentMap;
-}
-
-
-void RemeshWithConstraints(
-    SurfaceMesh& mesh,
-    const RemeshingConstraints& constraints,
-    double targetEdgeLength,
-    int iterations = 3)
-{
-    auto vmap = mesh.add_property_map<SurfaceMesh::Vertex_index, bool>("v:is_constrained", false).first;
-    auto emap = mesh.add_property_map<SurfaceMesh::Edge_index, bool>("e:is_constrained", false).first;
-
-    MarkConstrainedVertices(mesh, constraints, vmap);
-    MarkConstrainedEdges(mesh, constraints, emap);
-
-        
-    PMP::isotropic_remeshing(
-        faces(mesh),
-        targetEdgeLength,
-        mesh,
-        PMP::parameters::number_of_iterations(iterations)
-            .vertex_is_constrained_map(vmap)
-            .edge_is_constrained_map(emap)
-    );
-
-}
-
-
-void ReconstructFromCGALMesh(
-    const SurfaceMesh& mesh,
-    const std::unordered_map<SurfaceMesh::Vertex_index, int>& sectorMap,
-    const std::unordered_map<int, float>& sectorStiffness,
-    std::unordered_map<SurfaceMesh::Vertex_index, std::shared_ptr<Particle>>& vertexToParticleMap,
-    std::vector<std::shared_ptr<Particle>>& outParticles,
-    std::vector<std::shared_ptr<Spring>>& outSprings,
-    std::vector<std::shared_ptr<TriangleCollider>>& outTriangles)
-{
-    vertexToParticleMap.clear();
-
-    for (auto v : mesh.vertices())
-    {
-        const auto& pt = mesh.point(v);
-        QVector3D pos(pt.x(), pt.y(), pt.z());
-        auto particle = std::make_shared<Particle>(pos, 1, 1.0f);
-        particle->SetSegmentID(sectorMap.at(v));
-        vertexToParticleMap[v] = particle;
-        outParticles.push_back(particle);
-    }
-
-    // Springs from edges
-    for (auto e : mesh.edges())
-    {
-        auto he = mesh.halfedge(e);
-        auto v1 = mesh.source(he);
-        auto v2 = mesh.target(he);
-
-        auto p1 = vertexToParticleMap[v1];
-        auto p2 = vertexToParticleMap[v2];
-
-        int s1 = p1->GetSegmentID();
-        int s2 = p2->GetSegmentID();
-
-        float stiffness = s1 == s2 ? sectorStiffness.at(s1) : sectorStiffness.at(s2);
-
-        auto spring = std::make_shared<Spring>(p1, p2, stiffness);
-        outSprings.push_back(spring);
-    }
-
-    // TriangleColliders from faces
-    for (auto f : mesh.faces())
-    {
-        std::vector<std::shared_ptr<Particle>> faceParticles;
-        for (auto v : CGAL::vertices_around_face(mesh.halfedge(f), mesh)) faceParticles.push_back(vertexToParticleMap[v]);
-        
-        if (faceParticles.size() == 3)
-        {
-            outTriangles.push_back(std::make_shared<TriangleCollider>(
-                faceParticles[0], faceParticles[1], faceParticles[2]
-            ));
-        }
-    }
-}
-
 
 void OpenGLWidget::CurveToParticlesSprings() 
 {
     if (!m_isCurve || !m_torsoModel) return;
 
     makeCurrent();
+
     // Clear previous model
     m_particles.clear();
     m_springs.clear();
@@ -1187,6 +910,7 @@ void OpenGLWidget::CurveToParticlesSprings()
     float thickness = 0.05f; 
 
     // Model curve
+    for (size_t i = 0; i < m_curvePoints.size(); ++i) m_curve.SetControlPoint(i, m_curvePoints[i]);
     m_profilePoints = m_curve.Sample(m_numSamples);
 
     // Remove the last points to avoid duplicates
@@ -1372,7 +1096,7 @@ void OpenGLWidget::CurveToParticlesSprings()
         const QVector3D& b = m_profilePoints[(i + 1) % numPoints]; // wrap around
 
         // Triangle (a, b, center)
-        auto tri = std::make_shared<TriangleCollider>(a, b, centerCurve + m_curveNormal * 0.1f);
+        auto tri = std::make_shared<TriangleCollider>(a, b, centerCurve + m_curveNormal * 0.15f);
         m_fillTriangleColliders.push_back(tri);
     }
 
@@ -1381,691 +1105,6 @@ void OpenGLWidget::CurveToParticlesSprings()
     FillVolumeWithParticle();
 
 }
-
-
-/*
-// Uniform Grille
-void OpenGLWidget::CurveToParticlesSprings()
-{
-    if (!m_isCurve || !m_torsoModel) return;
-
-    makeCurrent();
-    // Clear previous model
-    m_particles.clear();
-    m_springs.clear();
-    m_triangleColliders.clear();
-    m_fillTriangleColliders.clear();
-
-    // Parameters
-    float mass = 1.0f;
-    int numLayers = m_curveLayers + 2;
-    float height = m_curveDepth;
-    float layerStep = m_curveDepth / (numLayers - 1);
-    float ringRadius = m_curveRingRadius;
-    float thickness = 0.05f; 
-
-    // Model curve
-    m_profilePoints = m_curve.Sample(m_numSamples);
-
-    // Remove the last points to avoid duplicates
-    m_profilePoints.pop_back();
-
-    size_t numPoints = m_profilePoints.size();
-    if (numPoints < 3) return; // Not enough profilePoints to create a curve
-
-    // Place sample points in the torso model
-    for (size_t i = 0; i < numPoints; ++i) 
-    {
-        QVector3D p = GetPointOntoMesh(m_profilePoints[i]);
-        m_profilePoints[i] = p;
-    }
-
-    // Compute the center of the curve
-    QVector3D centerCurve(0, 0, 0);
-    QVector3D centerRing(0, 0, 0);
-    for (const auto& pt : m_profilePoints) centerCurve += pt;
-    centerCurve /= static_cast<float>(numPoints);
-    
-    centerRing = centerCurve;
-
-    // Compute the normal of the curve
-    for (size_t i = 0; i < numPoints; ++i)
-    {
-        auto& p1 = m_profilePoints[i];
-        auto& p2 = m_profilePoints[(i + 1) % numPoints];
-        auto& p3 = m_profilePoints[(i + 2) % numPoints];
-
-        QVector3D v1 = p2 - p1;
-        QVector3D v2 = p3 - p2;
-
-        m_curveNormal += QVector3D::crossProduct(v1, v2).normalized();
-    }
-    m_curveNormal.normalize();
-
-    // Add offset to the center
-    centerRing.setY(centerRing.y() - 0.2f);
-    // Set the center to he height
-    // centerRing += m_curveNormal * height;
-    
-    QVector3D zAxis = m_curveNormal;
-    QVector3D xAxis;
-
-    if (std::abs(zAxis.y()) < 0.99f) xAxis = QVector3D::crossProduct(zAxis, QVector3D(0, 1, 0)).normalized();
-    else xAxis = QVector3D::crossProduct(zAxis, QVector3D(1, 0, 0)).normalized();
-
-    QVector3D yAxis = QVector3D::crossProduct(zAxis, xAxis).normalized();
-
-    // Ring curve
-    m_ringPoints.clear();
-    for (size_t i = 0; i < numPoints; ++i)
-    {
-        float angle = static_cast<float>(i) / static_cast<float>(numPoints) * 2.0f * M_PI - M_PI_4;
-
-        float cosAngle = std::cos(angle);
-        float sinAngle = std::sin(angle);
-        QVector3D p = cosAngle * xAxis * ringRadius + sinAngle * yAxis * ringRadius;
-
-        m_ringPoints.push_back(centerRing + p * 1.5f);
-    }
-
-    // Add a closed triangle 
-    std::vector<std::shared_ptr<TriangleCollider>> closingTriangles;
-
-    for (size_t i = 0; i < numPoints; ++i) {
-        const QVector3D& a = m_profilePoints[i];
-        const QVector3D& b = m_profilePoints[(i + 1) % numPoints]; // wrap around
-
-        // Triangle (a, b, center)
-        auto tri = std::make_shared<TriangleCollider>(a, b, centerCurve);
-        closingTriangles.push_back(tri);
-    }
-
-    m_fillTriangleColliders.insert(m_fillTriangleColliders.end(), closingTriangles.begin(), closingTriangles.end());
-
-
-    int numU = m_numSamples; 
-    int numV = numLayers;
-
-    std::vector<std::vector<std::shared_ptr<Particle>>> grid;
-    std::vector<std::vector<std::shared_ptr<Particle>>> thickGrid;
-
-    for (int j = 0; j <= numV; ++j) {
-        float v = float(j) / float(numV);
-        std::vector<std::shared_ptr<Particle>> row;
-        std::vector<std::shared_ptr<Particle>> thickRow;
-        float offset = (j % 2 == 0) ? 0.0f : (0.5f / numU); // horizontal offset for triangle staggering
-
-        for (int i = 0; i <= numU; ++i) {
-            float u = (float(i) / float(numU) + offset);
-            u = std::fmod(u, 1.0f); // wrap around
-
-            QVector3D pos = EvaluateCurveSurface(u, v);
-
-            auto p = std::make_shared<Particle>(pos, 1, mass, j == 0 ? false : true);
-            p->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-            m_particles.push_back(p);
-            row.push_back(p);
-
-            QVector3D normal = (pos - QVector3D(centerRing.x(), centerRing.y(), centerRing.z() * 0.5f)).normalized();
-            QVector3D thickPos = pos + normal * thickness;
-            auto thickP = std::make_shared<Particle>(thickPos, 1, mass, j == 0 ? false : true);
-            thickP->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-            if (m_haveThickness) m_particles.push_back(thickP);
-            thickRow.push_back(thickP);
-
-            // Connect the thick particle to the original one
-            if (m_haveThickness) m_springs.push_back(std::make_shared<Spring>(p, thickP, GetStiffnessByQuadrant(p->GetPosition(), thickP->GetPosition(), centerCurve))); // spring between original and thick particle
-            
-        }
-
-        grid.push_back(row);
-        thickGrid.push_back(thickRow);
-    }
-
-    // Create triangles and springs between neighbors
-    for (int j = 0; j < numV; ++j) {
-        int cols = static_cast<int>(grid[j].size());
-        for (int i = 0; i < cols - 1; ++i) {
-            auto& p00 = grid[j][i];
-            auto& p01 = grid[j][i + 1];
-            auto& p10 = grid[j + 1][i];
-            auto& p11 = grid[j + 1][i + 1];
-
-            auto& q00 = thickGrid[j][i];
-            auto& q01 = thickGrid[j][i + 1];
-            auto& q10 = thickGrid[j + 1][i];
-            auto& q11 = thickGrid[j + 1][i + 1];
-
-            if (j % 2 == 0) 
-            {
-                // even row: lower-left triangle
-                auto tri1 = std::make_shared<TriangleCollider>(p00, p10, p01);
-                auto tri2 = std::make_shared<TriangleCollider>(p01, p10, p11);
-                m_fillTriangleColliders.push_back(tri1);
-                m_fillTriangleColliders.push_back(tri2);
-
-                m_triangleColliders.push_back(tri1);
-                m_triangleColliders.push_back(tri2);
-                if (m_haveThickness)
-                {
-                    m_triangleColliders.push_back(std::make_shared<TriangleCollider>(q01, q10, q11));
-                    m_triangleColliders.push_back(std::make_shared<TriangleCollider>(q00, q10, q01));
-                }
-            } 
-            else 
-            {
-                // odd row: flip diagonals
-                auto tri1 = std::make_shared<TriangleCollider>(p00, p10, p11);
-                auto tri2 = std::make_shared<TriangleCollider>(p00, p11, p01);
-                m_fillTriangleColliders.push_back(tri1);
-                m_fillTriangleColliders.push_back(tri2);
-
-                m_triangleColliders.push_back(tri1);
-                m_triangleColliders.push_back(tri2);
-                if (m_haveThickness)
-                {
-                    m_triangleColliders.push_back(std::make_shared<TriangleCollider>(q00, q10, q11));
-                    m_triangleColliders.push_back(std::make_shared<TriangleCollider>(q00, q11, q01));
-                }
-            }
-
-            // Springs
-            m_springs.push_back(std::make_shared<Spring>(p00, p01, GetStiffnessByQuadrant(p00->GetPosition(), p01->GetPosition(), centerCurve)));
-            m_springs.push_back(std::make_shared<Spring>(p00, p10, GetStiffnessByQuadrant(p00->GetPosition(), p10->GetPosition(), centerCurve)));
-            m_springs.push_back(std::make_shared<Spring>(p01, p11, GetStiffnessByQuadrant(p01->GetPosition(), p11->GetPosition(), centerCurve)));
-            m_springs.push_back(std::make_shared<Spring>(p10, p11, GetStiffnessByQuadrant(p10->GetPosition(), p11->GetPosition(), centerCurve)));
-            m_springs.push_back(std::make_shared<Spring>(p01, p10, GetStiffnessByQuadrant(p01->GetPosition(), p10->GetPosition(), centerCurve))); // diagonal spring
-
-            if (m_haveThickness)
-            {
-                m_springs.push_back(std::make_shared<Spring>(q00, q10, GetStiffnessByQuadrant(q00->GetPosition(), q10->GetPosition(), centerCurve)));
-                m_springs.push_back(std::make_shared<Spring>(q01, q11, GetStiffnessByQuadrant(q01->GetPosition(), q11->GetPosition(), centerCurve)));
-                m_springs.push_back(std::make_shared<Spring>(q00, q01, GetStiffnessByQuadrant(q00->GetPosition(), q01->GetPosition(), centerCurve)));
-                m_springs.push_back(std::make_shared<Spring>(q10, q11, GetStiffnessByQuadrant(q10->GetPosition(), q11->GetPosition(), centerCurve)));
-                m_springs.push_back(std::make_shared<Spring>(q01, q10, GetStiffnessByQuadrant(q01->GetPosition(), q10->GetPosition(), centerCurve)));
-    
-                // Cross-layer springs
-                m_springs.push_back(std::make_shared<Spring>(p00, q11, GetStiffnessByQuadrant(p00->GetPosition(), q11->GetPosition(), centerCurve)));
-                m_springs.push_back(std::make_shared<Spring>(p01, q10, GetStiffnessByQuadrant(p01->GetPosition(), q10->GetPosition(), centerCurve)));
-            }
-        }
-    }
-
-    for (int j = 0; j <= numV; ++j) {
-        auto& first = grid[j][0];
-        auto& last  = grid[j][numU];
-        m_springs.push_back(std::make_shared<Spring>(first, last, 1000.0f));
-    } 
-
-    const auto& ring = grid.back();
-    const auto& thickRing = thickGrid.back();
-
-    QVector3D centerPos(0, 0, 0);
-    for (auto& p : ring) centerPos += p->GetPosition();
-    centerPos /= float(ring.size());
-
-    auto centerParticle = std::make_shared<Particle>(centerPos, 1, 1.0f);
-    centerParticle->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-    m_particles.push_back(centerParticle);
-
-    for (auto& p : ring) {
-        p->AddFlag(PARTICLE_NO_COLLISION_WITH_US);
-        m_springs.push_back(std::make_shared<Spring>(p, centerParticle, 1000.0f));
-    }
-
-    for (size_t i = 0; i < ring.size(); ++i) {
-        for (size_t j = 0; j < ring.size(); ++j) if (i != j) m_springs.push_back(std::make_shared<Spring>(ring[i], ring[j], 1000.0f));
-    }
-
-    for (size_t i = 0; i < ring.size(); ++i) {
-        size_t next = (i + 1) % ring.size();
-        m_fillTriangleColliders.push_back(std::make_shared<TriangleCollider>(ring[i], ring[next], centerParticle));
-        m_triangleColliders.push_back(std::make_shared<TriangleCollider>(ring[i], ring[next], centerParticle));
-    }
-
-    if (m_haveThickness) 
-    {
-        auto centerThickParticle = std::make_shared<Particle>(centerPos + m_curveNormal * thickness, 1, 1.0f);
-        centerThickParticle->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-        m_particles.push_back(centerThickParticle);
-
-        for (auto& p : thickRing) {
-            p->AddFlag(PARTICLE_NO_COLLISION_WITH_US);
-            m_springs.push_back(std::make_shared<Spring>(p, centerThickParticle, 1000.0f));
-        }
-
-        for (size_t i = 0; i < thickRing.size(); ++i) {
-            for (size_t j = 0; j < thickRing.size(); ++j) if (i != j) m_springs.push_back(std::make_shared<Spring>(thickRing[i], thickRing[j], 1000.0f));
-        }
-
-        for (size_t i = 0; i < thickRing.size(); ++i) {
-            size_t next = (i + 1) % thickRing.size();
-            m_triangleColliders.push_back(std::make_shared<TriangleCollider>(thickRing[i], thickRing[next], centerThickParticle));
-        }
-    }
-
-
-    doneCurrent();
-
-    FillVolumeWithParticle();
-}
-// */
-
-/*
-// Billes
-void OpenGLWidget::CurveToParticlesSprings()
-{
-    if (!m_isCurve || !m_torsoModel) return;
-
-    makeCurrent();
-    // Clear previous model
-    m_particles.clear();
-    m_springs.clear();
-    m_triangleColliders.clear();
-    m_fillTriangleColliders.clear();
-
-    // Parameters
-    float mass = 1.0f;
-    int numLayers = m_curveLayers + 2;
-    float height = m_curveDepth;
-    float layerStep = m_curveDepth / (numLayers - 1);
-    float ringRadius = m_curveRingRadius;
-    float thickness = 0.05f; 
-
-    // Model curve
-    m_profilePoints = m_curve.Sample(m_numSamples);
-
-    // Remove the last points to avoid duplicates
-    m_profilePoints.pop_back();
-
-    size_t numPoints = m_profilePoints.size();
-    if (numPoints < 3) return; // Not enough profilePoints to create a curve
-
-    // Place sample points in the torso model
-    for (size_t i = 0; i < numPoints; ++i) 
-    {
-        QVector3D p = GetPointOntoMesh(m_profilePoints[i]);
-        m_profilePoints[i] = p;
-    }
-
-    // Compute the center of the curve
-    QVector3D centerCurve(0, 0, 0);
-    QVector3D centerRing(0, 0, 0);
-    for (const auto& pt : m_profilePoints) centerCurve += pt;
-    centerCurve /= static_cast<float>(numPoints);
-    
-    centerRing = centerCurve;
-
-    // Compute the normal of the curve
-    for (size_t i = 0; i < numPoints; ++i)
-    {
-        auto& p1 = m_profilePoints[i];
-        auto& p2 = m_profilePoints[(i + 1) % numPoints];
-        auto& p3 = m_profilePoints[(i + 2) % numPoints];
-
-        QVector3D v1 = p2 - p1;
-        QVector3D v2 = p3 - p2;
-
-        m_curveNormal += QVector3D::crossProduct(v1, v2).normalized();
-    }
-    m_curveNormal.normalize();
-
-    // Add offset to the center
-    centerRing.setY(centerRing.y() - 0.2f);
-    // Set the center to he height
-    // centerRing += m_curveNormal * height;
-    
-    QVector3D zAxis = m_curveNormal;
-    QVector3D xAxis;
-
-    if (std::abs(zAxis.y()) < 0.99f) xAxis = QVector3D::crossProduct(zAxis, QVector3D(0, 1, 0)).normalized();
-    else xAxis = QVector3D::crossProduct(zAxis, QVector3D(1, 0, 0)).normalized();
-
-    QVector3D yAxis = QVector3D::crossProduct(zAxis, xAxis).normalized();
-
-    // Ring curve
-    m_ringPoints.clear();
-    for (size_t i = 0; i < numPoints; ++i)
-    {
-        float angle = static_cast<float>(i) / static_cast<float>(numPoints) * 2.0f * M_PI - M_PI_4;
-
-        float cosAngle = std::cos(angle);
-        float sinAngle = std::sin(angle);
-        QVector3D p = cosAngle * xAxis * ringRadius + sinAngle * yAxis * ringRadius;
-
-        m_ringPoints.push_back(centerRing + p * 1.5f);
-    }
-
-    // Add a closed triangle 
-    std::vector<std::shared_ptr<TriangleCollider>> closingTriangles;
-
-    for (size_t i = 0; i < numPoints; ++i) {
-        const QVector3D& a = m_profilePoints[i];
-        const QVector3D& b = m_profilePoints[(i + 1) % numPoints]; // wrap around
-
-        // Triangle (a, b, center)
-        auto tri = std::make_shared<TriangleCollider>(a, b, centerCurve);
-        closingTriangles.push_back(tri);
-    }
-
-    m_fillTriangleColliders.insert(m_fillTriangleColliders.end(), closingTriangles.begin(), closingTriangles.end());
-
-    // Create the layers of particles
-    std::vector<std::vector<std::shared_ptr<Particle>>> layers;
-
-    // Create the vector of stiffness for the springs
-    std::vector<float> springStiffness(numPoints, 0.0f), 
-        springCrossStiffness(numPoints, 0.0f),
-        springThicknessStiffness(numPoints, 0.0f);
-
-    for (int layer = 0; layer < numLayers; ++layer)
-    {
-        std::vector<std::shared_ptr<Particle>> layerParticles;
-
-        float t = static_cast<float>(layer) / static_cast<float>(numLayers - 1);
-        float tCurve = std::pow(t, 3.0f); //1.0f - std::sqrt(1.0f - t * t); // 1.0f + std::sin(-(1.0f - t) * M_PI_2); 
-        float z = layer * layerStep;
-
-        for (size_t i = 0; i < numPoints; ++i) {
-            QVector3D pos = (1.0f - tCurve) * m_profilePoints[i] + tCurve * m_ringPoints[i];
-            // QVector3D pos = (1.0f - tCurve) * ringPoints[i] + tCurve * m_profilePoints[i];
-            // pos.setZ(m_profilePoints[i].z() + z); 
-
-            // float length = (m_profilePoints[i] - ringPoints[i]).length();
-            // float step = length / (numLayers - 1);
-            // float z = layer * step;
-
-            pos.setZ(pos.z() + z);
-
-
-            auto p = std::make_shared<Particle>(pos, 1, mass, (layer != 0));
-            p->AddFlag(PARTICLE_NO_COLLISION_WITH_US); p->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-            layerParticles.push_back(p);
-            m_particles.push_back(p);
-
-            // Horizontally connect particles in the same layer
-            if (i > 0) 
-            {
-                auto& p1 = layerParticles[i - 1];
-                auto& p2 = layerParticles[i];
-                if (layer == 0) springStiffness[i - 1] = GetStiffnessByQuadrant(p1->GetPosition(), p2->GetPosition(), centerCurve);
-                float stiffness = springStiffness[i - 1];
-                auto spring = std::make_shared<Spring>(p1, p2, (layer == numLayers - 1) ? 1000.0f : stiffness);
-                m_springs.push_back(spring);
-            }
-        }
-
-        // Close the curve
-        auto& p1 = layerParticles.front();
-        auto& p2 = layerParticles.back();
-        if (layer == 0) springStiffness[numPoints - 1] = GetStiffnessByQuadrant(p1->GetPosition(), p2->GetPosition(), centerCurve);
-        float stiffness = springStiffness[numPoints - 1];
-        auto springLoop = std::make_shared<Spring>(p1, p2, (layer == numLayers - 1) ? 1000.0f : stiffness);
-        m_springs.push_back(springLoop);
-
-        layers.push_back(layerParticles);
-    }
-
-    // Vertical and diagonal connections between layers
-    for (int layer = 0; layer < numLayers - 1; ++layer) {
-        for (size_t i = 0; i < numPoints; ++i) {
-
-            // edge
-            auto& p1 = layers[layer][i];
-            auto& p2 = layers[layer + 1][i];
-            if (layer == 0) springStiffness[i] = GetStiffnessByQuadrant(p1->GetPosition(), p2->GetPosition(), centerCurve);
-            float stiffness = springStiffness[i];
-            auto spring = std::make_shared<Spring>(p1, p2, stiffness);
-            m_springs.push_back(spring);
-
-            // diagonal
-            if (i > 0 && m_crossSpringModel) 
-            {
-                auto& p3 = layers[layer][i];
-                auto& p4 = layers[layer + 1][i - 1];
-                if (layer == 0) springCrossStiffness[i - 1] = GetStiffnessByQuadrant(p3->GetPosition(), p4->GetPosition(), centerCurve);
-                float stiffness = springCrossStiffness[i - 1];
-                auto s1 = std::make_shared<Spring>(p3, p4, stiffness);
-                m_springs.push_back(s1);
-                
-                auto& p5 = layers[layer][i - 1];
-                auto& p6 = layers[layer + 1][i];
-                if (layer == 0) springCrossStiffness[i - 1] = GetStiffnessByQuadrant(p5->GetPosition(), p6->GetPosition(), centerCurve);
-                stiffness = springCrossStiffness[i - 1];
-                auto s2 = std::make_shared<Spring>(p5, p6, stiffness);
-                m_springs.push_back(s2);
-            }
-        }
-        // close the curve
-        if (m_crossSpringModel)
-        {
-            auto& p1 = layers[layer].back();
-            auto& p2 = layers[layer + 1].front();
-            float stiffness = springStiffness[numPoints - 1];
-            auto s1 = std::make_shared<Spring>(p1, p2, stiffness);
-            m_springs.push_back(s1);
-
-            auto& p3 = layers[layer].front();
-            auto& p4 = layers[layer + 1].back();
-            stiffness = springStiffness[numPoints - 1];
-            auto s2 = std::make_shared<Spring>(p3, p4, stiffness);
-            m_springs.push_back(s2);
-        }
-        
-    }
-
-    centerRing.setZ(centerRing.z() + height);
-
-    // Center particle
-    auto centerParticle = std::make_shared<Particle>(centerRing, 1, mass);
-    centerParticle->SetFlags(PARTICLE_NO_COLLISION_WITH_US);
-    m_particles.push_back(centerParticle);
-
-    // Connect the center to the first layer
-    for (auto& p : layers.back()) {
-        auto spring = std::make_shared<Spring>(p, centerParticle, 1000.0f); 
-        m_springs.push_back(spring);
-    }
-    auto ringlayers = layers.back();
-    for (size_t i = 0; i < ringlayers.size(); ++i) { // Add springs for more rigidity
-        auto& p1 = ringlayers[i];
-        for (size_t j = 0; j < ringlayers.size(); ++j) {
-            if (i == j) continue;
-            auto& p2 = ringlayers[j];
-            auto spring = std::make_shared<Spring>(p1, p2, 1000.0f);
-            m_springs.push_back(spring);
-        }
-    }
-
-    // Triangle collider generation
-    for (int layer = 0; layer < numLayers - 1; ++layer)
-    {
-        const auto& current = layers[layer];
-        const auto& next = layers[layer + 1];
-        size_t count = current.size();
-
-        for (size_t i = 0; i < count; ++i)
-        {
-            size_t next_i = (i + 1) % count;
-
-            // First triangle of the quad
-            auto a = current[i];
-            a->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-            auto b = next[i];
-            b->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-            auto c = next[next_i];
-            c->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-
-            // Second triangle of the quad
-            auto d = current[next_i];
-
-            m_triangleColliders.push_back(std::make_shared<TriangleCollider>(a, b, c));
-            m_triangleColliders.push_back(std::make_shared<TriangleCollider>(a, c, d));
-        }
-    }
-
-    for (size_t i = 0; i < ringlayers.size(); ++i)
-    {
-        size_t next_i = (i + 1) % ringlayers.size();
-
-        auto a = ringlayers[i];
-        a->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-        auto b = ringlayers[next_i];
-        b->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-        auto c = centerParticle;
-        c->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-
-        m_triangleColliders.push_back(std::make_shared<TriangleCollider>(a, b, c));
-    }
-
-    m_fillTriangleColliders.insert(m_fillTriangleColliders.end(), m_triangleColliders.begin(), m_triangleColliders.end());
-
-    // Thickness
-    if (m_haveThickness) {
-        std::vector<std::vector<std::shared_ptr<Particle>>> layersThickness;
-        for (int layer = 0; layer < numLayers; ++layer)
-        {
-            std::vector<std::shared_ptr<Particle>> layerParticlesThickness;
-            for (size_t i = 0; i < numPoints; ++i)
-            {
-                auto p = layers[layer][i];
-                QVector3D normal = (p->GetPosition() - QVector3D(centerRing.x(), centerRing.y(), centerRing.z() * 0.5f)).normalized();
-                QVector3D offsetPos = p->GetPosition() + normal * thickness;
-                
-                auto pt = std::make_shared<Particle>(offsetPos, 1, p->GetMass(), p->IsDynamic());
-                pt->SetFlags(PARTICLE_NO_COLLISION_WITH_US); p->AddFlag(PARTICLE_ATTACHED_TO_TRIANGLE);
-                layerParticlesThickness.push_back(pt);
-                m_particles.push_back(pt);
-
-                // Connect the new particle to the original one
-                if (layer == 0) springStiffness[i] = GetStiffnessByQuadrant(p->GetPosition(), pt->GetPosition(), centerCurve);
-                float stiffness = springStiffness[i];
-                auto spring = std::make_shared<Spring>(p, pt, stiffness);
-                m_springs.push_back(spring);
-
-                if (i > 0) {
-                    auto& p1 = layerParticlesThickness[i - 1];
-                    auto& p2 = layerParticlesThickness[i];
-                    if (layer == 0) springThicknessStiffness[i - 1] = GetStiffnessByQuadrant(p1->GetPosition(), p2->GetPosition(), centerCurve);
-                    float stiffness = springThicknessStiffness[i - 1];
-                    auto spring = std::make_shared<Spring>(p1, p2, stiffness);
-                    m_springs.push_back(spring);
-                }
-            }
-
-            // Close the curve
-            auto& p1 = layerParticlesThickness.front();
-            auto& p2 = layerParticlesThickness.back();
-            if (layer == 0) springStiffness[numPoints - 1] = GetStiffnessByQuadrant(p1->GetPosition(), p2->GetPosition(), centerCurve);
-            float stiffness = springStiffness[numPoints - 1];
-            auto springLoop = std::make_shared<Spring>(p1, p2, stiffness);
-            m_springs.push_back(springLoop);
-
-            layersThickness.push_back(layerParticlesThickness);
-        }
-
-        // Vertical and diagonal connections between layers
-        for (int layer = 0; layer < numLayers - 1; ++layer) {
-            for (size_t i = 0; i < numPoints; ++i) {
-                // edge
-                auto& p1 = layersThickness[layer][i];
-                auto& p2 = layersThickness[layer + 1][i];
-                float stiffness = springStiffness[i];
-                auto spring = std::make_shared<Spring>(p1, p2, (layer == numLayers - 1) ? 1000.0f : stiffness);
-                m_springs.push_back(spring);
-
-                // diagonal
-                if (i > 0 && m_crossSpringModel) 
-                {
-                    auto& p3 = layersThickness[layer][i];
-                    auto& p4 = layersThickness[layer + 1][i - 1];
-                    float stiffness = springCrossStiffness[i - 1];
-                    auto s1 = std::make_shared<Spring>(p3, p4, stiffness);
-                    m_springs.push_back(s1);
-                    
-                    auto& p5 = layersThickness[layer][i - 1];
-                    auto& p6 = layersThickness[layer + 1][i];
-                    stiffness = springCrossStiffness[i - 1];
-                    auto s2 = std::make_shared<Spring>(p5, p6, stiffness);
-                    m_springs.push_back(s2);
-                }
-            }
-
-            if (m_crossSpringModel)
-            {
-                // Close the curve
-                auto& p1 = layersThickness[layer].back();
-                auto& p2 = layersThickness[layer + 1].front();
-                float stiffness = m_springs[numPoints - 1]->GetStiffness();
-                auto s1 = std::make_shared<Spring>(p1, p2, stiffness);
-                m_springs.push_back(s1);
-
-                auto& p3 = layersThickness[layer].front();
-                auto& p4 = layersThickness[layer + 1].back();
-                stiffness = m_springs[numPoints - 1]->GetStiffness();
-                auto s2 = std::make_shared<Spring>(p3, p4, stiffness);
-                m_springs.push_back(s2);
-
-                // Add springs between the thickness particles
-                for (size_t i = 0; i < numPoints; ++i) {
-                    size_t next_i = (i + 1) % numPoints;
-
-                    auto& a = layers[layer][i];
-                    auto& b = layers[layer][next_i];
-                    auto& a_thick = layersThickness[layer][i];
-                    auto& b_thick = layersThickness[layer][next_i];
-
-                    float stiffness = m_springs[i]->GetStiffness();
-                    auto s1 = std::make_shared<Spring>(a, b_thick, stiffness);
-                    m_springs.push_back(s1);
-
-                    stiffness = m_springs[i]->GetStiffness();
-                    auto s2 = std::make_shared<Spring>(b, a_thick, stiffness);
-                    m_springs.push_back(s2);
-
-                    auto& c = layers[layer + 1][i];
-
-                    stiffness = springStiffness[i];
-                    auto s3 = std::make_shared<Spring>(c, a_thick, stiffness);
-                    m_springs.push_back(s3);
-
-                    auto& c_thick = layersThickness[layer + 1][i];
-                    stiffness = springStiffness[i];
-                    auto s4 = std::make_shared<Spring>(a, c_thick, stiffness);
-                    m_springs.push_back(s4);
-                    
-                }
-            }
-        }
-
-        // Center particle
-        auto centerParticleThickness = std::make_shared<Particle>(centerRing + QVector3D(0, 0, thickness), 1, mass);
-        centerParticleThickness->SetFlags(PARTICLE_NO_COLLISION_WITH_US);
-        m_particles.push_back(centerParticleThickness);
-
-        // Connect the center to the first layer
-        for (auto& p : layersThickness.back()) {
-            auto spring = std::make_shared<Spring>(p, centerParticleThickness, 1000.0f); 
-            m_springs.push_back(spring);
-        }
-        auto ringlayers = layersThickness.back();
-        for (size_t i = 0; i < ringlayers.size(); ++i) { // Add springs for more rigidity
-            auto& p1 = ringlayers[i];
-            for (size_t j = 0; j < ringlayers.size(); ++j) {
-                if (i == j) continue;
-                auto& p2 = ringlayers[j];
-                auto spring = std::make_shared<Spring>(p1, p2, 1000.0f);
-                m_springs.push_back(spring);
-            }
-        }
-    }
-
-    doneCurrent();
-
-    // FillVolumeWithParticle();
-
-}
-// */
 
 void OpenGLWidget::FillVolumeWithParticle()
 {
@@ -2077,15 +1116,6 @@ void OpenGLWidget::FillVolumeWithParticle()
     float particleRadius = m_particleRadiusVolume;
     float spacing = m_spacingVolume;
     float stiffness = 100.0f;
-
-    // float particleMass = 5.0f;
-    // float particleRadius = 17.0f;
-    // float spacing = 0.3f;
-
-    // std::vector<std::shared_ptr<TriangleCollider>> triangles;
-    // auto torsoTriangles = m_torsoModel->triangleColliders;
-    // triangles.insert(triangles.end(), torsoTriangles.begin(), torsoTriangles.end());
-    // triangles.insert(triangles.end(), m_fillTriangleColliders.begin(), m_fillTriangleColliders.end());
 
     std::unique_ptr<BVHNode<TriangleCollider>> bvh = BuildBVH(m_fillTriangleColliders);
 
@@ -2350,20 +1380,17 @@ void OpenGLWidget::SetViewMode(ViewMode mode)
     {
         m_camera->SetPosition(QVector3D(0, 0, m_camera->GetDistance()));
         m_camera->SetTarget(QVector3D(0, 0, 0));
-        // m_physicsSystem->ChangeGravity(m_camera->GetDownVector() * GRAVITY.length());
     } 
     else if (mode == ViewMode::View2) 
     {
         m_camera->SetPosition(QVector3D(m_camera->GetDistance(), 0, 0));
         m_camera->SetTarget(QVector3D(0, 0, 0));
-        // m_physicsSystem->ChangeGravity(m_camera->GetDownVector() * GRAVITY.length());
 
     } 
     else if (mode == ViewMode::View3) 
     {
         m_camera->SetPosition(QVector3D(-m_camera->GetDistance(), 0, 0));
         m_camera->SetTarget(QVector3D(0, 0, 0));
-        // m_physicsSystem->ChangeGravity(m_camera->GetDownVector() * GRAVITY.length());
     } 
 
     update();
