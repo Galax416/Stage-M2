@@ -9,13 +9,14 @@
 #include <QThread>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QMetaObject>
 #include <vector>
 #include <memory>
 #include <set>
 // #include <chrono>
 
 #include "PhysicsSystem.h"
-// #include "PhysicsWorker.h"
+#include "PhysicsWorker.h"
 #include "Curve.h"
 #include "Voxel.h"
 #include "ModelSettingsWidget.h"
@@ -24,10 +25,9 @@
 #define SCREEN_WIDTH  1080
 #define SCREEN_HEIGHT 720
 
-#define DELTATIME  0.0100f
 #define GRAVITY    QVector3D(0.0f, -9.81f, 0.0f)
 
-#define Verbose true // Set to true to enable verbose output
+#define Verbose false // Set to true to enable verbose output
 
 // Foward declarations
 class Camera;
@@ -98,7 +98,7 @@ signals:
     void setRingRadiusSlider(int value);  
     void setParticleRadiusVolumeSlider(int value);
     void setSpacingVolumeSlider(int value);
-    void setAttachedChekBox(bool value);
+    void setAttachedCheckBox(bool value);
     void setAttachedToModelCheckBox(bool value);
 
 
@@ -130,8 +130,8 @@ public slots:
 
     void ClearSceneSlot() { Stop(); ClearScene(); m_isModel = false; m_isCurve = false; m_isVoxelModel = false; m_renderBVH = false; m_isWireMode = false; Reset(); }
     void Reset();
-    void Stop()  { m_isRunning = false; emit buttonStateChanged(m_isRunning); }
-    void Play()  { m_isRunning = true; m_renderBVH = false; emit renderBVHChanged(m_renderBVH); emit buttonStateChanged(m_isRunning); }
+    void Stop()  { m_isRunning = false; emit buttonStateChanged(m_isRunning); if (m_worker && m_physicsThread) QMetaObject::invokeMethod(m_worker, "Stop", Qt::BlockingQueuedConnection); }
+    void Play()  { m_isRunning = true; m_renderBVH = false; emit renderBVHChanged(m_renderBVH); emit buttonStateChanged(m_isRunning); if (m_worker && m_physicsThread) QMetaObject::invokeMethod(m_worker, "SetPhysicsRunning", Qt::BlockingQueuedConnection, Q_ARG(bool, m_isRunning)); }
     
 private:
     void InitShaders(QOpenGLShaderProgram *program, QString vertex_shader = "", QString geometry_shader = "", QString fragment_shader = "");
@@ -149,6 +149,7 @@ private:
         m_curveRingRadius = 0.1f;
         m_spacingVolume   = 0.12f;
         m_particleRadiusVolume = 6.0f; // Default particle radius for volume filling
+        m_stiffnessAttached = 100.0f; // Default stiffness for attached particles
         m_angularWeights = std::vector<float>(DEFAULT_N_SEGMENTS, 1.0f / static_cast<float>(DEFAULT_N_SEGMENTS));
     }
 
@@ -184,6 +185,7 @@ private:
     float     m_globalFriction  { 0.95f };
     QColor    m_backgroundColor { 25, 25, 25, 255 };
     QVector3D m_globalRotation  { 0.0f, 0.0f, 0.0f };
+    std::unique_ptr<BVHNode<TriangleCollider>> m_bvhSceneCollider;
 
     // Model settings
     bool m_isModel { false }; // Is a model loaded
@@ -217,13 +219,19 @@ private:
     bool  m_isAttachedToModel    { false }; 
     float m_spacingVolume        { 0.12f };
     float m_particleRadiusVolume { 6.0f }; 
+    float m_stiffnessAreola      { 1000.0f }; // Stiffness for areola particles
+    float m_stiffnessAttached    { 100.0f }; // Stiffness for attached particles
     int m_nSegments              { DEFAULT_N_SEGMENTS };
+    std::unordered_map<int, float> m_stiffnessBySegment = std::unordered_map<int, float>(DEFAULT_N_SEGMENTS);
     std::vector<float> m_angularWeights = std::vector<float>(DEFAULT_N_SEGMENTS, 1.0f / static_cast<float>(DEFAULT_N_SEGMENTS));
 
     // Voxel model
     VoxelGrid m_voxel;
     bool m_isVoxelModel { false };
     std::shared_ptr<Box> m_press { nullptr };
+
+    // Get distance between two points
+    std::vector<std::shared_ptr<Particle>> m_distPoints;
 
     // Mode
     bool m_is2DMode   { false };
@@ -237,6 +245,7 @@ private:
     bool m_renderBVH { false };
 
     // Debug
-    QVector3D breastDirection { 0.0f, 0.0f, 1.0f };
+    // QVector3D breastDirection { 0.0f, 0.0f, 1.0f };
+    // Ray m_debugRay { QVector3D(0.0f, 0.0f, 0.0f), QVector3D(0.0f, 1.0f, 0.0f) };
 
 };

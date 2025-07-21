@@ -55,6 +55,17 @@ public:
         QMutexLocker locker(&m_dataMutex); // Lock the mutex for thread safety
         pendingBodies.push_back(body);
     }
+    inline void RemoveRigidbody(std::shared_ptr<Rigidbody> body) {
+        if (!body) {
+            qWarning() << "Warning: Tried to remove a nullptr Rigidbody!";
+            return;
+        }
+        QMutexLocker locker(&m_dataMutex); // Lock the mutex for thread safety
+        auto it = std::remove_if(bodies.begin(), bodies.end(), [&](const std::shared_ptr<Rigidbody>& b) { return b == body; });
+        if (it != bodies.end()) {
+            bodies.erase(it, bodies.end());
+        }
+    }
     inline void AddConstraint(std::shared_ptr<Rigidbody> constraint) {
         if (!constraint) {
             qWarning() << "Warning: Tried to add a nullptr Constraint!";

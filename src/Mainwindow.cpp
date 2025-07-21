@@ -194,6 +194,8 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_openGLWidget, &OpenGLWidget::setRingRadiusSlider,           m_modelSettingsWidget, &ModelSettingsWidget::SetRingRadius);
     connect(m_openGLWidget, &OpenGLWidget::setParticleRadiusVolumeSlider, m_modelSettingsWidget, &ModelSettingsWidget::SetParticleRadiusVolume);
     connect(m_openGLWidget, &OpenGLWidget::setSpacingVolumeSlider,        m_modelSettingsWidget, &ModelSettingsWidget::SetSpacingVolume);
+    connect(m_openGLWidget, &OpenGLWidget::setAttachedCheckBox,           m_modelSettingsWidget, &ModelSettingsWidget::SetAttachedCheckBox);
+    connect(m_openGLWidget, &OpenGLWidget::setAttachedToModelCheckBox,    m_modelSettingsWidget, &ModelSettingsWidget::SetAttachedToModelCheckBox);
 
     // Model settings (3D)
     connect(m_openGLWidget, &OpenGLWidget::update3DModelParametersChanged, m_modelSettingsWidget, &ModelSettingsWidget::Update3DModelParameters);
@@ -234,6 +236,18 @@ void MainWindow::updateStatusBarMessage(const QString& message)
     }
     m_statusBar->setVisible(true);
     m_statusBar->showMessage(message);
+
+    // Add a QTimer to clear the message after 10 seconds
+    static QTimer* clearTimer = nullptr;
+    if (!clearTimer) {
+        clearTimer = new QTimer(this);
+        clearTimer->setSingleShot(true);
+        connect(clearTimer, &QTimer::timeout, this, [this]() {
+            m_statusBar->clearMessage();
+            m_statusBar->setVisible(false);
+        });
+    }
+    clearTimer->start(10000); // 10 seconds
 }
 
 void MainWindow::updateButtonsState(bool isRunning)

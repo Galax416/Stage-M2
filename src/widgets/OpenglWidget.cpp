@@ -179,8 +179,24 @@ void OpenGLWidget::paintGL()
     
     m_physicsSystem->Render(m_program.get()/* , alpha */); // Render the physics system
     // UpdateModelFromParticles(m_model);
-
     m_program->release();
+
+    // Debug surface
+
+    // Debug ray
+    // m_program->bind();
+    // m_program->setUniformValue("material.albedo", QVector3D(1.0f, 0.0f, 0.0f));
+    // m_program->setUniformValue("transparency", 1.0f);
+    // m_program->setUniformValue("model", QMatrix4x4());
+    // ::Render(m_debugRay);
+    // m_program->release();
+
+    // Render points for distance measurement
+    for (const auto& point : m_distPoints) point->Render(m_program.get());
+    
+
+    // if (m_bvhSceneCollider && IsPaused()) RenderBVH(m_program.get(), m_bvhSceneCollider.get());
+
     
     update();
 }
@@ -189,6 +205,93 @@ void OpenGLWidget::mousePressEvent(QMouseEvent *event)
 {
     // Camera rotation
     m_camera->mousePressEvent(event);
+
+    // If mouse and shift pressed
+    if (event->buttons() & Qt::LeftButton && event->modifiers() & Qt::ShiftModifier)
+    {
+        bool isRunning = IsRunning();
+        Stop(); // Stop the physics system
+
+        // Check if have already two points
+        if (m_distPoints.size() >= 2) 
+        {
+            // Remove points
+            for (auto& point : m_distPoints) m_physicsSystem->RemoveRigidbody(point);
+            // Clear the vector
+            m_distPoints.clear();
+        }
+
+        // Get the ray
+        Ray ray = ScreenToWorldRay(event->pos(), m_camera.get(), width(), height());
+        // qDebug() << "Debug ray origin:" << ray.origin << "direction:" << ray.direction;
+
+        // Get the bvh
+        std::vector<std::shared_ptr<TriangleCollider>> triangles;
+        if (m_isModel) 
+        {
+            if (m_model) triangles = m_model->triangleColliders;
+        }
+        else if (m_isCurve)
+        {
+            if (m_torsoModel) triangles = m_torsoModel->triangleColliders;
+            triangles.insert(triangles.end(), m_triangleColliders.begin(), m_triangleColliders.end());
+        }
+        else if (m_isVoxelModel)
+        {
+            
+        }
+        m_bvhSceneCollider = BuildBVH(triangles);
+
+        // Get the point if is exists
+        float minT = std::numeric_limits<float>::max();
+        QVector3D point;
+        bool hit = false;
+
+        std::vector<std::shared_ptr<TriangleCollider>> closestTriangle;
+        QVector3D rayEnd = ray.origin + ray.direction * 500.0f; // Extend the ray to a reasonable length
+        QVector3D bbMin = ray.origin;
+        QVector3D bbMax = rayEnd;
+        AABB rayBox(bbMin, bbMax);
+        rayBox.Expand(0.01f);
+
+        QueryBVH<TriangleCollider>(rayBox, m_bvhSceneCollider.get(), closestTriangle);
+
+        for (const auto& triangle : closestTriangle)
+        {
+            RayCastResult result = RayIntersectsTriangle(ray, triangle);
+            if (result.hit && result.t < minT)
+            {
+                minT = result.t;
+                point = result.point;
+                hit = true;
+            }
+        }
+
+        if (hit)
+        {
+            makeCurrent();
+            auto p = std::make_shared<Particle>(point, m_particleRadiusVolume, 1, false, QColor(255, 0, 0));
+            m_distPoints.push_back(p);
+            doneCurrent(); 
+        }
+        else m_distPoints.clear();
+
+        if (m_distPoints.size() == 2)
+        {
+            // Calculate the distance between the two points on the xy plane
+            QVector3D p1 = m_distPoints[0]->GetPosition();
+            QVector3D p2 = m_distPoints[1]->GetPosition();
+            float dist = std::sqrt(std::pow(p1.x() - p2.x(), 2) + std::pow(p1.y() - p2.y(), 2));
+
+            // Ref : 6.8 = 61 cm, torso size
+
+            dist = dist * 61.0f / 6.8f; // Convert to cm
+            
+            emit statusBarMessageChanged(QString("Distance: %1 cm").arg(dist));
+        }
+
+        if (isRunning) Play();
+    }
 }
 
 void OpenGLWidget::mouseReleaseEvent(QMouseEvent *event)
@@ -196,6 +299,7 @@ void OpenGLWidget::mouseReleaseEvent(QMouseEvent *event)
     // Camera rotation
     // m_physicsSystem->ChangeGravity(m_camera->GetDownVector() * GRAVITY.length());
     m_camera->mouseReleaseEvent(event);
+    // m_debugRay = ScreenToWorldRay(event->pos(), m_camera.get(), width(), height());
 }
 
 void OpenGLWidget::mouseMoveEvent(QMouseEvent *event)
@@ -433,6 +537,8 @@ void OpenGLWidget::LoadOBJ(const QString& filename)
     m_model->LoadModel(filename);
     m_model->SetColor(QColor(100, 100, 100));
 
+    // m_model->Remesh(0.2);
+
     doneCurrent();
     Reset();
 }
@@ -450,7 +556,6 @@ void OpenGLWidget::LoadScene(const QString& filename)
     if (Verbose) qDebug() << "Loading scene from file: " << filename;
     
     ClearSceneSlot();
-    emit setBreastModel(true);
     
     // Load all the scene data from a JSON file
     QFile file(filename);
@@ -504,30 +609,35 @@ void OpenGLWidget::LoadScene(const QString& filename)
 
     if (m_isCurve && sceneRoot.contains("curveSettings"))
     {
+        emit setBreastModel(true);
 
         auto cs = sceneRoot["curveSettings"].toObject();
-        m_numSamples = cs["numSamples"].toInt();
-        m_curveLayers = cs["layers"].toInt();
-        m_curveSize = cs["size"].toDouble();
-        m_lastValidCurveSize = cs["lastSize"].toDouble();
-        m_curveDepth = cs["depth"].toDouble();
-        m_curveRingRadius = cs["ringRadius"].toDouble();
-        m_isAttached = cs["isAttached"].toBool();
-        m_isAttachedToModel = cs["isAttachedToModel"].toBool();
-        m_spacingVolume = cs["spacingVolume"].toDouble();
-        m_particleRadiusVolume = cs["particleRadiusVolume"].toDouble();
-        m_nSegments = cs["nSegments"].toInt();
-        {
+
+        if (cs.contains("numSamples")) m_numSamples = cs["numSamples"].toInt();
+        if (cs.contains("layers")) m_curveLayers = cs["layers"].toInt();
+        if (cs.contains("size")) m_curveSize = cs["size"].toDouble();
+        if (cs.contains("lastSize")) m_lastValidCurveSize = cs["lastSize"].toDouble();
+        if (cs.contains("depth")) m_curveDepth = cs["depth"].toDouble();
+        if (cs.contains("ringRadius")) m_curveRingRadius = cs["ringRadius"].toDouble();
+        if (cs.contains("stiffnessAreola")) m_stiffnessAreola = cs["stiffnessAreola"].toDouble();
+        if (cs.contains("isAttached")) m_isAttached = cs["isAttached"].toBool();
+        if (cs.contains("isAttachedToModel")) m_isAttachedToModel = cs["isAttachedToModel"].toBool();
+        if (cs.contains("stiffnessAttached")) m_stiffnessAttached = cs["stiffnessAttached"].toDouble();
+        if (cs.contains("spacingVolume")) m_spacingVolume = cs["spacingVolume"].toDouble();
+        if (cs.contains("particleRadiusVolume")) m_particleRadiusVolume = cs["particleRadiusVolume"].toDouble();
+        if (cs.contains("nSegments")) m_nSegments = cs["nSegments"].toInt();
+
+        if (cs.contains("curveCenter")) {
             QJsonArray arr = cs["curveCenter"].toArray();
             if (arr.size() == 3)
                 m_curveCenter = QVector3D(arr[0].toDouble(), arr[1].toDouble(), arr[2].toDouble());
         }
-        {
+        if (cs.contains("initialCurveCenter")) {
             QJsonArray arr = cs["initialCurveCenter"].toArray();
             if (arr.size() == 3)
                 m_initialCurveCenter = QVector3D(arr[0].toDouble(), arr[1].toDouble(), arr[2].toDouble());
         }
-        {
+        if (cs.contains("initialCurvePoints")) {
             QJsonArray arr = cs["initialCurvePoints"].toArray();
             m_initialCurvePoints.clear();
             for (const auto& v : arr) {
@@ -536,7 +646,7 @@ void OpenGLWidget::LoadScene(const QString& filename)
                     m_initialCurvePoints.push_back(QVector3D(pt[0].toDouble(), pt[1].toDouble(), pt[2].toDouble()));
             }
         }
-        {
+        if (cs.contains("curvePoints")) {
             QJsonArray arr = cs["curvePoints"].toArray();
             m_curvePoints.clear();
             for (const auto& v : arr) {
@@ -545,7 +655,7 @@ void OpenGLWidget::LoadScene(const QString& filename)
                     m_curvePoints.push_back(QVector3D(pt[0].toDouble(), pt[1].toDouble(), pt[2].toDouble()));
             }
         }
-        {
+        if (cs.contains("curvePointsSliders")) {
             QJsonArray arr = cs["curvePointsSliders"].toArray();
             m_curvePointsSliders.clear();
             for (const auto& v : arr) {
@@ -554,7 +664,7 @@ void OpenGLWidget::LoadScene(const QString& filename)
                     m_curvePointsSliders.push_back(QVector3D(pt[0].toDouble(), pt[1].toDouble(), pt[2].toDouble()));
             }
         }
-        {
+        if (cs.contains("defaultCurvePoints")) {
             QJsonArray arr = cs["defaultCurvePoints"].toArray();
             m_defaultCurvePoints.clear();
             for (const auto& v : arr) {
@@ -563,7 +673,7 @@ void OpenGLWidget::LoadScene(const QString& filename)
                     m_defaultCurvePoints.push_back(QVector3D(pt[0].toDouble(), pt[1].toDouble(), pt[2].toDouble()));
             }
         }
-        {
+        if (cs.contains("curveDeformation")) {
             QJsonArray arr = cs["curveDeformation"].toArray();
             m_curveDeformation.clear();
             for (const auto& v : arr) {
@@ -572,16 +682,26 @@ void OpenGLWidget::LoadScene(const QString& filename)
                     m_curveDeformation.push_back({tuple[0].toInt(), tuple[1].toInt(), tuple[2].toDouble()});
             }
         }
-        {
+        if (cs.contains("lastDeformation")) {
             QJsonArray arr = cs["lastDeformation"].toArray();
             if (arr.size() == 3)
                 m_lastValidDeformation = {arr[0].toInt(), arr[1].toInt(), arr[2].toDouble()};
         }
-        {
+        if (cs.contains("angularWeights")) {
             QJsonArray arr = cs["angularWeights"].toArray();
             m_angularWeights.clear();
             for (const auto& v : arr) {
                 m_angularWeights.push_back(v.toDouble());
+            }
+        }
+        if (cs.contains("stiffnessBySegment")) {
+            QJsonArray arr = cs["stiffnessBySegment"].toArray();
+            m_stiffnessBySegment.clear();
+            for (const auto& v : arr) {
+                QJsonObject obj = v.toObject();
+                int segment = obj["segment"].toInt();
+                double stiffness = obj["stiffness"].toDouble();
+                m_stiffnessBySegment[segment] = stiffness;
             }
         }
 
@@ -592,7 +712,7 @@ void OpenGLWidget::LoadScene(const QString& filename)
         emit setRingRadiusSlider(m_curveRingRadius * 500.0f);
         emit setParticleRadiusVolumeSlider((fromMapped(m_particleRadiusVolume, 4.5f, 9.5f, 6.0) + 1.0f) * 0.5f * 100.0f);
         emit setSpacingVolumeSlider((fromMapped(m_spacingVolume, 0.105f, -0.175f, 0.12f) + 1.0f) * 0.5f * 100.0f);
-        emit setAttachedChekBox(m_isAttached);
+        emit setAttachedCheckBox(m_isAttached);
         emit setAttachedToModelCheckBox(m_isAttachedToModel);
     }
 
@@ -600,7 +720,6 @@ void OpenGLWidget::LoadScene(const QString& filename)
     {
     
     }
-
 
     // // Load particles
     // makeCurrent();
@@ -714,16 +833,27 @@ void OpenGLWidget::SaveScene(const QString& filename)
         curveObject["lastSize"] = m_lastValidCurveSize;
         curveObject["depth"] = m_curveDepth;
         curveObject["ringRadius"] = m_curveRingRadius;
+        curveObject["stiffnessAreola"] = m_stiffnessAreola;
         // curveObject["haveThickness"] = m_haveThickness;
         curveObject["isAttached"] = m_isAttached;
         curveObject["isAttachedToModel"] = m_isAttachedToModel;
+        curveObject["stiffnessAttached"] = m_stiffnessAttached;
         curveObject["spacingVolume"] = m_spacingVolume;
         curveObject["particleRadiusVolume"] = m_particleRadiusVolume;
         curveObject["nSegments"] = m_nSegments;
 
-        QJsonArray angularWeigthtsArray;
-        for (const auto& weight : m_angularWeights) angularWeigthtsArray.append(weight);
-        curveObject["angularWeights"] = angularWeigthtsArray;
+        QJsonArray stiffnessBySegment;
+        for (const auto& stiffness : m_stiffnessBySegment) {
+            QJsonObject obj;
+            obj["segment"] = stiffness.first;
+            obj["stiffness"] = stiffness.second;
+            stiffnessBySegment.append(obj);
+        }
+        curveObject["stiffnessBySegment"] = stiffnessBySegment;
+
+        QJsonArray angularWeightsArray;
+        for (const auto& weight : m_angularWeights) angularWeightsArray.append(weight);
+        curveObject["angularWeights"] = angularWeightsArray;
 
         sceneRoot["curveSettings"] = curveObject;
     }
@@ -732,6 +862,7 @@ void OpenGLWidget::SaveScene(const QString& filename)
     {
 
     }
+
 
     // // Save the particles
     // QJsonArray particlesArray;
@@ -826,6 +957,8 @@ void OpenGLWidget::InitCurves()
     size_t n = m_curvePoints.size() * 0.5f;
     for (size_t i = 1; i < n ; ++i) m_curveDeformation.push_back({i, m_curvePoints.size() - i, 0.0f});
 
+    for (int i = 0; i < m_nSegments; ++i) m_stiffnessBySegment[i] = 400.0f + i * 10.0f;
+
 }
 
 void OpenGLWidget::ChangeControlPointPosistion(const QVector3D& direction)
@@ -866,7 +999,7 @@ bool OpenGLWidget::GetPointOntoMesh(QVector3D& point)
 
     Ray ray(point, QVector3D(0, 0, -1));
 
-    float minDistSq = std::numeric_limits<float>::max();
+    float minT = std::numeric_limits<float>::max();
 
     std::vector<std::shared_ptr<TriangleCollider>> triangles;
     QueryBVH<TriangleCollider>(AABB(point - QVector3D(0.01,0.01,0.01), point + QVector3D(0.01,0.01,0.01)), m_bvhTorsoColliders.get(), triangles);
@@ -874,20 +1007,15 @@ bool OpenGLWidget::GetPointOntoMesh(QVector3D& point)
     for (const auto& triangle : triangles)
     {
         result = RayIntersectsTriangle(ray, triangle);
-        if (result.hit)
+        if (result.hit && result.t < minT)
         {
-            float distSq = (result.point - point).lengthSquared();
-            if (distSq < minDistSq)
-            {
-                minDistSq = distSq;
-                point = result.point;
-            }
+            minT = result.t;
+            point = result.point;
             hit = true;
-        };
+        }
     }
 
     return hit;
-
 }
 
 
@@ -1046,16 +1174,13 @@ void OpenGLWidget::CurveToParticlesSprings()
 
     auto segmentMap = AssignSegmentToVertices(mesh, centerRing, m_angularWeights, QVector3D(0, 0, 1), m_nSegments == 2 ? QVector3D(1, 0, 0) : QVector3D(0, 1, 0));
 
-    std::unordered_map<int, float> stiffnessBySegment(m_nSegments);
-    for (int i = 0; i < m_nSegments; ++i) stiffnessBySegment[i] = 400.0f + i * 10.0f;
-
     // 5. Reconstruire le modèle
     m_particles.clear();
     m_springs.clear();
     m_triangleColliders.clear();
     m_fillTriangleColliders.clear();
 
-    ReconstructFromCGALMesh(mesh, segmentMap, stiffnessBySegment, vertexToParticleMap, m_particles, m_springs, m_triangleColliders);
+    ReconstructFromCGALMesh(mesh, segmentMap, m_stiffnessBySegment, vertexToParticleMap, m_particles, m_springs, m_triangleColliders);
     
     auto borderSprings = GetBorderSprings(mesh, vertexToParticleMap, m_springs);
     if (borderSprings.size() >= 2) {
@@ -1063,9 +1188,9 @@ void OpenGLWidget::CurveToParticlesSprings()
         BorderSprings& ring   = borderSprings[1];
 
         for (auto& p : profil.particles) p->SetStatic();
-        for (auto& s : profil.springs) { s->SetStiffness(1000.0f); s->SetColor(floatToQColor(1000.0f)); }
-        for (auto& s : ring.springs) { s->SetStiffness(1000.0f); s->SetColor(floatToQColor(1000.0f)); }
-        
+        for (auto& s : profil.springs) { s->SetStiffness(m_stiffnessAreola); s->SetColor(floatToQColor(m_stiffnessAreola)); }
+        for (auto& s : ring.springs) { s->SetStiffness(m_stiffnessAreola); s->SetColor(floatToQColor(m_stiffnessAreola)); }
+
         m_particles.push_back(centerParticle);
         
         // Copy unordered_set to vector for indexed access
@@ -1073,7 +1198,7 @@ void OpenGLWidget::CurveToParticlesSprings()
         for (size_t i = 0; i < ringSize; ++i)
         {
             // Springs connections
-            auto s = std::make_shared<Spring>(ring.particles[i], centerParticle, 1000.0f);
+            auto s = std::make_shared<Spring>(ring.particles[i], centerParticle, m_stiffnessAreola);
             m_springs.push_back(s);
 
             // Triangles Colliders
@@ -1103,7 +1228,6 @@ void OpenGLWidget::CurveToParticlesSprings()
     doneCurrent();
 
     FillVolumeWithParticle();
-
 }
 
 void OpenGLWidget::FillVolumeWithParticle()
@@ -1115,7 +1239,7 @@ void OpenGLWidget::FillVolumeWithParticle()
     float particleMass = 1.0f;
     float particleRadius = m_particleRadiusVolume;
     float spacing = m_spacingVolume;
-    float stiffness = 100.0f;
+    float stiffness = m_stiffnessAttached;
 
     std::unique_ptr<BVHNode<TriangleCollider>> bvh = BuildBVH(m_fillTriangleColliders);
 
@@ -1370,7 +1494,6 @@ void OpenGLWidget::VoxelToParticlesSprings()
     // for (auto& t : m_voxel.triangleColliders) m_physicsSystem->AddTriangleCollider(t);
 
     doneCurrent();
-
 }
 
 void OpenGLWidget::SetViewMode(ViewMode mode)

@@ -49,10 +49,11 @@ void Render(const Ray& ray)
 	Line line;
 	line.start = ray.origin;
 	line.end = ray.origin + ray.direction * 50000.0f;
-	glBegin(GL_LINES);
-	glVertex3f(line.start[0], line.start[1], line.start[2]);
-	glVertex3f(line.end[0], line.end[1], line.end[2]);
-	glEnd();
+	// glBegin(GL_LINES);
+	// glVertex3f(line.start[0], line.start[1], line.start[2]);
+	// glVertex3f(line.end[0], line.end[1], line.end[2]);
+	// glEnd();
+    Render(line);
 }
 
 void Render(const AABB& aabb) 
