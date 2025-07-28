@@ -49,6 +49,7 @@ public:
     // Other properties
     // QVector3D velocity { 0.0f, 0.0f, 0.0f };
     QVector3D forces   { 0.0f, 0.0f, 0.0f };
+    // long unsigned int m_sleepCount { 0 }; // Counter for sleeping rigidbodies
 
     // Collision volumes
     OBB boxCollider;
@@ -64,18 +65,19 @@ public:
     virtual void SolveConstraints(const std::vector<std::shared_ptr<Rigidbody>>& constraints);
     virtual void SolveConstraints(const std::vector<std::shared_ptr<TriangleCollider>>& constraints);
 
-    virtual inline void SynsCollisionVolumes() { }
+    virtual inline void SyncCollisionVolumes() { }
 
     virtual void ApplyPositionCorrection(const QVector3D& correction);
     virtual void ApplyRotationCorrection(const QVector3D& torque);
 
     // Utilities
-    inline bool IsStatic() const { return isStatic; }
-    inline bool IsDynamic() const { return !isStatic; }
-    inline float GetMass() const { return mass; }
-    inline float GetInvMass() const { return isStatic ? 0.0f : invMass; }
-    inline float GetFriction() const { return friction; }
-    inline QVector3D GetGravity() const { return gravity; }
+    inline bool IsStatic()         const { return isStatic; }
+    inline bool IsDynamic()        const { return !isStatic; }
+    // inline bool IsDirty()          const { return isDirty; }
+    inline float GetMass()         const { return mass; }
+    inline float GetInvMass()      const { return isStatic ? 0.0f : invMass; }
+    inline float GetFriction()     const { return friction; }
+    inline QVector3D GetGravity()  const { return gravity; }
     inline QVector3D GetPosition() const { return transform.position; }
     // inline QVector3D GetVelocity() const { return velocity; }
 
@@ -84,16 +86,17 @@ public:
     int GetType()           const { return type; }
 
     // Configuration
-    void SetMass(float m) { mass = m; m <= 0.0f ? invMass = 0.0f : invMass = 1.0f / m; }
-    void SetStatic() { isStatic = true; }
-    void SetDynamic() { isStatic = false; }
-    void SetFriction(float f) { friction = f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f; }
-    void SetRestitution(float r) { restitution = r < 0.0f ? 0.0f : r > 1.0f ? 1.0f : r; }
+    void SetMass(float m)               { mass = m; m <= 0.0f ? invMass = 0.0f : invMass = 1.0f / m; }
+    void SetStatic()                    { isStatic = true; }
+    void SetDynamic()                   { isStatic = false; }
+    void SetFriction(float f)           { friction = f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f; }
+    void SetRestitution(float r)        { restitution = r < 0.0f ? 0.0f : r > 1.0f ? 1.0f : r; }
     void SetGravity(const QVector3D& g) { gravity = g; }
+    // void SetDirtyFlag(bool dirty)       { isDirty = dirty; }
     // void SetVelocity(const QVector3D& v) { velocity = v; }
 
-    virtual inline void SetPosition(const QVector3D& p) {}
-    virtual inline void SetRotation(const QQuaternion& q) {}
+    virtual inline void SetPosition(const QVector3D& p)   { }
+    virtual inline void SetRotation(const QQuaternion& q) { }
 
     virtual AABB GetAABB() const;
 };

@@ -33,7 +33,7 @@ void Model::Init()
 }
 
 
-void Model::SynsCollisionVolumes()
+void Model::SyncCollisionVolumes()
 {
     triangleColliders.clear();
 
@@ -71,7 +71,7 @@ void Model::SetUpColliders()
 
     BuildAABB();
 
-    SynsCollisionVolumes();
+    SyncCollisionVolumes();
 }
 
 void Model::LoadModel(const QString& path)
@@ -181,12 +181,12 @@ void Model::BuildAABB()
 void Model::SetPosition(const QVector3D& p) {
     transform.position = p;
     oldPosition = p;
-    SynsCollisionVolumes();
+    SyncCollisionVolumes();
 }
 
 void Model::SetRotation(const QQuaternion& q) {
     transform.SetRotation(q);
-    SynsCollisionVolumes();
+    SyncCollisionVolumes();
 }
 
 bool Model::IsValid() const

@@ -44,7 +44,7 @@ public:
     void Update(float dt) override;
     void Render(QOpenGLShaderProgram* shaderProgram) override;
     
-    void SynsCollisionVolumes() override;
+    void SyncCollisionVolumes() override;
 
     AABB GetAABB() const override { return bounds; }
     

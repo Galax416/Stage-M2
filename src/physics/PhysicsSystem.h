@@ -5,6 +5,7 @@
 #include <QtConcurrent> // For concurrent processing
 #include <QMutex>  
 #include <QMutexLocker> // For thread safety
+#include <QElapsedTimer>
 #include <QDebug>
 #include <vector>
 #include <memory>
@@ -113,8 +114,5 @@ public:
 private: 
     bool m_renderCollider { false }; // Flag to render colliders
     bool m_renderBVH { false }; // Flag to render the BVH tree
-    QMutex m_dataMutex; 
-
-
-
+    QMutex m_dataMutex;
 };

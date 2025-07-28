@@ -29,7 +29,7 @@ void Rigidbody::ApplyPositionCorrection(const QVector3D& correction)
 { 
     if (IsStatic()) return;
     transform.position += correction;
-    SynsCollisionVolumes();
+    SyncCollisionVolumes();
 }
 
 void Rigidbody::ApplyRotationCorrection(const QVector3D& torque)
@@ -46,7 +46,7 @@ void Rigidbody::ApplyRotationCorrection(const QVector3D& torque)
     QQuaternion rotationCorrection = QQuaternion::fromAxisAndAngle(axis, qRadiansToDegrees(angle));
 
     transform.SetRotation((transform.rotation * rotationCorrection).normalized());
-    SynsCollisionVolumes();
+    SyncCollisionVolumes();
 }
 
 

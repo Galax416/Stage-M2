@@ -36,7 +36,7 @@ public:
     void Update(float dt) override;
     void Render(QOpenGLShaderProgram* shaderProgram) override;
 
-    void SynsCollisionVolumes() override;
+    void SyncCollisionVolumes() override;
 
     void SetSegmentID(int id) { m_segmentID = id; }
     int GetSegmentID() const { return m_segmentID; }

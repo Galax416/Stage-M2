@@ -113,7 +113,6 @@ void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std:
                 spring->SetStiffness(static_cast<float>(value));
             }
             emit SendStiffnessUpdate(index, static_cast<float>(value));
-            qDebug() << "Spring stiffness updated for index" << index << "to" << value;
 
         });
         connect(spinBox, QOverload<int>::of(&QSpinBox::valueChanged), [=](int value) {
@@ -124,7 +123,6 @@ void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std:
                 spring->SetStiffness(static_cast<float>(value));
             }
             emit SendStiffnessUpdate(index, static_cast<float>(value));
-            qDebug() << "Spring stiffness updated for index" << index << "to" << value;
             
         });
 

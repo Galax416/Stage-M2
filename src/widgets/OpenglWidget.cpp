@@ -416,7 +416,7 @@ void OpenGLWidget::keyPressEvent(QKeyEvent *event)
     //         // m_press->SetPosition(m_press->GetPosition() + QVector3D(0, -2, 0) * m_deltaTime);
     //         m_press->SetMass(m_press->GetMass() + 1.0f);
     //         qDebug() << m_press->GetMass();
-    //         m_press->SynsCollisionVolumes();
+    //         m_press->SyncCollisionVolumes();
     //         doneCurrent();
     //         break;
     //     }
@@ -427,7 +427,7 @@ void OpenGLWidget::keyPressEvent(QKeyEvent *event)
     //         // m_press->SetPosition(m_press->GetPosition() + QVector3D(0, 2, 0) * m_deltaTime);
     //         m_press->SetMass(m_press->GetMass() - 1.0f);
     //         qDebug() << m_press->GetMass();
-    //         m_press->SynsCollisionVolumes();
+    //         m_press->SyncCollisionVolumes();
     //         doneCurrent();
     //         break;
     //     }
