@@ -23,7 +23,8 @@ public:
     explicit SpringSettingsWidget(QWidget *parent = nullptr);
     // ~SpringSettingsWidget() override;
 
-// signals:
+signals:
+    void SendStiffnessUpdate(const int id, const float value);
 
 public slots:
     void UpdateSpringsStiffnessControls(const std::vector<std::shared_ptr<Spring>>& springs);
@@ -38,5 +39,7 @@ private:
     QVBoxLayout* m_springSettingsLayout;
     
     QGroupBox* m_stiffnessGroupBox;
+
+    // std::unordered_map<int, float> m_initialStiffnessValues;
 
 };

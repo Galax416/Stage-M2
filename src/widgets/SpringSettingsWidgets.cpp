@@ -64,9 +64,12 @@ void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std:
     int numRows = kGroups.size();
     m_stiffnessGroupBox->setMaximumHeight(60 * numRows); 
 
+
+    int index = 0;
     // For each group of springs with the same stiffness, we can change the stiffness
     for (auto it = kGroups.begin(); it != kGroups.end(); ++it) {
         float initialK = it.key();
+
         QVector<std::shared_ptr<Spring>> springGroup = it.value();
         
         auto rowLayout = new QHBoxLayout();
@@ -109,6 +112,9 @@ void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std:
             for (const auto& spring : springGroup) {
                 spring->SetStiffness(static_cast<float>(value));
             }
+            emit SendStiffnessUpdate(index, static_cast<float>(value));
+            qDebug() << "Spring stiffness updated for index" << index << "to" << value;
+
         });
         connect(spinBox, QOverload<int>::of(&QSpinBox::valueChanged), [=](int value) {
             slider->setValue(value);
@@ -117,6 +123,9 @@ void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std:
             for (const auto& spring : springGroup) {
                 spring->SetStiffness(static_cast<float>(value));
             }
+            emit SendStiffnessUpdate(index, static_cast<float>(value));
+            qDebug() << "Spring stiffness updated for index" << index << "to" << value;
+            
         });
 
         rowLayout->addWidget(colorButton);
@@ -124,7 +133,10 @@ void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std:
         rowLayout->addWidget(spinBox);
 
         stiffnessLayout->addLayout(rowLayout);
+
+        index++;
     }
+
 
     m_springSettingsLayout->addWidget(m_stiffnessGroupBox);
     

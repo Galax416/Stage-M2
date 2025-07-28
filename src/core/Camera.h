@@ -17,8 +17,8 @@ public:
 
     // Setters
     void SetPosition(const QVector3D& position)   { m_transform.position = position; SetPositionAndTarget(m_transform.position, m_target); }
-    // void SetRotation(const QQuaternion& rotation) { m_transform.SetRotation(rotation); ComputeView(m_viewMatrix, m_projectionMatrix); }
-    // void SetRotation(const QVector3D& euler)      { m_transform.SetRotationEuler(euler); ComputeView(m_viewMatrix, m_projectionMatrix); }
+    void SetRotation(const QQuaternion& rotation) { m_orbitRotation = rotation; ComputeView(m_viewMatrix, m_projectionMatrix); }
+    void SetRotation(const QVector3D& euler)      { m_orbitRotation = QQuaternion::fromEulerAngles(euler); ComputeView(m_viewMatrix, m_projectionMatrix); }
     void SetTarget(const QVector3D& target)       { m_target = target; SetPositionAndTarget(m_transform.position, m_target); }
     // void SetFront(const QVector3D& front)         { m_front = front; ComputeView(m_viewMatrix, m_projectionMatrix); }
     void SetFov(const float fov)                  { m_fov = fov; ComputeView(m_viewMatrix, m_projectionMatrix); }
@@ -41,6 +41,9 @@ public:
     QMatrix4x4 GetViewMatrix()       const { return m_viewMatrix; }
     QMatrix4x4 GetProjectionMatrix() const { return m_projectionMatrix; }
     QVector3D GetDownVector()        const { return m_orbitRotation.rotatedVector(QVector3D(0, -1, 0)).normalized(); }
+
+    // Actions
+    void Rotate(const QVector3D& deltaRotationEuler) { m_orbitRotation = QQuaternion::fromEulerAngles(deltaRotationEuler) * m_orbitRotation; ComputeView(m_viewMatrix, m_projectionMatrix); }
 
     // Events
     void mousePressEvent(QMouseEvent* event);

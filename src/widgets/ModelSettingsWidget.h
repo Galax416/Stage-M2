@@ -58,7 +58,7 @@ signals:
     void DeformModelSpacingVolumeChanged(float spacing);
     void DeformModelParticleRadiusVolumeChanged(float radius);
     void UpdateNSegmentsChanged(int nSegments);
-    void SegmentParameterChanged(std::vector<float> values);
+    void SegmentParameterChanged(std::vector<float>& values);
 
 public slots:  
     void ClearSceneSlot();

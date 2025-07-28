@@ -33,9 +33,12 @@ MainWindow::MainWindow(QWidget* parent)
     // QMenu* menu3D = m_menuBar->addMenu("3D");
     m_menuBar->addSeparator();
     QMenu* view = m_menuBar->addMenu("View");
-    QAction* vue1 = view->addAction("View 1");
-    QAction* vue2 = view->addAction("View 2");
-    QAction* vue3 = view->addAction("View 3");
+    QAction* vue1 = view->addAction("Front");
+    QAction* vue2 = view->addAction("Left");
+    QAction* vue3 = view->addAction("Right");
+    QAction* vue4 = view->addAction("Top");
+    QAction* vue5 = view->addAction("Bottom");
+    QAction* vue6 = view->addAction("View 6");
     m_menuBar->addSeparator();
     QMenu* debug = m_menuBar->addMenu("Debug");
     QAction* debugWireframe = debug->addAction("Debug Wireframe");
@@ -133,29 +136,21 @@ MainWindow::MainWindow(QWidget* parent)
     });
     connect(exitAction, &QAction::triggered, this, &MainWindow::close);
 
-    connect(vue1, &QAction::triggered, this, [this]() {
-        m_openGLWidget->SetViewMode(ViewMode::View1);
-    });
-    connect(vue2, &QAction::triggered, this, [this]() {
-        m_openGLWidget->SetViewMode(ViewMode::View2);
-    });
-    connect(vue3, &QAction::triggered, this, [this]() {
-        m_openGLWidget->SetViewMode(ViewMode::View3);
-    });
-    connect(debugWireframe, &QAction::triggered, this, [this]() {
-        m_openGLWidget->SetRenderWireframe();
-    });
-    connect(debugColliders, &QAction::triggered, this, [this]() {
-        m_openGLWidget->SetRenderCollider();
-    });
-    connect(debugBVH, &QAction::triggered, this, [this]() {
-        m_openGLWidget->SetRenderBVH();
-    });
+    connect(vue1, &QAction::triggered, this, [this]() { m_openGLWidget->SetViewMode(ViewMode::View1); });
+    connect(vue2, &QAction::triggered, this, [this]() { m_openGLWidget->SetViewMode(ViewMode::View2); });
+    connect(vue3, &QAction::triggered, this, [this]() { m_openGLWidget->SetViewMode(ViewMode::View3); });
+    connect(vue4, &QAction::triggered, this, [this]() { m_openGLWidget->SetViewMode(ViewMode::View4); });
+    connect(vue5, &QAction::triggered, this, [this]() { m_openGLWidget->SetViewMode(ViewMode::View5); });
+    connect(vue6, &QAction::triggered, this, [this]() { m_openGLWidget->SetViewMode(ViewMode::View6); });
+
+    connect(debugWireframe, &QAction::triggered, this, [this]() { m_openGLWidget->SetRenderWireframe(); });
+    connect(debugColliders, &QAction::triggered, this, [this]() { m_openGLWidget->SetRenderCollider(); });
+    connect(debugBVH, &QAction::triggered, this, [this]() { m_openGLWidget->SetRenderBVH(); });
     
     // Status bar
     connect(m_openGLWidget, &OpenGLWidget::statusBarMessageChanged, this, &MainWindow::updateStatusBarMessage);
-    
-    // Gloal settings
+
+    // Global settings
     connect(m_globalSettingsWidget, &GlobalSettingsWidget::ClearSceneButtonClicked, m_openGLWidget, &OpenGLWidget::ClearSceneSlot);
     connect(m_globalSettingsWidget, &GlobalSettingsWidget::ClearSceneButtonClicked, m_modelSettingsWidget, &ModelSettingsWidget::ClearSceneSlot);
     connect(m_globalSettingsWidget, &GlobalSettingsWidget::DeltaTimeChanged,        m_openGLWidget, &OpenGLWidget::setGlobalDeltaTime);
@@ -196,21 +191,20 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_openGLWidget, &OpenGLWidget::setSpacingVolumeSlider,        m_modelSettingsWidget, &ModelSettingsWidget::SetSpacingVolume);
     connect(m_openGLWidget, &OpenGLWidget::setAttachedCheckBox,           m_modelSettingsWidget, &ModelSettingsWidget::SetAttachedCheckBox);
     connect(m_openGLWidget, &OpenGLWidget::setAttachedToModelCheckBox,    m_modelSettingsWidget, &ModelSettingsWidget::SetAttachedToModelCheckBox);
-
+    
     // Model settings (3D)
     connect(m_openGLWidget, &OpenGLWidget::update3DModelParametersChanged, m_modelSettingsWidget, &ModelSettingsWidget::Update3DModelParameters);
-
+    
     // Spring settings
     connect(m_openGLWidget, &OpenGLWidget::updateSpringsStiffnessControlsChanged, m_springSettingsWidget, &SpringSettingsWidget::UpdateSpringsStiffnessControls);
+    connect(m_springSettingsWidget, &SpringSettingsWidget::SendStiffnessUpdate,   m_openGLWidget, &OpenGLWidget::setNewStiffness);
 
     // Buttons (clear, reset, play/stop)
     connect(m_openGLWidget, &OpenGLWidget::buttonStateChanged, this, &MainWindow::updateButtonsState); // Dynamicly change Play to Stop and vice versa
     // connect(m_clearButton, &QPushButton::clicked, this, [this]() {
     //     m_openGLWidget->Clear();
     // });
-    connect(m_resetButton, &QPushButton::clicked, this, [this]() {
-        m_openGLWidget->Reset();
-    });
+    connect(m_resetButton, &QPushButton::clicked, this, [this]() { m_openGLWidget->Reset(); });
     connect(m_playStopButton, &QPushButton::clicked, this, [this]() {
         if (m_openGLWidget->IsPaused()) m_openGLWidget->Play();
         else m_openGLWidget->Stop();

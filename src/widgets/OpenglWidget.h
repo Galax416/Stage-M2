@@ -27,7 +27,7 @@
 
 #define GRAVITY    QVector3D(0.0f, -9.81f, 0.0f)
 
-#define Verbose false // Set to true to enable verbose output
+#define Verbose true // Set to true to enable verbose output
 
 // Foward declarations
 class Camera;
@@ -38,7 +38,10 @@ enum ViewMode
 {
     View1,
     View2,
-    View3
+    View3,
+    View4,
+    View5,
+    View6
 };
 
 class OpenGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
@@ -109,11 +112,11 @@ public slots:
     void gravityChanged();
 
     void setCrossSpringModel(bool value)      { m_crossSpringModel = value; if (Verbose) qDebug() << "setCrossSpringModel"; Reset(); }
-    void setCurves(bool create)               { m_isCurve = create; m_isModel = false; m_isVoxelModel = false; SetDefaultCurveValues(); if (Verbose) qDebug() << "setCurves"; Reset(); }
-    void setVoxelModel(bool create)           { m_isVoxelModel = create; m_isModel = false; m_isCurve = false; if (Verbose) qDebug() << "setVoxelModel"; Reset(); }
-    void setThickness(bool value)             { m_haveThickness = value; if (Verbose) qDebug() << "setThickness"; Reset(); }
-    void setAttached(bool value)              { m_isAttached = value; if (Verbose) qDebug() << "setAttached"; Reset(); }
-    void setAttachedToModel(bool value)       { m_isAttachedToModel = value; if (Verbose) qDebug() << "setAttachedToModel"; Reset(); }
+    void setCurves(bool create)               { m_isCurve = create; m_isModel = false; m_isVoxelModel = false; SetDefaultCurveValues(); InitStiffnessValues(); if (Verbose) qDebug() << "setCurves"; Reset(); }
+    void setVoxelModel(bool create)           { m_isVoxelModel = create; m_isModel = false; m_isCurve = false; InitStiffnessValues(); if (Verbose) qDebug() << "setVoxelModel"; Reset(); }
+    void setThickness(bool value)             { m_haveThickness = value; InitStiffnessValues(); if (Verbose) qDebug() << "setThickness"; Reset(); }
+    void setAttached(bool value)              { m_isAttached = value; InitStiffnessValues(); if (Verbose) qDebug() << "setAttached"; Reset(); }
+    void setAttachedToModel(bool value)       { m_isAttachedToModel = value; InitStiffnessValues(); if (Verbose) qDebug() << "setAttachedToModel"; Reset(); }
     void addParticle();
     void setSamplingModel(int value)          { m_numSamples  = value; if (Verbose) qDebug() << "setSamplingModel" << m_numSamples; Reset(); }
     void setLayerModel(int value)             { m_curveLayers = value; if (Verbose) qDebug() << "setLayerModel" << m_curveLayers; Reset(); }
@@ -124,9 +127,10 @@ public slots:
     void setCurveHeight(float value)                 { m_heightScale = (value + 1.0f); UpdateCurveHeightWidth(); if (Verbose) qDebug() << "setCurveHeight"; Reset(); }
     void setCurveSize(float value)                   { m_curveSize = (value + 1.0f); UpdateCurveHeightWidth(); if (Verbose) qDebug() << "setCurveSize" << m_curveSize; Reset(); }
     void setCurveDepth(float value)                  { m_curveDepth = (value + 1.0f); if (Verbose) qDebug() << "setCurveDepth" << m_curveDepth; Reset(); }
-    void setCurveRing(float value)                   { m_curveRingRadius = (value + 1.0f) * 0.1f; if (Verbose) qDebug() << "setCurveRing" << m_curveRingRadius; Reset(); }
+    void setCurveRing(float value)                   { m_curveRingRadius = (value + 1.0f) * 0.18f; if (Verbose) qDebug() << "setCurveRing" << m_curveRingRadius; Reset(); }
     void setNSegements(int value)                    { m_nSegments = value; m_angularWeights = std::vector<float>(value, 1.0f / static_cast<float>(value)); if (Verbose) qDebug() << "setNSegements" << m_nSegments; Reset(); }
-    void setSegmentSliders(std::vector<float> values){ if (m_angularWeights.size() != values.size()) return; m_angularWeights = values; if (Verbose) qDebug() << "setSegmentSliders"; Reset(); }
+    void setSegmentSliders(std::vector<float>& values){ if (m_angularWeights.size() != values.size()) return; m_angularWeights = values; if (Verbose) qDebug() << "setSegmentSliders"; Reset(); }
+    void setNewStiffness(const int id, const float value) { auto it = m_stiffness.find(id); if (it != m_stiffness.end()) *(it->second) = value; }
 
     void ClearSceneSlot() { Stop(); ClearScene(); m_isModel = false; m_isCurve = false; m_isVoxelModel = false; m_renderBVH = false; m_isWireMode = false; Reset(); }
     void Reset();
@@ -141,16 +145,45 @@ private:
     
     void SetDefaultCurveValues() 
     {
-        // InitCurves();
         m_numSamples      = DEFAULT_SAMPLING;
         m_curveLayers     = DEFAULT_LAYERS;
         m_curveSize       = DEFAULT_SIZE / 50.0f;
         m_curveDepth      = DEFAULT_DEPTH / 50.0f;
-        m_curveRingRadius = 0.1f;
+        m_curveRingRadius = 0.18f;
         m_spacingVolume   = 0.12f;
         m_particleRadiusVolume = 6.0f; // Default particle radius for volume filling
         m_stiffnessAttached = 100.0f; // Default stiffness for attached particles
         m_angularWeights = std::vector<float>(DEFAULT_N_SEGMENTS, 1.0f / static_cast<float>(DEFAULT_N_SEGMENTS));
+        m_stiffnessAreola = 1000.0f;
+        m_stiffnessAttached = 100.0f; 
+        m_nSegments = DEFAULT_N_SEGMENTS;
+        m_haveThickness = true;
+        m_stiffnessInterLayer = 500.0f;
+
+        m_stiffnessBySegment.clear();
+        switch ( m_nSegments )
+        {
+            case 1:
+                m_stiffnessBySegment[0] = 400.0f;
+                break;
+            case 2:
+                m_stiffnessBySegment[0] = 400.0f;
+                m_stiffnessBySegment[1] = 410.0f;
+                break;
+            case 3:
+                m_stiffnessBySegment[0] = 400.0f;
+                m_stiffnessBySegment[1] = 450.0f;
+                m_stiffnessBySegment[2] = 410.0f;
+                break;
+            case 4:
+                m_stiffnessBySegment[0] = 400.0f;
+                m_stiffnessBySegment[1] = 450.0f;
+                m_stiffnessBySegment[2] = 410.0f;
+                m_stiffnessBySegment[3] = 4550.0f;
+                break;
+        }
+        // InitCurves();
+
     }
 
     void InitCurves();
@@ -158,12 +191,16 @@ private:
     void UpdateCurveHeightWidth();
     void ChangeControlPointPosistion(const QVector3D& direction);
     void CurveToParticlesSprings();
+    void BuildBreast(const std::vector<QVector3D>& profile);
     bool GetPointOntoMesh(QVector3D& point);
-    void FillVolumeWithParticle();
+    void FillVolumeWithParticle(const std::vector<QVector3D>& profile, std::vector<std::shared_ptr<TriangleCollider>>& triangleColliders);
+    void Add2ndLayer(std::vector<std::shared_ptr<Particle>>& particles, std::vector<std::shared_ptr<Spring>>& springs, const QVector3D& center, const float thickness, const float stiffnessInterLayer);
     std::vector<std::shared_ptr<TriangleCollider>> m_fillTriangleColliders;
 
     void InitVoxelModel();
     void VoxelToParticlesSprings();
+
+    void InitStiffnessValues();
 
     float m_deltaTime { DELTATIME };
 
@@ -188,6 +225,7 @@ private:
     std::unique_ptr<BVHNode<TriangleCollider>> m_bvhSceneCollider;
 
     // Model settings
+    std::unordered_map<int, float*> m_stiffness;
     bool m_isModel { false }; // Is a model loaded
     bool m_crossSpringModel { true }; // Cross spring model
 
@@ -200,7 +238,6 @@ private:
     std::vector<QVector3D> m_curvePointsSliders; 
     std::vector<QVector3D> m_defaultCurvePoints;
     std::vector<QVector3D> m_profilePoints; // Sampled points of the curve
-    std::vector<QVector3D> m_ringPoints; // Sampled points of the ring
     std::vector<std::tuple<int, int, float>> m_curveDeformation;
     std::tuple<int, int, float> m_lastValidDeformation; // Last valid deformation values
     QVector3D m_curveCenter      { 0.0f, 0.0f, 0.0f }, m_initialCurveCenter;
@@ -213,8 +250,9 @@ private:
     float m_curveSize            { DEFAULT_SIZE / 50.0f };
     float m_lastValidCurveSize   { DEFAULT_SIZE / 50.0f }; // Last valid curve size
     float m_curveDepth           { DEFAULT_DEPTH / 50.0f };
-    float m_curveRingRadius      { 0.1f };
+    float m_curveRingRadius      { 0.18f };
     bool  m_haveThickness        { true };
+    float m_stiffnessInterLayer  { 500.0f }; // Stiffness for inter-layer particles
     bool  m_isAttached           { false }; 
     bool  m_isAttachedToModel    { false }; 
     float m_spacingVolume        { 0.12f };

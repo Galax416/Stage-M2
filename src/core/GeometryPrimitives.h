@@ -19,8 +19,7 @@ struct Ray
     QVector3D direction;
 
     inline Ray() {}
-    inline Ray(const QVector3D& o, const QVector3D& d) : origin(o), direction(d) { NormalizeDirection(); }
-    inline void NormalizeDirection() { direction.normalize(); }
+    inline Ray(const QVector3D& o, const QVector3D& d) : origin(o), direction(d) { }
 };
 
 inline Ray ScreenToWorldRay(const QPoint& mousePos, const Camera* camera, int width, int height) 

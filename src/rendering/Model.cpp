@@ -217,10 +217,10 @@ void Model::ComputeFaces()
     
 }
 
-void Model::Remesh(double targetLength)
-{
-    if (!mesh) return;
-    mesh->Remesh(targetLength);
-    ComputeFaces();
-    SetUpColliders();
-}
+// void Model::Remesh(double targetLength)
+// {
+//     if (!mesh) return;
+//     mesh->Remesh(targetLength);
+//     ComputeFaces();
+//     SetUpColliders();
+// }

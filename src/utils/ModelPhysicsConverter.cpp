@@ -333,7 +333,6 @@ void UpdateModelFromParticles(std::shared_ptr<Model> &model)
         model->mesh->vertices[i].position = particle->GetPosition();
     }
 
-    // model->mesh->ComputeNormals(); // Recompute normals after updating positions
+    model->mesh->ComputeNormals(); // Recompute normals after updating positions
     model->mesh->UpdateBuffers(); // Update the OpenGL buffers with the new vertex data
-
 }

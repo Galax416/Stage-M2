@@ -119,6 +119,32 @@ void SolvePaticleTriangleCollision(Particle& p, TriangleCollider& tri)
     float totalInvMass = w + w1 + w2 + w3;
     if (totalInvMass <= 0.0f) return; // Ignore static objects
 
+    QVector3D posStart = p.oldPosition;
+    QVector3D posEnd   = p.GetPosition();
+    QVector3D dir = (posEnd - posStart);
+
+    // CCD (Continuous Collision Detection)
+    Ray ray(posStart, dir);
+    auto triangleCollider = std::make_shared<TriangleCollider>(tri);
+    RayCastResult ccdResult = RayIntersectsTriangle(ray, triangleCollider);
+
+    if (ccdResult.hit && ccdResult.t >= 0.0f && ccdResult.t <= dir.length()) {
+
+        QVector3D corrected = ccdResult.point - ray.direction.normalized() * p.GetRadius();
+        QVector3D correction = corrected - posEnd;
+
+        correction /= totalInvMass;
+
+        if (p.IsDynamic()) { p.ApplyPositionCorrection(correction * w); }
+
+        if (tri.p0 != nullptr && tri.p1 != nullptr && tri.p2 != nullptr) {
+            if (tri.p0->IsDynamic()) { tri.p0->ApplyPositionCorrection(-correction * w1); }
+            if (tri.p1->IsDynamic()) { tri.p1->ApplyPositionCorrection(-correction * w2); }
+            if (tri.p2->IsDynamic()) { tri.p2->ApplyPositionCorrection(-correction * w3); }
+        }
+    }
+
+    // Discrete Collision Detection
     QVector3D correction;
     if (CheckParticleTriangleCollision(&p, tri, correction)) {
         correction /= totalInvMass;

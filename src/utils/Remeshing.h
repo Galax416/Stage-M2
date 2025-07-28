@@ -14,8 +14,9 @@
 #include "Utils.h"
 
 typedef CGAL::Simple_cartesian<double> Kernel;
-typedef Kernel::Point_3 Point;
-typedef CGAL::Surface_mesh<Point> SurfaceMesh;
+typedef Kernel::Point_3                Point;
+typedef CGAL::Surface_mesh<Point>      SurfaceMesh;
+
 namespace PMP = CGAL::Polygon_mesh_processing;
 
 
@@ -29,7 +30,7 @@ struct BorderSprings {
     std::vector<std::shared_ptr<Particle>> particles;
 };
 
-SurfaceMesh ConvertToCGALMeshWithConstraints(
+inline SurfaceMesh ConvertToCGALMeshWithConstraints(
     const std::vector<std::shared_ptr<Particle>>& particles,
     const std::vector<std::shared_ptr<TriangleCollider>>& triangles,
     std::unordered_map<SurfaceMesh::Vertex_index, std::shared_ptr<Particle>>& vertexToParticleMap,
@@ -61,7 +62,7 @@ SurfaceMesh ConvertToCGALMeshWithConstraints(
     return mesh;
 }
 
-void MarkConstrainedVertices(
+inline void MarkConstrainedVertices(
     SurfaceMesh& mesh,
     const RemeshingConstraints& constraints,
     SurfaceMesh::Property_map<SurfaceMesh::Vertex_index, bool>& vertexConstrained)
@@ -74,7 +75,7 @@ void MarkConstrainedVertices(
 }
 
 
-void MarkConstrainedEdges(
+inline void MarkConstrainedEdges(
     SurfaceMesh& mesh,
     const RemeshingConstraints& constraints,
     SurfaceMesh::Property_map<SurfaceMesh::Edge_index, bool>& edgeConstrained)
@@ -117,7 +118,7 @@ void MarkConstrainedEdges(
     }
 }
 
-std::vector<std::vector<std::shared_ptr<Particle>>> GetBorderParticles(
+inline std::vector<std::vector<std::shared_ptr<Particle>>> GetBorderParticles(
     const SurfaceMesh& mesh,
     const std::unordered_map<SurfaceMesh::Vertex_index, std::shared_ptr<Particle>>& vertexToParticleMap)
 {
@@ -146,7 +147,7 @@ std::vector<std::vector<std::shared_ptr<Particle>>> GetBorderParticles(
     return boundaryParticles;
 }
 
-std::vector<BorderSprings> GetBorderSprings(
+inline std::vector<BorderSprings> GetBorderSprings(
     const SurfaceMesh& mesh,
     const std::unordered_map<SurfaceMesh::Vertex_index, std::shared_ptr<Particle>>& vertexToParticleMap,
     const std::vector<std::shared_ptr<Spring>>& allSprings)
@@ -178,7 +179,7 @@ std::vector<BorderSprings> GetBorderSprings(
     return result;
 }
 
-std::unordered_map<SurfaceMesh::Vertex_index, int> AssignSegmentToVertices(
+inline std::unordered_map<SurfaceMesh::Vertex_index, int> AssignSegmentToVertices(
     const SurfaceMesh& mesh,
     const QVector3D& center,
     const std::vector<float>& angularWeights,
@@ -228,7 +229,7 @@ std::unordered_map<SurfaceMesh::Vertex_index, int> AssignSegmentToVertices(
 }
 
 
-void RemeshWithConstraints(
+inline void RemeshWithConstraints(
     SurfaceMesh& mesh,
     const RemeshingConstraints& constraints,
     double targetEdgeLength,
@@ -253,7 +254,7 @@ void RemeshWithConstraints(
 }
 
 
-void ReconstructFromCGALMesh(
+inline void ReconstructFromCGALMesh(
     const SurfaceMesh& mesh,
     const std::unordered_map<SurfaceMesh::Vertex_index, int>& sectorMap,
     const std::unordered_map<int, float>& sectorStiffness,
@@ -307,3 +308,4 @@ void ReconstructFromCGALMesh(
         }
     }
 }
+

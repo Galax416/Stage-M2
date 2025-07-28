@@ -56,7 +56,7 @@ public:
     bool IsValid() const;
     
     void ComputeFaces();
-    void Remesh(double targetLength);
+    // void Remesh(double targetLength);
     void SetDisplayAABB(bool display) { displayAABB = display; }
 
 private:

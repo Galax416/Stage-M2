@@ -40,7 +40,7 @@ struct Material
 };
 
 // Foward declaration 
-class CGALMesh;
+// class CGALMesh;
 
 class Mesh : protected QOpenGLFunctions 
 {
@@ -58,13 +58,13 @@ public:
     
     void ComputeNormals();
 
-    void FromCGALMesh();
-    void ToCGALMesh();
+    // void FromCGALMesh();
+    // void ToCGALMesh();
 
-    void Remesh(double targetLength);
+    // void Remesh(double targetLength);
     
 private:
-    std::shared_ptr<CGALMesh> cgalMesh;
+    // std::shared_ptr<CGALMesh> cgalMesh;
     std::unique_ptr<QOpenGLVertexArrayObject> VAO;
     std::unique_ptr<QOpenGLBuffer> VBO, IBO;
 

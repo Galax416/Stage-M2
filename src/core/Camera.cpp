@@ -157,7 +157,8 @@ QMatrix3x3 Camera::GetCameraBasis() const
     QVector3D up = m_orbitRotation.rotatedVector(WORLD_UP);                // up
     QVector3D front = m_orbitRotation.rotatedVector(QVector3D(0, 0, 1));   // front
 
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i) 
+    {
         basis(i, 0) = right[i];
         basis(i, 1) = up[i];
         basis(i, 2) = front[i];

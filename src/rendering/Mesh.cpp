@@ -2,73 +2,97 @@
 #include "TriangleCollider.h"
 #include "Utils.h"
 
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/Surface_mesh.h>
-#include <CGAL/Polygon_mesh_processing/remesh.h>
-#include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
+// #include <CGAL/Simple_cartesian.h>
+// #include <CGAL/Surface_mesh.h>
+// #include <CGAL/Polygon_mesh_processing/remesh.h>
+// #include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
+// #include <CGAL/Polygon_mesh_processing/repair.h>
+// #include <CGAL/Polygon_mesh_processing/stitch_borders.h>
+// #include <CGAL/boost/graph/helpers.h>
 
-namespace PMP = CGAL::Polygon_mesh_processing;
-typedef CGAL::Simple_cartesian<double> Kernel;
-typedef Kernel::Point_3 Point;
-typedef CGAL::Surface_mesh<Point> SurfaceMesh;
+// namespace PMP = CGAL::Polygon_mesh_processing;
+// typedef CGAL::Simple_cartesian<double> Kernel;
+// typedef Kernel::Point_3 Point;
+// typedef CGAL::Surface_mesh<Point> SurfaceMesh;
 
 
 // CGALMesh is a wrapper around CGAL::Surface_mesh<Point>
-class CGALMesh {
-public:
-    SurfaceMesh mesh;
+// class CGALMesh {
+// public:
+//     SurfaceMesh mesh;
 
-    void FromVertices(const std::vector<Vertex>& verts, const std::vector<unsigned int>& indices) {
-        mesh.clear();
-        std::vector<SurfaceMesh::Vertex_index> vmap;
-        for (const auto& v : verts)
-            vmap.push_back(mesh.add_vertex(Point(v.position.x(), v.position.y(), v.position.z())));
+//     void FromVertices(const std::vector<Vertex>& verts, const std::vector<unsigned int>& indices) {
+//         mesh.clear();
+//         std::vector<SurfaceMesh::Vertex_index> vmap;
+//         for (const auto& v : verts)
+//             vmap.push_back(mesh.add_vertex(Point(v.position.x(), v.position.y(), v.position.z())));
 
-        for (size_t i = 0; i + 2 < indices.size(); i += 3)
-            mesh.add_face(vmap[indices[i]], vmap[indices[i+1]], vmap[indices[i+2]]);
-    }
+//         for (size_t i = 0; i + 2 < indices.size(); i += 3)
+//             mesh.add_face(vmap[indices[i]], vmap[indices[i+1]], vmap[indices[i+2]]);
+//     }
 
-    void ToVertices(std::vector<Vertex>& verts, std::vector<unsigned int>& indices) {
-        verts.clear();
-        indices.clear();
-        std::unordered_map<SurfaceMesh::Vertex_index, int> vmap;
-        int idx = 0;
+//     void ToVertices(std::vector<Vertex>& verts, std::vector<unsigned int>& indices) {
+//         verts.clear();
+//         indices.clear();
+//         std::unordered_map<SurfaceMesh::Vertex_index, int> vmap;
+//         int idx = 0;
 
-        for (auto v : mesh.vertices()) {
-            const auto& p = mesh.point(v);
-            Vertex vert;
-            vert.position = QVector3D(p.x(), p.y(), p.z());
-            vert.normal = QVector3D(0, 0, 0); // Normals will be computed later
-            vert.texCoords = QVector2D(0, 0);
-            vert.tangent = QVector3D(1, 0, 0);
-            vert.bitangent = QVector3D(0, 1, 0);
-            verts.push_back(vert);
-            vmap[v] = idx++;
-        }
+//         for (auto v : mesh.vertices()) {
+//             const auto& p = mesh.point(v);
+//             Vertex vert;
+//             vert.position = QVector3D(p.x(), p.y(), p.z());
+//             vert.normal = QVector3D(0, 0, 0); // Normals will be computed later
+//             vert.texCoords = QVector2D(0, 0);
+//             vert.tangent = QVector3D(1, 0, 0);
+//             vert.bitangent = QVector3D(0, 1, 0);
+//             verts.push_back(vert);
+//             vmap[v] = idx++;
+//         }
 
-        for (auto f : mesh.faces()) {
-            std::vector<unsigned int> face;
-            for (auto v : CGAL::vertices_around_face(mesh.halfedge(f), mesh))
-                face.push_back(vmap[v]);
+//         for (auto f : mesh.faces()) {
+//             std::vector<unsigned int> face;
+//             for (auto v : CGAL::vertices_around_face(mesh.halfedge(f), mesh))
+//                 face.push_back(vmap[v]);
 
-            if (face.size() == 3)
-                indices.insert(indices.end(), face.begin(), face.end());
-        }
-    }
+//             if (face.size() == 3)
+//                 indices.insert(indices.end(), face.begin(), face.end());
+//         }
+//     }
 
-    void Remesh(double targetLength) {
-        PMP::isotropic_remeshing(
-            faces(mesh),
-            targetLength,
-            mesh,
-            PMP::parameters::number_of_iterations(3) // .protect_constraints(true)
-        );
-    }
-};
+//     bool CloseAndCleanMesh() {
+//         using Halfedge_index = SurfaceMesh::Halfedge_index;
+
+//         // 0. Clean the mesh
+//         PMP::remove_isolated_vertices(mesh);
+//         PMP::stitch_borders(mesh); // Stitch borders to ensure no open edges
+
+//         // 1. Find and close holes
+//         std::vector<Halfedge_index> holes;
+//         PMP::extract_boundary_cycles(mesh, std::back_inserter(holes));
+//         for (Halfedge_index h : holes) PMP::triangulate_hole(mesh, h, PMP::parameters::use_delaunay_triangulation(true));
+
+//         // 2. Clean up the mesh
+//         PMP::remove_isolated_vertices(mesh);
+
+//         // 3. Check if the mesh is closed
+//         bool isClosed = CGAL::is_closed(mesh);
+
+//         return isClosed;
+//     }
+
+//     void Remesh(double targetLength) {
+//         PMP::isotropic_remeshing(
+//             faces(mesh),
+//             targetLength,
+//             mesh,
+//             PMP::parameters::number_of_iterations(3) // .protect_constraints(true)
+//         );
+//     }
+// };
 
 // Mesh class implementation
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, Material material) :
-    vertices(vertices), indices(indices), material(material), cgalMesh(std::make_shared<CGALMesh>()),
+    vertices(vertices), indices(indices), material(material), /* cgalMesh(std::make_shared<CGALMesh>()), */
     VAO(std::make_unique<QOpenGLVertexArrayObject>()), VBO(std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer)), IBO(std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer))
 {
     initializeOpenGLFunctions();
@@ -100,28 +124,29 @@ void Mesh::Clear()
     indices.clear();
 }
 
-void Mesh::FromCGALMesh()
-{
-    cgalMesh->ToVertices(vertices, indices);
+// void Mesh::FromCGALMesh()
+// {
+//     cgalMesh->ToVertices(vertices, indices);
 
-    ComputeNormals();
-    SetUpMesh();
-}
+//     ComputeNormals();
+//     SetUpMesh();
+// }
 
-void Mesh::ToCGALMesh()
-{
-    cgalMesh->FromVertices(vertices, indices);
+// void Mesh::ToCGALMesh()
+// {
+//     cgalMesh->FromVertices(vertices, indices);
 
-    // Ensure the mesh is triangulated
-    PMP::triangulate_faces(cgalMesh->mesh);
-}
+//     // Ensure the mesh is triangulated
+//     PMP::triangulate_faces(cgalMesh->mesh);
+// }
 
-void Mesh::Remesh(double target_length)
-{
-    ToCGALMesh();
-    cgalMesh->Remesh(target_length);
-    FromCGALMesh();
-}
+// void Mesh::Remesh(double target_length)
+// {
+//     ToCGALMesh();
+//     cgalMesh->Remesh(target_length);
+//     qDebug() << cgalMesh->CloseAndCleanMesh();
+//     FromCGALMesh();
+// }
 
 void Mesh::SetUpMesh()
 {   
