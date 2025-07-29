@@ -66,16 +66,16 @@ void PhysicsSystem::Update(float deltaTime)
     for (int i = 0; i < constraintIterations; ++i) {
         QtConcurrent::blockingMap(springs, [&](auto& spring) { spring->SolveConstraints(deltaTime); });
 
-        for (auto& constaint : constraints) {
-            std::vector<std::shared_ptr<Rigidbody>> nearbyRigdibodies;
+        QtConcurrent::blockingMap(constraints, [&](auto& constraint) {
+            std::vector<std::shared_ptr<Rigidbody>> nearbyRigidbodies;
             std::vector<std::shared_ptr<TriangleCollider>> nearbyTriangles;
 
-            QueryBVH<TriangleCollider>(constaint->GetAABB(), bvhTriangleColliders.get(), nearbyTriangles);
-            constaint->SolveConstraints(nearbyTriangles);
-            
-            QueryBVH<Rigidbody>(constaint->GetAABB(), bvhRigidbodies.get(), nearbyRigdibodies);
-            constaint->SolveConstraints(nearbyRigdibodies);
-        }
+            QueryBVH<TriangleCollider>(constraint->GetAABB(), bvhTriangleColliders.get(), nearbyTriangles);
+            constraint->SolveConstraints(nearbyTriangles);
+
+            QueryBVH<Rigidbody>(constraint->GetAABB(), bvhRigidbodies.get(), nearbyRigidbodies);
+            constraint->SolveConstraints(nearbyRigidbodies);
+        });
     }
 
     qint64 elapsedTime = timer.elapsed();
