@@ -141,6 +141,7 @@ void Model::Update(float dt)
 
 void Model::Render(QOpenGLShaderProgram* shaderProgram)
 {
+    if (!IsVisible() || !IsValid()) return;
     shaderProgram->bind();
 
     // Transform t = transform; // Copy the transform for rendering

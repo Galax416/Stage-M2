@@ -28,9 +28,10 @@ private:
 protected:
     int type { RIGIDBODY_TYPE_BASE }; // type of rigidbody
 
-    float mass { 1.0f }; // default mass
-    float invMass { 1.0f }; // default inverse mass
-    bool isStatic { true }; // is the rigidbody static or dynamic
+    float mass     { 1.0f }; // default mass
+    float invMass  { 1.0f }; // default inverse mass
+    bool isStatic  { true }; // is the rigidbody static or dynamic
+    bool display   { true }; // Display (Render) model by default
     // bool isDirty { false }; // is the rigidbody dirty (needs to be updated)
 
 public:
@@ -81,7 +82,11 @@ public:
     inline QVector3D GetPosition() const { return transform.position; }
     // inline QVector3D GetVelocity() const { return velocity; }
 
-    // State acces
+    void Hide() { display = false; }
+    void Show() { display = true; }
+    bool IsVisible() const { return display; }
+
+    // State access
     unsigned int GetID()    const { return id; }
     int GetType()           const { return type; }
 

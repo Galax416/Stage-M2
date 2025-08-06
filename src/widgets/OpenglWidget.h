@@ -27,7 +27,7 @@
 
 #define GRAVITY    QVector3D(0.0f, -9.81f, 0.0f)
 
-#define Verbose true // Set to true to enable verbose output
+#define Verbose false // Set to true to enable verbose output
 
 // Foward declarations
 class Camera;
@@ -42,6 +42,13 @@ enum ViewMode
     View4,
     View5,
     View6
+};
+
+enum ModelMode
+{
+    ModelModeMassSpring,
+    ModelModeSurface,
+    ModelModeMassSpringAndSurface
 };
 
 class OpenGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
@@ -63,6 +70,7 @@ public:
     void SaveScene(const QString& filename);
 
     void SetViewMode(ViewMode mode);
+    void SetModelMode(ModelMode mode);
     void SetRenderWireframe() { m_isWireMode = !m_isWireMode; emit statusBarMessageChanged(QString("Wireframe mode: %1").arg(m_isWireMode ? "ON" : "OFF")); }
     void SetRenderCollider() { m_renderCollider = !m_renderCollider; emit renderColliderChanged(m_renderCollider); emit statusBarMessageChanged(QString("Render Collider: %1").arg(m_renderCollider ? "ON" : "OFF")); }
     void SetRenderBVH() { if (IsPaused()) { m_renderBVH = !m_renderBVH; emit renderBVHChanged(m_renderBVH); } emit statusBarMessageChanged(QString("Render BVH: %1").arg(m_renderBVH ? "ON" : "OFF")); }
@@ -103,6 +111,7 @@ signals:
     void setSpacingVolumeSlider(int value);
     void setAttachedCheckBox(bool value);
     void setAttachedToModelCheckBox(bool value);
+    void setModelModeChanged(ModelMode mode);
 
 
 public slots:
@@ -189,12 +198,12 @@ private:
     void InitCurves();
     void UpdateCurveForm(int i1, int i2, float value);
     void UpdateCurveHeightWidth();
-    void ChangeControlPointPosistion(const QVector3D& direction);
+    void ChangeControlPointPosition(const QVector3D& direction);
     void CurveToParticlesSprings();
-    void BuildBreast(const std::vector<QVector3D>& profile);
+    void BuildBreast(const std::vector<QVector3D>& profile, const std::unordered_map<int, float>& stiffnessBySegment, bool isMirrored = false);
     bool GetPointOntoMesh(QVector3D& point);
     void FillVolumeWithParticle(const std::vector<QVector3D>& profile, std::vector<std::shared_ptr<TriangleCollider>>& triangleColliders);
-    void Add2ndLayer(std::vector<std::shared_ptr<Particle>>& particles, std::vector<std::shared_ptr<Spring>>& springs, const QVector3D& center, const float thickness, const float stiffnessInterLayer);
+    void Add2ndLayer(std::vector<std::shared_ptr<Particle>>& particles, std::vector<std::shared_ptr<Spring>>& springs, std::vector<std::shared_ptr<TriangleCollider>>& triangleColliders, const QVector3D& center, const float thickness, const float stiffnessInterLayer, const float stiffnessAreola);
     std::vector<std::shared_ptr<TriangleCollider>> m_fillTriangleColliders;
 
     void InitVoxelModel();
@@ -262,6 +271,7 @@ private:
     int m_nSegments              { DEFAULT_N_SEGMENTS };
     std::unordered_map<int, float> m_stiffnessBySegment = std::unordered_map<int, float>(DEFAULT_N_SEGMENTS);
     std::vector<float> m_angularWeights = std::vector<float>(DEFAULT_N_SEGMENTS, 1.0f / static_cast<float>(DEFAULT_N_SEGMENTS));
+    std::vector<QVector3D> m_posToAddParticle;
 
     // Voxel model
     VoxelGrid m_voxel;
@@ -272,9 +282,10 @@ private:
     std::vector<std::shared_ptr<Particle>> m_distPoints;
 
     // Mode
-    bool m_is2DMode   { false };
-    bool m_isRunning  { false };
-    bool m_isWireMode { false };
+    ModelMode m_mode     { ModelMode::ModelModeMassSpring };
+    bool m_is2DMode      { false };
+    bool m_isRunning     { false };
+    bool m_isWireMode    { false };
 
     // Colliders debug
     bool m_renderCollider { false }; // Render AABB of the colliders
@@ -284,6 +295,6 @@ private:
 
     // Debug
     // QVector3D breastDirection { 0.0f, 0.0f, 1.0f };
-    // Ray m_debugRay { QVector3D(0.0f, 0.0f, 0.0f), QVector3D(0.0f, 1.0f, 0.0f) };
+    std::vector<Ray> m_debugRays;
 
 };

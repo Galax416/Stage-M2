@@ -54,7 +54,7 @@ void SolvePairCollision(Rigidbody* a, TriangleCollider* b)
         auto* pa = static_cast<Particle*>(a);
         // if (pa->HasFlag(PARTICLE_NO_COLLISION_WITH_US)) return; // Skip if no collision with us
         // if (pa->HasFlag(PARTICLE_ATTACHED_TO_TRIANGLE)) return; // Skip if attached to triangle
-        SolvePaticleTriangleCollision(*pa, *b);
+        SolveParticleTriangleCollision(*pa, *b);
     }
 
 }
@@ -108,7 +108,7 @@ void SolveParticleOBBCollision(Particle& p, Rigidbody* rb)
 
 }
 
-void SolvePaticleTriangleCollision(Particle& p, TriangleCollider& tri)
+void SolveParticleTriangleCollision(Particle& p, TriangleCollider& tri)
 {
     float w = p.GetInvMass();
 
@@ -144,7 +144,7 @@ void SolvePaticleTriangleCollision(Particle& p, TriangleCollider& tri)
         }
     }
 
-    // Discrete Collision Detection
+    // DCD (Discrete Collision Detection) fallback
     QVector3D correction;
     if (CheckParticleTriangleCollision(&p, tri, correction)) {
         correction /= totalInvMass;
@@ -186,16 +186,16 @@ void SolveSphereOBBCollision(Rigidbody* sphereRb, Rigidbody* obbRb)
 
 void SolveOBBOBBCollision(Rigidbody* rb1, Rigidbody* rb2)
 {
-    if (!rb1 || !rb2) return;
+    // if (!rb1 || !rb2) return;
 
-    QVector3D mtv; // Minimum Translation Vector
-    if (!TestOBBOBBCollision(rb1->boxCollider, rb2->boxCollider, mtv)) return; // No collision
+    // QVector3D mtv; // Minimum Translation Vector
+    // if (!TestOBBOBBCollision(rb1->boxCollider, rb2->boxCollider, mtv)) return; // No collision
     
-    qDebug() << "OBB Collision Detected! MTV:" << mtv;
-    float w1 = rb1->GetInvMass();
-    float w2 = rb2->GetInvMass();
-    float totalInvMass = w1 + w2;
-    if (totalInvMass <= 0.0f) return; // Ignore static objects
+    // qDebug() << "OBB Collision Detected! MTV:" << mtv;
+    // float w1 = rb1->GetInvMass();
+    // float w2 = rb2->GetInvMass();
+    // float totalInvMass = w1 + w2;
+    // if (totalInvMass <= 0.0f) return; // Ignore static objects
 
     // QVector3D correction = QVector3D(0, 0.1, 0);// mtv / totalInvMass;
 

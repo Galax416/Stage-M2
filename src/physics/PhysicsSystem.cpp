@@ -6,8 +6,8 @@
 
 void PhysicsSystem::Update(float deltaTime)
 {
-    QElapsedTimer timer;
-    timer.start();
+    // QElapsedTimer timer;
+    // timer.start();
 
     // Thread-safe body/spring/constraint registration
     {
@@ -78,8 +78,8 @@ void PhysicsSystem::Update(float deltaTime)
         });
     }
 
-    qint64 elapsedTime = timer.elapsed();
-    qDebug() << "Physics update took" << elapsedTime << "milliseconds";
+    // qint64 elapsedTime = timer.elapsed();
+    // qDebug() << "Physics update took" << elapsedTime << "milliseconds";
 
     // for (auto& body : bodies) body->currentPosition = body->GetPosition();
 

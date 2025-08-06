@@ -31,12 +31,16 @@ public:
 public slots:
     void updateStatusBarMessage(const QString& message);
     void updateButtonsState(bool isRunning);
+    void updateModelMode(ModelMode mode);
 
 private:
     // QTimer* m_timer;
     
     QStatusBar* m_statusBar;
     QMenuBar*   m_menuBar;
+    QAction*    m_modeMesh;
+    QAction*    m_modeSurface;
+    QAction*    m_modeMeshAndSurface;
 
     QSplitter*              m_splitter;
     OpenGLWidget*           m_openGLWidget;

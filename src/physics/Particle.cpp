@@ -32,6 +32,7 @@ void Particle::Update(float dt)
 
 void Particle::Render(QOpenGLShaderProgram* shaderProgram)
 {
+    if (!IsVisible() || !m_particleModel) return;
     // m_particleModel->displayPosition = displayPosition;
     m_particleModel->Render(shaderProgram);
 }

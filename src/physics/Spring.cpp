@@ -15,7 +15,7 @@ Spring::Spring(std::shared_ptr<Particle> a, std::shared_ptr<Particle> b, float k
 
 void Spring::Render(QOpenGLShaderProgram* shaderProgram)
 {
-    if (!p1 || !p2) return;
+    if (!IsVisible() || !p1 || !p2) return;
 
     shaderProgram->bind();
 

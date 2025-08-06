@@ -40,6 +40,12 @@ MainWindow::MainWindow(QWidget* parent)
     QAction* vue5 = view->addAction("Bottom");
     QAction* vue6 = view->addAction("View 6");
     m_menuBar->addSeparator();
+    QMenu* mode = m_menuBar->addMenu("Mode");
+    m_modeMesh = mode->addAction("Mass-Spring");
+    m_modeMesh->setEnabled(false); // It's the default mode
+    m_modeSurface = mode->addAction("Surface");
+    m_modeMeshAndSurface = mode->addAction("Mass-Spring & Surface");
+    m_menuBar->addSeparator();
     QMenu* debug = m_menuBar->addMenu("Debug");
     QAction* debugWireframe = debug->addAction("Debug Wireframe");
     QAction* debugColliders = debug->addAction("Debug Colliders");
@@ -142,6 +148,21 @@ MainWindow::MainWindow(QWidget* parent)
     connect(vue4, &QAction::triggered, this, [this]() { m_openGLWidget->SetViewMode(ViewMode::View4); });
     connect(vue5, &QAction::triggered, this, [this]() { m_openGLWidget->SetViewMode(ViewMode::View5); });
     connect(vue6, &QAction::triggered, this, [this]() { m_openGLWidget->SetViewMode(ViewMode::View6); });
+
+    connect(m_openGLWidget, &OpenGLWidget::setModelModeChanged, this, &MainWindow::updateModelMode);
+    connect(m_modeMesh, &QAction::triggered, this, [this]() { 
+        updateModelMode(ModelMode::ModelModeMassSpring);
+        m_openGLWidget->SetModelMode(ModelMode::ModelModeMassSpring);
+
+    });
+    connect(m_modeSurface, &QAction::triggered, this, [this]() { 
+        updateModelMode(ModelMode::ModelModeSurface);
+        m_openGLWidget->SetModelMode(ModelMode::ModelModeSurface);
+    });
+    connect(m_modeMeshAndSurface, &QAction::triggered, this, [this]() {
+        updateModelMode(ModelMode::ModelModeMassSpringAndSurface);
+        m_openGLWidget->SetModelMode(ModelMode::ModelModeMassSpringAndSurface);
+    });
 
     connect(debugWireframe, &QAction::triggered, this, [this]() { m_openGLWidget->SetRenderWireframe(); });
     connect(debugColliders, &QAction::triggered, this, [this]() { m_openGLWidget->SetRenderCollider(); });
@@ -250,5 +271,26 @@ void MainWindow::updateButtonsState(bool isRunning)
         m_playStopButton->setText("Stop");
     } else {
         m_playStopButton->setText("Play");
+    }
+}
+
+void MainWindow::updateModelMode(ModelMode mode)
+{
+    switch (mode) {
+        case ModelMode::ModelModeMassSpring:
+            m_modeSurface->setEnabled(true);
+            m_modeMeshAndSurface->setEnabled(true);
+            m_modeMesh->setEnabled(false);
+            break;
+        case ModelMode::ModelModeSurface:
+            m_modeSurface->setEnabled(false);
+            m_modeMeshAndSurface->setEnabled(true);
+            m_modeMesh->setEnabled(true);
+            break;
+        case ModelMode::ModelModeMassSpringAndSurface:
+            m_modeSurface->setEnabled(true);
+            m_modeMeshAndSurface->setEnabled(false);
+            m_modeMesh->setEnabled(true);
+            break;
     }
 }

@@ -14,8 +14,10 @@ private:
     float stiffness { 0.0f };
     double compliance { 1.0f };
     double lambda { 0.0f };
-    
+
     QColor m_color;
+
+    bool display { true }; // Display (Render) spring by default
 
 public:
     Spring(std::shared_ptr<Particle> a, std::shared_ptr<Particle> b, float k = 1.0f);
@@ -38,5 +40,8 @@ public:
     void SetCompliance(float c) { compliance = c; }
     void SetColor(QColor c) { m_color = c; }
 
+    void Hide() { display = false; }
+    void Show() { display = true; }
+    bool IsVisible() const { return display; }
     
 };

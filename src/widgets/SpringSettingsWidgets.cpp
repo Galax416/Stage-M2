@@ -100,18 +100,14 @@ void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std:
                 colorButton->setStyleSheet(newStyle);
                 
                 // Update the spring color
-                for (const auto& spring : springGroup) {
-                    spring->SetColor(color);
-                }
+                for (const auto& spring : springGroup) spring->SetColor(color);
             }
         });
 
         connect(slider, &QSlider::valueChanged, this, [=](int value) {
             spinBox->setValue(value);  
             // Update the spring stiffness
-            for (const auto& spring : springGroup) {
-                spring->SetStiffness(static_cast<float>(value));
-            }
+            for (const auto& spring : springGroup) spring->SetStiffness(static_cast<float>(value));
             emit SendStiffnessUpdate(index, static_cast<float>(value));
 
         });
@@ -119,9 +115,7 @@ void SpringSettingsWidget::UpdateSpringsStiffnessControls(const std::vector<std:
             slider->setValue(value);
             
             // Update the spring stiffness
-            for (const auto& spring : springGroup) {
-                spring->SetStiffness(static_cast<float>(value));
-            }
+            for (const auto& spring : springGroup) spring->SetStiffness(static_cast<float>(value));
             emit SendStiffnessUpdate(index, static_cast<float>(value));
             
         });

@@ -7,6 +7,19 @@
 #include "Intersections.h"
 #include "Mesh.h"
 
+using Edge = std::pair<std::shared_ptr<Particle>, std::shared_ptr<Particle>>;
+struct EdgeHash {
+    size_t operator()(const Edge& e) const {
+        auto h1 = std::hash<void*>()(e.first.get());
+        auto h2 = std::hash<void*>()(e.second.get());
+        return h1 ^ h2;
+    }
+};
+
+inline Edge makeEdge(std::shared_ptr<Particle> a, std::shared_ptr<Particle> b) {
+    return std::minmax(a, b);
+}
+
 struct TriangleCollider
 {
 public:

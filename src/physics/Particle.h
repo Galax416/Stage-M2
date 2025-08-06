@@ -12,7 +12,9 @@ enum ParticleFlags
 {
     PARTICLE_FREE = 0,
     PARTICLE_ATTACHED_TO_TRIANGLE = 1 << 0,
-    PARTICLE_NO_COLLISION_WITH_US = 1 << 1
+    PARTICLE_NO_COLLISION_WITH_US = 1 << 1,
+    PARTICLE_BORDER = 1 << 2,
+    PARTICLE_CENTER = 1 << 3
 };
 
 // Forward declaration

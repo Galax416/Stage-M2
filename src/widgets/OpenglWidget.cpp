@@ -156,8 +156,8 @@ void OpenGLWidget::paintGL()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
-    // glDisable(GL_CULL_FACE);
-    glEnable(GL_CULL_FACE);
+    glDisable(GL_CULL_FACE);
+    // glEnable(GL_CULL_FACE);
 
     glClearColor(m_backgroundColor.redF(), m_backgroundColor.greenF(), m_backgroundColor.blueF(), m_backgroundColor.alphaF());
 
@@ -184,16 +184,17 @@ void OpenGLWidget::paintGL()
     // alpha = std::clamp(alpha, 0.0f, 1.0f); // Ensure alpha is between 0 and 1
     
     m_physicsSystem->Render(m_program.get()/* , alpha */); // Render the physics system
-    
-    // Debug surface
-    // UpdateModelFromParticles(m_model);
+
+    if (m_mode == ModelMode::ModelModeSurface || m_mode == ModelMode::ModelModeMassSpringAndSurface) UpdateModelFromParticles(m_model);
 
     // Debug ray
     // m_program->bind();
-    // m_program->setUniformValue("material.albedo", QVector3D(1.0f, 0.0f, 0.0f));
-    // m_program->setUniformValue("transparency", 1.0f);
-    // m_program->setUniformValue("model", QMatrix4x4());
-    // ::Render(m_debugRay);
+    // for (const auto& ray : m_debugRays) {
+    //     m_program->setUniformValue("material.albedo", QVector3D(1.0f, 0.0f, 0.0f));
+    //     m_program->setUniformValue("transparency", 1.0f);
+    //     m_program->setUniformValue("model", QMatrix4x4());
+    //     ::Render(ray);
+    // }
     // m_program->release();
 
     // Render points for distance measurement
@@ -358,6 +359,17 @@ void OpenGLWidget::keyPressEvent(QKeyEvent *event)
         Reset();
         break;
 
+    case Qt::Key_S:
+        {
+            bool isRunning = IsRunning();
+            Stop();
+            m_mode = static_cast<ModelMode>(m_mode + 1 >= 3 ? 0 : m_mode + 1); // Cycle through the modes
+            SetModelMode(m_mode);
+            emit setModelModeChanged(m_mode);
+            if (isRunning) Play();
+            break;
+        }    
+
     case 38: // &
         SetViewMode(ViewMode::View1);
         break;
@@ -380,7 +392,7 @@ void OpenGLWidget::keyPressEvent(QKeyEvent *event)
     case 16777236: // Right Arrow
         {
             makeCurrent();
-            ChangeControlPointPosistion(QVector3D(0.1f, 0.0f, 0.0f));
+            ChangeControlPointPosition(QVector3D(0.1f, 0.0f, 0.0f));
             Reset();
             doneCurrent();
             break;
@@ -388,7 +400,7 @@ void OpenGLWidget::keyPressEvent(QKeyEvent *event)
     case 16777234: // Left Arrow
         {
             makeCurrent();
-            ChangeControlPointPosistion(QVector3D(-0.1f, 0.0f, 0.0f));
+            ChangeControlPointPosition(QVector3D(-0.1f, 0.0f, 0.0f));
             Reset();
             doneCurrent();
             break;
@@ -396,7 +408,7 @@ void OpenGLWidget::keyPressEvent(QKeyEvent *event)
     case 16777237: // Down Arrow
         {
             makeCurrent();
-            ChangeControlPointPosistion(QVector3D(0.0f, -0.1f, 0.0f));
+            ChangeControlPointPosition(QVector3D(0.0f, -0.1f, 0.0f));
             Reset();
             doneCurrent();
             break;
@@ -404,7 +416,7 @@ void OpenGLWidget::keyPressEvent(QKeyEvent *event)
     case 16777235: // Up Arrow
         {
             makeCurrent();
-            ChangeControlPointPosistion(QVector3D(0.0f, 0.1f, 0.0f));
+            ChangeControlPointPosition(QVector3D(0.0f, 0.1f, 0.0f));
             Reset();
             doneCurrent();
             break;
@@ -467,8 +479,11 @@ void OpenGLWidget::InitScene()
         //     // m_physicsSystem->AddConstraint(particle);
         // }
 
-        // ConvertParticleSpringsToModel(m_model, m_particles, m_springs, m_triangleColliders);
-        // m_physicsSystem->AddRigidbody(m_model);
+        ConvertParticleSpringsToModel(m_model, m_particles, m_springs, m_triangleColliders);
+        if (m_mode == ModelMode::ModelModeSurface) m_model->Show();
+        else if (m_mode == ModelMode::ModelModeMassSpring) m_model->Hide();
+        else if (m_mode == ModelMode::ModelModeMassSpringAndSurface) m_model->Show();
+        m_physicsSystem->AddRigidbody(m_model);
         // m_physicsSystem->AddConstraint(m_model);
 
         m_physicsSystem->AddRigidbody(m_torsoModel);
@@ -522,10 +537,9 @@ void OpenGLWidget::InitScene()
     for (auto& t : m_triangleColliders) m_physicsSystem->AddTriangleCollider(t);
 
     m_physicsSystem->Update(0.0f); 
-
     m_physicsSystem->ChangeFriction(m_globalFriction);
-    
     m_physicsSystem->SetUpBVH();
+    SetModelMode(m_mode);
     
     emit updateSpringsStiffnessControlsChanged(m_springs);
     
@@ -959,7 +973,7 @@ void OpenGLWidget::InitCurves()
     
     // Change position and size of the curve
     UpdateCurveHeightWidth();
-    ChangeControlPointPosistion(QVector3D(1.0, 1.1, 0));
+    ChangeControlPointPosition(QVector3D(1.0, 1.1, 0));
 
     m_initialCurveCenter = m_curve.GetCenter();
     m_curveCenter = m_initialCurveCenter;
@@ -994,7 +1008,7 @@ void OpenGLWidget::InitCurves()
 
 }
 
-void OpenGLWidget::ChangeControlPointPosistion(const QVector3D& direction)
+void OpenGLWidget::ChangeControlPointPosition(const QVector3D& direction)
 {    
     bool isValid = true;
     for (auto& pt : m_curvePoints)
@@ -1051,7 +1065,7 @@ bool OpenGLWidget::GetPointOntoMesh(QVector3D& point)
     return hit;
 }
 
-void OpenGLWidget::BuildBreast(const std::vector<QVector3D>& profile)
+void OpenGLWidget::BuildBreast(const std::vector<QVector3D>& profile, const std::unordered_map<int, float>& stiffnessBySegment, bool isMirrored)
 {
     makeCurrent();
 
@@ -1063,7 +1077,7 @@ void OpenGLWidget::BuildBreast(const std::vector<QVector3D>& profile)
     int numSamples = m_numSamples; 
     float stiffnessInterLayer = m_stiffnessInterLayer;
     float stiffnessAreola = m_stiffnessAreola;
-    float thickness = 0.05f;
+    float thickness = 0.1f;
 
     std::vector<std::shared_ptr<Particle>> particles;
     std::vector<std::shared_ptr<Spring>> springs;
@@ -1093,6 +1107,7 @@ void OpenGLWidget::BuildBreast(const std::vector<QVector3D>& profile)
     centerCurve /= static_cast<float>(numPoints);
 
     // m_curveCenter = centerCurve;
+    m_posToAddParticle.push_back(centerCurve);
     QVector3D centerRing = centerCurve; 
 
     // Add offset to the center
@@ -1119,7 +1134,7 @@ void OpenGLWidget::BuildBreast(const std::vector<QVector3D>& profile)
         QVector3D p = cosAngle * xAxis * curveRingRadius + sinAngle * yAxis * curveRingRadius;
 
         ringPoints.push_back(centerRing + p * 1.5f);
-    }
+    }    
 
     // Create the layers of particles
     std::vector<std::vector<std::shared_ptr<Particle>>> layers;
@@ -1151,6 +1166,8 @@ void OpenGLWidget::BuildBreast(const std::vector<QVector3D>& profile)
 
     // Center particle
     auto centerParticle = std::make_shared<Particle>(centerRing, 1, mass);
+    centerParticle->SetFlags(ParticleFlags::PARTICLE_BORDER);
+    centerParticle->SetFlags(ParticleFlags::PARTICLE_CENTER);
 
     auto ringlayers = layers.back();
     for (size_t i = 0; i < ringlayers.size(); ++i) {
@@ -1177,8 +1194,17 @@ void OpenGLWidget::BuildBreast(const std::vector<QVector3D>& profile)
             // Second triangle of the quad
             auto d = current[next_i];
 
-            triangleColliders.push_back(std::make_shared<TriangleCollider>(b, a, c));
-            triangleColliders.push_back(std::make_shared<TriangleCollider>(c, a, d));
+            if (isMirrored)
+            {
+                triangleColliders.push_back(std::make_shared<TriangleCollider>(a, b, c));
+                triangleColliders.push_back(std::make_shared<TriangleCollider>(c, d, a));
+            }
+            else
+            {
+                triangleColliders.push_back(std::make_shared<TriangleCollider>(b, a, c));
+                triangleColliders.push_back(std::make_shared<TriangleCollider>(c, a, d));
+            }
+
         }
     }
 
@@ -1199,15 +1225,16 @@ void OpenGLWidget::BuildBreast(const std::vector<QVector3D>& profile)
     springs.clear();
     triangleColliders.clear();
 
-    ReconstructFromCGALMesh(mesh, segmentMap, m_stiffnessBySegment, vertexToParticleMap, particles, springs, triangleColliders);
+    ReconstructFromCGALMesh(mesh, segmentMap, stiffnessBySegment, vertexToParticleMap, particles, springs, triangleColliders);
 
     auto borderSprings = GetBorderSprings(mesh, vertexToParticleMap, springs);
     if (borderSprings.size() >= 2) {
         BorderSprings& profil = borderSprings[0];
         BorderSprings& ring   = borderSprings[1];
 
-        for (auto& p : profil.particles) p->SetStatic();
+        for (auto& p : profil.particles) { p->SetStatic(); p->SetFlags(ParticleFlags::PARTICLE_BORDER); }
         for (auto& s : profil.springs) { s->SetStiffness(stiffnessAreola); s->SetColor(floatToQColor(stiffnessAreola)); }
+        for (auto& p : ring.particles) { p->SetFlags(ParticleFlags::PARTICLE_BORDER); }
         for (auto& s : ring.springs) { s->SetStiffness(stiffnessAreola); s->SetColor(floatToQColor(stiffnessAreola)); }
 
         particles.push_back(centerParticle);
@@ -1234,20 +1261,21 @@ void OpenGLWidget::BuildBreast(const std::vector<QVector3D>& profile)
     std::vector<std::shared_ptr<TriangleCollider>> fillTriangleColliders = triangleColliders;
 
     // Add a closed triangle 
+    const QVector3D& center = centerCurve + (isMirrored ? -curveNormal : curveNormal) * 0.2f; // Offset the center a bit
     for (size_t i = 0; i < numPoints; ++i) {
         const QVector3D& a = profile[i];
         const QVector3D& b = profile[(i + 1) % numPoints]; // wrap around
 
         // Triangle (a, b, center)
-        auto tri = std::make_shared<TriangleCollider>(a, b, centerCurve + curveNormal * 0.15f);
+        auto tri = std::make_shared<TriangleCollider>(a, b, center);
         fillTriangleColliders.push_back(tri);
     }
 
     doneCurrent();
 
     FillVolumeWithParticle(profile, fillTriangleColliders);
-    Add2ndLayer(particles, springs, centerCurve, thickness, stiffnessInterLayer);
-    
+    if (m_haveThickness) Add2ndLayer(particles, springs, triangleColliders, centerCurve, thickness, stiffnessInterLayer, stiffnessAreola);
+
     m_particles.insert(m_particles.end(), particles.begin(), particles.end());
     m_springs.insert(m_springs.end(), springs.begin(), springs.end());
     m_triangleColliders.insert(m_triangleColliders.end(), triangleColliders.begin(), triangleColliders.end());
@@ -1384,9 +1412,9 @@ void OpenGLWidget::FillVolumeWithParticle(const std::vector<QVector3D>& profile,
                     auto s1 = std::make_shared<Spring>(p, closestTriangle->p0, stiffness);
                     auto s2 = std::make_shared<Spring>(p, closestTriangle->p1, stiffness);
                     auto s3 = std::make_shared<Spring>(p, closestTriangle->p2, stiffness);
-                    m_springs.push_back(s1);
-                    m_springs.push_back(s2);
-                    m_springs.push_back(s3);
+                    if (!closestTriangle->p0->HasFlag(ParticleFlags::PARTICLE_CENTER)) m_springs.push_back(s1);
+                    if (!closestTriangle->p1->HasFlag(ParticleFlags::PARTICLE_CENTER)) m_springs.push_back(s2);
+                    if (!closestTriangle->p2->HasFlag(ParticleFlags::PARTICLE_CENTER)) m_springs.push_back(s3);
                 }
             }
         }
@@ -1409,41 +1437,62 @@ void OpenGLWidget::FillVolumeWithParticle(const std::vector<QVector3D>& profile,
 void OpenGLWidget::Add2ndLayer(
     std::vector<std::shared_ptr<Particle>>& particles,
     std::vector<std::shared_ptr<Spring>>& springs,
-    const QVector3D& center, const float thickness, const float stiffnessInterLayer)
+    std::vector<std::shared_ptr<TriangleCollider>>& triangleColliders,
+    const QVector3D& center, const float thickness, const float stiffnessInterLayer, const float stiffnessAreola)
 {
     makeCurrent();
-    size_t springsSize = springs.size();
-    std::unordered_map<std::shared_ptr<Particle>, std::shared_ptr<Particle>> particlesMap;
+    std::unordered_map<TriangleCollider*, std::shared_ptr<Particle>> barycenterMap;
+    std::unordered_map<Edge, std::vector<TriangleCollider*>, EdgeHash> edgeToTriangles;
+    
+    for (const auto& triangle : triangleColliders)
+    {   
+        if (!triangle->p0 || !triangle->p1 || !triangle->p2) continue;
 
-    for (const auto& particle : particles)
-    {
-        QVector3D pos = particle->GetPosition();
-        QVector3D newPos = pos + (pos - center).normalized() * thickness;
-        auto newParticle = std::make_shared<Particle>(newPos, particle->GetRadius() * 100.0f, particle->GetMass(), particle->IsDynamic());
+        auto p0 = triangle->p0;
+        auto p1 = triangle->p1;
+        auto p2 = triangle->p2;
+
+        QVector3D baryCenter = (p0->GetPosition() + p1->GetPosition() + p2->GetPosition()) / 3.0f;
+        baryCenter = baryCenter + (baryCenter - center).normalized() * thickness;
+
+        auto newParticle = std::make_shared<Particle>(baryCenter, p0->GetRadius() * 100.0f, p0->GetMass(), (p0->IsDynamic() && p1->IsDynamic() && p2->IsDynamic()));
+
         particles.push_back(newParticle);
-        particlesMap[particle] = newParticle;
+        barycenterMap[triangle.get()] = newParticle;
 
-        auto newSpring = std::make_shared<Spring>(particle, newParticle, 500.0f);
-        springs.push_back(newSpring);
+        springs.push_back(std::make_shared<Spring>(p0, newParticle, p0->HasFlag(ParticleFlags::PARTICLE_BORDER) ? stiffnessAreola : stiffnessInterLayer));
+        springs.push_back(std::make_shared<Spring>(p1, newParticle, p1->HasFlag(ParticleFlags::PARTICLE_BORDER) ? stiffnessAreola : stiffnessInterLayer));
+        springs.push_back(std::make_shared<Spring>(p2, newParticle, p2->HasFlag(ParticleFlags::PARTICLE_BORDER) ? stiffnessAreola : stiffnessInterLayer));
+
+        // Create edges and map them to triangles
+        edgeToTriangles[makeEdge(p0, p1)].push_back(triangle.get());
+        edgeToTriangles[makeEdge(p1, p2)].push_back(triangle.get());
+        edgeToTriangles[makeEdge(p2, p0)].push_back(triangle.get());
     }
 
-    for (size_t i = 0; i < springsSize; ++i)
+    for (const auto& [edge, tris] : edgeToTriangles)
     {
-        auto spring = springs[i];
-        auto itA = particlesMap.find(spring->GetP1());
-        auto itB = particlesMap.find(spring->GetP2());
+        if (tris.size() == 2) {
+            auto p1 = barycenterMap[tris[0]];
+            auto p2 = barycenterMap[tris[1]];
+            if (!p1 || !p2) continue;
 
-        if (itA != particlesMap.end() && itB != particlesMap.end())
-        {
-            auto cloneA = itA->second;
-            auto cloneB = itB->second;
+            float stiffness = stiffnessInterLayer;
 
-            springs.push_back(std::make_shared<Spring>(cloneA, cloneB, spring->GetStiffness()));
+            for (auto& s : springs) {
+                if ((s->GetP1() == edge.first && s->GetP2() == edge.second) ||
+                    (s->GetP1() == edge.second && s->GetP2() == edge.first)) {
+                    stiffness = s->GetStiffness();
+                    break;
+                }
+            }
 
-            springs.push_back(std::make_shared<Spring>(cloneA, spring->GetP2(), spring->GetStiffness()));
-            springs.push_back(std::make_shared<Spring>(spring->GetP1(), cloneB, spring->GetStiffness()));
+            springs.push_back(std::make_shared<Spring>(p1, p2, stiffness));
         }
     }
+
+
+
     doneCurrent();
 }
 
@@ -1459,29 +1508,32 @@ void OpenGLWidget::CurveToParticlesSprings()
     m_springs.clear();
     m_triangleColliders.clear();
     m_fillTriangleColliders.clear();
+    m_posToAddParticle.clear();
 
+    // Default position
+    for (size_t i = 0; i < m_curvePoints.size(); ++i) m_curve.SetControlPoint(i, m_curvePoints[i]);
+    
     { // 1st breast  
-        for (size_t i = 0; i < m_curvePoints.size(); ++i) m_curve.SetControlPoint(i, m_curvePoints[i]);
         m_profilePoints = m_curve.Sample(m_numSamples);
     
         // Remove the last points to avoid duplicates
         m_profilePoints.pop_back();
     
         for (size_t i = 0; i < m_profilePoints.size(); ++i) GetPointOntoMesh(m_profilePoints[i]);
-    
-        BuildBreast(m_profilePoints);
+
+        BuildBreast(m_profilePoints, m_stiffnessBySegment);
     }
 
     { // 2nd breast (mirrored)
-        std::vector<QVector3D> mirroredProfile;
-        for (const auto& point : m_profilePoints)
+        std::vector<QVector3D> mirroredProfile = m_curve.Sample(m_numSamples);
+        for (auto& point : mirroredProfile)
         {
-            QVector3D mirroredPoint = point;
-            mirroredPoint.setX(-mirroredPoint.x());
-            mirroredPoint.setZ(mirroredPoint.z() + 0.1f); // Add a small offset to avoid z-fighting with the ground
-            mirroredProfile.push_back(mirroredPoint);
+            point.setX(-point.x());
+            point.setZ(point.z() + 0.2f); // Add a small offset to avoid z-fighting with the ground
         }
+
         for (size_t i = 0; i < mirroredProfile.size(); ++i) GetPointOntoMesh(mirroredProfile[i]);
+        // std::reverse(mirroredProfile.begin(), mirroredProfile.end()); // Reverse the order of points to match the mirrored profile
         
         // Inverse m_stiffnessBySegment order for the mirrored profile
         std::unordered_map<int, float> mirroredStiffnessBySegment;
@@ -1490,9 +1542,7 @@ void OpenGLWidget::CurveToParticlesSprings()
             mirroredStiffnessBySegment[mirroredIndex] = segment.second;
         }
 
-        m_stiffnessBySegment = mirroredStiffnessBySegment;
-
-        BuildBreast(mirroredProfile);
+        BuildBreast(mirroredProfile, mirroredStiffnessBySegment, true);
     }
 }
 
@@ -1567,9 +1617,11 @@ void OpenGLWidget::addParticle()
     makeCurrent();
     bool isRunning = IsRunning();
     Stop();
-    auto p = std::make_shared<Particle>(m_curveCenter + QVector3D(0, 0, 0.24), m_particleRadiusVolume, 1);
-    m_physicsSystem->AddRigidbody(p);
-    m_physicsSystem->AddConstraint(p);
+    for (auto& pos : m_posToAddParticle) {
+        auto p = std::make_shared<Particle>(pos + QVector3D(0, 0, 0.24), m_particleRadiusVolume, 1);
+        m_physicsSystem->AddRigidbody(p);
+        m_physicsSystem->AddConstraint(p);
+    }
     if (isRunning) Play();
     doneCurrent();
 }
@@ -1677,4 +1729,35 @@ void OpenGLWidget::InitStiffnessValues()
 
     // Set the stiffness variables in the m_stiffness map
     for (size_t i = 0; i < stiffnessVars.size(); ++i)  m_stiffness[static_cast<int>(i)] = stiffnessVars[i].first;
+}
+
+void OpenGLWidget::SetModelMode(ModelMode mode)
+{
+    m_mode = mode;
+    
+    switch (mode)
+    {
+        case ModelMode::ModelModeMassSpring:
+            {
+                m_model->Hide();
+                for (auto& p : m_particles) p->Show();
+                for (auto& s : m_springs) s->Show();
+                break;
+            }
+        case ModelMode::ModelModeSurface:
+            {
+                m_model->Show();
+                for (auto& p : m_particles) p->Hide();
+                for (auto& s : m_springs) s->Hide();
+                break;
+            }
+        case ModelMode::ModelModeMassSpringAndSurface:
+            {
+                m_model->Show();
+                for (auto& p : m_particles) p->Show();
+                for (auto& s : m_springs) s->Show();
+                break;
+            }
+    }
+    
 }

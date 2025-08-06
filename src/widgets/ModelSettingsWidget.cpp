@@ -54,10 +54,10 @@ void ModelSettingsWidget::InitUI()
         auto deformModelLayout = new QVBoxLayout(m_deformBreastModelGroupBox);
 
         { // Thickness
-            // m_thicknessCheckBox = new QCheckBox("Thickness", this);
-            // m_thicknessCheckBox->setStyleSheet("QCheckBox { font-size: 12px; }");
-            // m_thicknessCheckBox->setChecked(true);
-            // deformModelLayout->addWidget(m_thicknessCheckBox);
+            m_thicknessCheckBox = new QCheckBox("Thickness", this);
+            m_thicknessCheckBox->setStyleSheet("QCheckBox { font-size: 12px; }");
+            m_thicknessCheckBox->setChecked(true);
+            deformModelLayout->addWidget(m_thicknessCheckBox);
         }
 
         { // Attached
@@ -310,7 +310,7 @@ void ModelSettingsWidget::InitConnections()
     connect(m_createBreastModelButton, &QPushButton::clicked, this, [=]() {
         m_createBreastModelButtonClicked = !m_createBreastModelButtonClicked;
 
-        // m_thicknessCheckBox->setChecked(true);
+        m_thicknessCheckBox->setChecked(true);
         ResetSliders();
 
         emit Update3DModelButtonChanged(false); // Hide 3D model parameters
@@ -318,14 +318,16 @@ void ModelSettingsWidget::InitConnections()
 
     });
 
-    // connect(m_thicknessCheckBox, &QCheckBox::stateChanged, this, [=](int state) {
-    //     emit DeformModelThicknessChanged(state == Qt::Checked);
-    // });
+    connect(m_thicknessCheckBox, &QCheckBox::stateChanged, this, [=](int state) {
+        emit DeformModelThicknessChanged(state == Qt::Checked);
+    });
 
     connect(m_attachedCheckBox, &QCheckBox::stateChanged, this, [=](int state) {
+        if (state != Qt::Checked) m_attachedToModelCheckBox->setChecked(false); // Ensure attached to model is unchecked if attached is unchecked
         emit DeformModelAttachedChanged(state == Qt::Checked);
     });
     connect(m_attachedToModelCheckBox, &QCheckBox::stateChanged, this, [=](int state) {
+        if (state == Qt::Checked) m_attachedCheckBox->setChecked(true); // Ensure attached is checked if attached to model
         emit DeformModelAttachedToModelChanged(state == Qt::Checked);
     });
 

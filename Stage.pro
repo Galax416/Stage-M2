@@ -5,7 +5,7 @@
 QT += core gui opengl widgets concurrent
 win32: QT += openglwidgets
 
-CONFIG += c++17 release console
+CONFIG += c++11 release console
 QMAKE_CXXFLAGS += -pipe -std=c++17 -fopenmp -O3 -Wno-unused-parameter -isystem ./libs/eigen-3.4.0 -isystem ./libs/boost_1_78_0 -isystem ./libs/CGAL-5.6.1/include
 
 TARGET = main
