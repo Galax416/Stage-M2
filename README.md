@@ -62,8 +62,8 @@ Stage-M2/
 
 Voici un aperçu de l'interface graphique de l'application :
 
-![Interface principale](resources/images/interface1.png)
-![Interface principale](resources/images/interface2.png)
+![Interface principale](resources/images/Interface1.png)
+![Interface principale](resources/images/Interface2.png)
 
 _L'interface propose des contrôles pour la simulation, le chargement de modèles, et la visualisation 3D en temps réel._
 
