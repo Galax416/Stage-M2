@@ -54,7 +54,7 @@ Stage-M2/
 
 ## Utilisation
 1. **Compilation** : Utiliser Qt Creator ou `qmake` + `make` (voir `Stage.pro`)
-2. **Lancement** : Exécuter le binaire généré (`main.exe` sous Windows)
+2. **Lancement** : Exécuter le binaire généré (`release/main.exe` sous Windows)
 3. **Chargement de modèles** : Utiliser l'UI pour charger des fichiers OBJ ou des scènes
 4. **Simulation** : Manipuler les paramètres physiques, lancer/arrêter la simulation, visualiser les résultats
 
