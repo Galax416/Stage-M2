@@ -8,6 +8,7 @@ Spring::Spring(std::shared_ptr<Particle> a, std::shared_ptr<Particle> b, float k
 {
     if (!p1 && !p2) return;
     restingLength = (p2->GetPosition() - p1->GetPosition()).length();
+    // restingLength *= 0.6f;
     SetStiffness(k);
 
     m_color = floatToQColor(stiffness); // Set color based on spring constant

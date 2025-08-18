@@ -14,6 +14,7 @@
 #include "Rigidbody.h"
 // #include "Particle.h"
 #include "Spring.h"
+#include "Bending.h"
 #include "TriangleCollider.h"
 #include "BVH.h"
 
@@ -22,15 +23,16 @@ class PhysicsSystem : public QObject
     Q_OBJECT
 
 protected:
-    // 
     std::vector<std::shared_ptr<Rigidbody>> bodies;
-    std::vector<std::shared_ptr<Spring>> springs;
-    std::vector<std::shared_ptr<Rigidbody>> constraints;
-    std::vector<std::shared_ptr<TriangleCollider>> triangleColliders;
+    std::vector<std::shared_ptr<Spring>> springs; // Spring constraints
+    std::vector<std::shared_ptr<Bending>> bendings; // Bending constraints
+    std::vector<std::shared_ptr<Rigidbody>> constraints; // Other constraints
+    std::vector<std::shared_ptr<TriangleCollider>> triangleColliders; // Triangle colliders
 
     // Buffer
     std::vector<std::shared_ptr<Rigidbody>> pendingBodies;
     std::vector<std::shared_ptr<Spring>> pendingSprings;
+    std::vector<std::shared_ptr<Bending>> pendingBendings;
     std::vector<std::shared_ptr<Rigidbody>> pendingConstraints;
     std::vector<std::shared_ptr<TriangleCollider>> pendingTriangleColliders;
 
@@ -92,9 +94,19 @@ public:
         pendingSprings.push_back(spring);
     }
 
-    inline void ClearAll() { QMutexLocker locker(&m_dataMutex); ClearRigidbodys(); ClearSprings(); ClearConstraints(); ClearBVH(); }
+    inline void AddBending(std::shared_ptr<Bending> bending) {
+        if (!bending) {
+            qWarning() << "Warning: Tried to add a nullptr Bending!";
+            return;
+        }
+        QMutexLocker locker(&m_dataMutex); // Lock the mutex for thread safety
+        pendingBendings.push_back(bending);
+    }
+
+    inline void ClearAll() { QMutexLocker locker(&m_dataMutex); ClearRigidbodys(); ClearSprings(); ClearBendings(); ClearConstraints(); ClearBVH(); }
     inline void ClearRigidbodys() { bodies.clear(); pendingBodies.clear(); }
     inline void ClearSprings() { springs.clear(); pendingSprings.clear(); }
+    inline void ClearBendings() { bendings.clear(); pendingBendings.clear(); }
     inline void ClearConstraints() { constraints.clear(); pendingConstraints.clear(); triangleColliders.clear(); pendingTriangleColliders.clear(); }
     inline void ClearBVH() { bvhRigidbodies.reset(); bvhRigidbodies = nullptr; bvhTriangleColliders.reset(); bvhTriangleColliders = nullptr; }
 

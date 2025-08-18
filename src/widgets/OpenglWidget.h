@@ -109,6 +109,7 @@ signals:
     void setRingRadiusSlider(int value);  
     void setParticleRadiusVolumeSlider(int value);
     void setSpacingVolumeSlider(int value);
+    void setHaveThicknessCheckBox(bool value);
     void setAttachedCheckBox(bool value);
     void setAttachedToModelCheckBox(bool value);
     void setModelModeChanged(ModelMode mode);
@@ -224,6 +225,7 @@ private:
 
     std::vector<std::shared_ptr<Particle>>         m_particles;
     std::vector<std::shared_ptr<Spring>>           m_springs; 
+    std::vector<std::shared_ptr<Bending>>          m_bendings;
     std::vector<std::shared_ptr<TriangleCollider>> m_triangleColliders;
     std::shared_ptr<Model> m_model; // To load model from file
 
@@ -280,6 +282,7 @@ private:
 
     // Get distance between two points
     std::vector<std::shared_ptr<Particle>> m_distPoints;
+    std::vector<Line> m_distLines;
 
     // Mode
     ModelMode m_mode     { ModelMode::ModelModeMassSpring };

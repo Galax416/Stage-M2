@@ -11,9 +11,9 @@ private:
     std::shared_ptr<Particle> p2;
 
     float restingLength { 0.0f};
-    float stiffness { 0.0f };
-    double compliance { 1.0f };
-    double lambda { 0.0f };
+    float stiffness     { 0.0f };
+    double compliance   { 1.0f };
+    double lambda       { 0.0f };
 
     QColor m_color;
 

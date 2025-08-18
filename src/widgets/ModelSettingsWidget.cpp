@@ -695,6 +695,12 @@ void ModelSettingsWidget::SetSpacingVolume(int value)
     m_sSpacingVolume->setValue(value);
 }
 
+void ModelSettingsWidget::SetHaveThicknessCheckBox(bool checked)
+{
+    QSignalBlocker blocker(m_thicknessCheckBox);
+    m_thicknessCheckBox->setChecked(checked);
+}
+
 void ModelSettingsWidget::SetAttachedCheckBox(bool checked)
 {
     QSignalBlocker blocker(m_attachedCheckBox);

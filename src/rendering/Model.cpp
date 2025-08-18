@@ -45,9 +45,11 @@ void Model::SyncCollisionVolumes()
     else if (type == RIGIDBODY_TYPE_BOX) 
     {
         boxCollider.center = bounds.center + transform.position;
-        boxCollider.size = bounds.size * transform.scale;
+        qDebug() << "Box Collider Center:" << boxCollider.center << "OBB center:" << bounds.center << "Transform Position:" << transform.position;
+        boxCollider.size = bounds.size; /* * transform.scale */;
+        qDebug() << "Box Collider Size:" << boxCollider.size << "OBB size:" << bounds.size << "Transform Scale:" << transform.scale;
         boxCollider.orientation = transform.GetRotationMatrix();
-    } 
+    }
     else if (type == RIGIDBODY_TYPE_TRIANGLE) 
     {
         if (!mesh) return;

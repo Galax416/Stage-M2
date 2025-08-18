@@ -210,6 +210,7 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_openGLWidget, &OpenGLWidget::setRingRadiusSlider,           m_modelSettingsWidget, &ModelSettingsWidget::SetRingRadius);
     connect(m_openGLWidget, &OpenGLWidget::setParticleRadiusVolumeSlider, m_modelSettingsWidget, &ModelSettingsWidget::SetParticleRadiusVolume);
     connect(m_openGLWidget, &OpenGLWidget::setSpacingVolumeSlider,        m_modelSettingsWidget, &ModelSettingsWidget::SetSpacingVolume);
+    connect(m_openGLWidget, &OpenGLWidget::setHaveThicknessCheckBox,      m_modelSettingsWidget, &ModelSettingsWidget::SetHaveThicknessCheckBox);
     connect(m_openGLWidget, &OpenGLWidget::setAttachedCheckBox,           m_modelSettingsWidget, &ModelSettingsWidget::SetAttachedCheckBox);
     connect(m_openGLWidget, &OpenGLWidget::setAttachedToModelCheckBox,    m_modelSettingsWidget, &ModelSettingsWidget::SetAttachedToModelCheckBox);
     

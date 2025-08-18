@@ -30,6 +30,7 @@ SOURCES += \
     ./src/rendering/Voxel.cpp \
     ./src/physics/Particle.cpp \
     ./src/physics/Spring.cpp \
+    ./src/physics/Bending.cpp \
     ./src/physics/CollisionSolver.cpp \
     ./src/physics/PhysicsSystem.cpp \
     ./src/utils/ModelPhysicsConverter.cpp \
@@ -59,6 +60,7 @@ HEADERS += \
     ./src/rendering/Voxel.h \
     ./src/physics/Particle.h \
     ./src/physics/Spring.h \
+    ./src/physics/Bending.h \
     ./src/physics/CollisionSolver.h \
     ./src/physics/PhysicsSystem.h \
     ./src/physics/PhysicsWorker.h \

@@ -74,6 +74,7 @@ public slots:
     void SetRingRadius(int value);
     void SetParticleRadiusVolume(int value);
     void SetSpacingVolume(int value);
+    void SetHaveThicknessCheckBox(bool checked);
     void SetAttachedCheckBox(bool checked);
     void SetAttachedToModelCheckBox(bool checked);
 

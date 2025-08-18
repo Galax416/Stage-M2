@@ -1,13 +1,12 @@
 #include "Render.h"
 
-void Render(const Line& line) 
+void Render(const Line& line, float radius) 
 {
 	// glBegin(GL_LINES);
 	// glVertex3f(line.start[0], line.start[1], line.start[2]);
 	// glVertex3f(line.end[0], line.end[1], line.end[2]);
 	// glEnd();
     int segments = 6; // Number of segments for the cylinder
-    float radius = 0.003f; // Radius of the cylinder
 
     QVector3D start = line.start;
     QVector3D end = line.end;
@@ -80,7 +79,6 @@ void Render(const AABB& aabb)
     };
 
     glBegin(GL_LINES);
-    glLineWidth(10.0f);
     for (int i = 0; i < 24; i += 2) {
         glVertex3f(vertices[indices[i]].x(), vertices[indices[i]].y(), vertices[indices[i]].z());
         glVertex3f(vertices[indices[i + 1]].x(), vertices[indices[i + 1]].y(), vertices[indices[i + 1]].z());

@@ -13,22 +13,22 @@ std::shared_ptr<Mesh> Plane::GetSharedPlaneMesh()
         Material material;
 
         Vertex vertex1;
-        vertex1.position = QVector3D(-10.0f, 0.0f, -10.0f);
+        vertex1.position = QVector3D(-0.5, 0.0f, -0.5);
         vertex1.normal = QVector3D(0.0f, 1.0f, 0.0f); // World up vector
         vertex1.texCoords = QVector2D(0.0f, 0.0f);
 
         Vertex vertex2;
-        vertex2.position = QVector3D(10.0f, 0.0f, -10.0f);
+        vertex2.position = QVector3D(0.5, 0.0f, -0.5);
         vertex2.normal = QVector3D(0.0f, 1.0f, 0.0f); // World up vector
         vertex2.texCoords = QVector2D(1.0f, 0.0f);
 
         Vertex vertex3;
-        vertex3.position = QVector3D(10.0f, 0.0f, 10.0f);
+        vertex3.position = QVector3D(0.5, 0.0f, 0.5);
         vertex3.normal = QVector3D(0.0f, 1.0f, 0.0f); // World up vector
         vertex3.texCoords = QVector2D(1.0f, 1.0f);
 
         Vertex vertex4;
-        vertex4.position = QVector3D(-10.0f, 0.0f, 10.0f);
+        vertex4.position = QVector3D(-0.5, 0.0f, 0.5);
         vertex4.normal = QVector3D(0.0f, 1.0f, 0.0f); // World up vector
         vertex4.texCoords = QVector2D(0.0f, 1.0f);
 
@@ -60,14 +60,14 @@ std::shared_ptr<Mesh> Box::GetSharedBoxMesh()
         Material material;
 
         QVector3D positions[8] = {
-            {-1.0f, -1.0f, -1.0f}, // 0
-            { 1.0f, -1.0f, -1.0f}, // 1
-            { 1.0f,  1.0f, -1.0f}, // 2
-            {-1.0f,  1.0f, -1.0f}, // 3
-            {-1.0f, -1.0f,  1.0f}, // 4
-            { 1.0f, -1.0f,  1.0f}, // 5
-            { 1.0f,  1.0f,  1.0f}, // 6
-            {-1.0f,  1.0f,  1.0f}  // 7
+            {-0.5f, -0.5f, -0.5f}, // 0
+            { 0.5f, -0.5f, -0.5f}, // 1
+            { 0.5f,  0.5f, -0.5f}, // 2
+            {-0.5f,  0.5f, -0.5f}, // 3
+            {-0.5f, -0.5f,  0.5f}, // 4
+            { 0.5f, -0.5f,  0.5f}, // 5
+            { 0.5f,  0.5f,  0.5f}, // 6
+            {-0.5f,  0.5f,  0.5f}  // 7
         };
 
         auto addFace = [&](int i0, int i1, int i2, int i3, QVector3D normal) {

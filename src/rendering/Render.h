@@ -9,7 +9,7 @@
 #include "BVH.h"
 #include <cmath>
 
-void Render(const Line& line);
+void Render(const Line& line, float radius = 0.003f);
 void Render(const Ray& ray);
 
 void Render(const AABB& aabb);

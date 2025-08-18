@@ -2,7 +2,7 @@
 /.vscode
 /debug
 /Makefile*
-/release
+# /release
 /tmp
 /libs/assimp*
 /App*

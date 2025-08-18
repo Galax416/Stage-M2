@@ -85,6 +85,16 @@ public:
         return (point - GetCenter()).length();  
     }
 
+    std::shared_ptr<Particle> GetOppositeParticle(const std::shared_ptr<Particle> p, const std::shared_ptr<Particle> q) const {
+        if (p0 == p && p1 == q) return p2;
+        if (p0 == p && p2 == q) return p1;
+        if (p1 == p && p2 == q) return p0;
+        if (p1 == q && p2 == p) return p0;
+        if (p0 == q && p1 == p) return p2;
+        if (p0 == q && p2 == p) return p1;
+        return nullptr; // Not found
+    }
+
 };
 
 inline QVector3D ClosestPointOnTriangle(const QVector3D& point, const TriangleCollider& tri)

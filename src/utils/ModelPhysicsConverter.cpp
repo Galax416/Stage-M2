@@ -86,6 +86,7 @@ void ConvertModelToParticleSprings(std::shared_ptr<Model> &model,
         particles.push_back(std::make_shared<Particle>(vertex, radius, mass, true));
         model->customOBJ->nodes.push_back(Node{ static_cast<int>(i), radius, mass, true });
     }
+    model->particleRefs = particles; // Store the particle references in the model
 
     std::set<std::pair<int, int>> springSet; // To avoid duplicate springs
 
@@ -164,6 +165,7 @@ void ChargeModelParticleSprings(std::shared_ptr<Model> &model,
         auto particle = std::make_shared<Particle>(position, node.radius, node.mass, node.movable);
         particles.push_back(particle);
     }
+    model->particleRefs = particles; // Store the particle references in the model
 
     // Verify if the spring is on the edge of the face
     std::set<std::pair<int, int>> validEdges;
@@ -323,7 +325,8 @@ void UpdateModelFromParticles(std::shared_ptr<Model> &model)
 {
     if (!model || !model->mesh) return;
     if (model->particleRefs.size() != model->customOBJ->vertices.size()) {
-        qWarning("Mismatch between particles and vertices.");
+        qWarning("Mismatch between particles and vertices. Particles: %zu, Vertices: %zu",
+            model->particleRefs.size(), model->customOBJ->vertices.size());
         return;
     }
 

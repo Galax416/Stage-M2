@@ -6,8 +6,8 @@
 
 void PhysicsSystem::Update(float deltaTime)
 {
-    // QElapsedTimer timer;
-    // timer.start();
+    QElapsedTimer timer;
+    timer.start();
 
     // Thread-safe body/spring/constraint registration
     {
@@ -18,6 +18,9 @@ void PhysicsSystem::Update(float deltaTime)
         for (auto& s : pendingSprings) springs.push_back(s);
         pendingSprings.clear();
 
+        for (auto& b : pendingBendings) bendings.push_back(b);
+        pendingBendings.clear();
+
         for (auto& c : pendingConstraints) constraints.push_back(c);
         pendingConstraints.clear();
 
@@ -26,21 +29,6 @@ void PhysicsSystem::Update(float deltaTime)
     }
     
     // Step 1: Predict positions
-    // for (auto& body : bodies) {
-    //     if (body->IsStatic()) continue;
-
-    //     QVector3D tempPos = body->GetPosition();
-    //     QVector3D acceleration = body->GetGravity() * body->GetMass();
-    //     QVector3D velocity = (tempPos - body->oldPosition) * body->friction;
-
-    //     QVector3D predictedPos = tempPos + velocity + acceleration * deltaTime * deltaTime;
-    //     body->SetPosition(predictedPos);
-    //     body->oldPosition = tempPos;
-
-    //     body->SyncCollisionVolumes();
-        
-    // }
-
     QtConcurrent::blockingMap(bodies, [&](std::shared_ptr<Rigidbody>& body) {
         if (body->IsStatic()) return;
         
@@ -57,6 +45,7 @@ void PhysicsSystem::Update(float deltaTime)
 
     // Step 1.5: Reset lambdas
     for (auto& spring : springs) spring->ResetLambda();
+    for (auto& bending : bendings) bending->ResetLambda();
 
     // Build BVH for collision detection
     SetUpBVH();
@@ -64,8 +53,12 @@ void PhysicsSystem::Update(float deltaTime)
     // Step 2: Solve constraints
     const int constraintIterations = 20;
     for (int i = 0; i < constraintIterations; ++i) {
+        // Solve springs constraints
         QtConcurrent::blockingMap(springs, [&](auto& spring) { spring->SolveConstraints(deltaTime); });
 
+        // Solve bending constraints
+        QtConcurrent::blockingMap(bendings, [&](auto& bending) { bending->SolveConstraints(deltaTime); });  
+        
         QtConcurrent::blockingMap(constraints, [&](auto& constraint) {
             std::vector<std::shared_ptr<Rigidbody>> nearbyRigidbodies;
             std::vector<std::shared_ptr<TriangleCollider>> nearbyTriangles;
@@ -78,8 +71,8 @@ void PhysicsSystem::Update(float deltaTime)
         });
     }
 
-    // qint64 elapsedTime = timer.elapsed();
-    // qDebug() << "Physics update took" << elapsedTime << "milliseconds";
+    qint64 elapsedTime = timer.elapsed();
+    qDebug() << "Physics update took" << elapsedTime << "milliseconds";
 
     // for (auto& body : bodies) body->currentPosition = body->GetPosition();
 
