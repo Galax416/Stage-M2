@@ -303,10 +303,10 @@ void OpenGLWidget::mousePressEvent(QMouseEvent *event)
             m_distLines.push_back(Line(p1, p2));
             float dist = (p2 - p1).length();
 
-            // Ref : 6.8 = 61 cm, torso size
+            // Ref : 6.8 = 60.95 cm, torso size
 
-            dist = dist * 61.0f / 6.8f; // Convert to cm
-            
+            dist = dist * 60.95f / 6.8f; // Convert to cm
+
             emit statusBarMessageChanged(QString("Distance: %1 cm").arg(dist));
         }
 
